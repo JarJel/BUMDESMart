@@ -33,5 +33,6 @@ npm run dev
 
 ## Tim
 
-- Backend  : Muhammad Dzaki A, Muhammad Fajar M
-- Frontend : Muhammad Oki R
+- Backend    : Muhammad Fajar M
+- Frontend   : Muhammad Oki R
+- Penghubung : Muhammad Dzaki A
