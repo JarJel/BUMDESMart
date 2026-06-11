@@ -1,20 +1,31 @@
 # BUMDESMart
 
-Platform Digital BUMDes untuk Meningkatkan Layanan Pemasaran UMKM
+Platform Digital BUMDes untuk Meningkatkan Layanan Pemasaran UMKM  
 Desa Lengkong, Kecamatan Bojongsoang, Kabupaten Bandung.
 
 ## Struktur Repo
 
 ```
 BUMDESMart/
-├── backend/    → Laravel 13 (REST API)
-└── frontend/   → Next.js 14
+├── app/            → Laravel (Controllers, Models, Services)
+├── frontend/       → Next.js 14
+├── database/       → Migrations & Seeders
+├── routes/         → API Routes
+└── ...
 ```
 
-## Setup Backend
+## Branching Strategy
+
+```
+main          → stable, production ready
+dev           → integrasi semua fitur
+feature/xxx   → branch per fitur (contoh: feature/auth, feature/product)
+fix/xxx       → branch untuk bugfix
+```
+
+## Setup Backend (Laravel)
 
 ```bash
-cd backend
 cp .env.example .env
 composer install
 php artisan key:generate
@@ -23,7 +34,7 @@ php artisan db:seed
 php artisan serve
 ```
 
-## Setup Frontend
+## Setup Frontend (Next.js)
 
 ```bash
 cd frontend
