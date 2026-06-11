@@ -1,21 +1,20 @@
-# ===== LARAVEL =====
-/vendor/
-.env
-.env.backup
-storage/logs/*.log
-storage/framework/cache/data/*
-storage/framework/sessions/*
-storage/framework/views/*
-bootstrap/cache/*.php
+# ===== BACKEND (Laravel) =====
+backend/vendor/
+backend/.env
+backend/.env.backup
+backend/storage/logs/*.log
+backend/storage/framework/cache/data/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/bootstrap/cache/*.php
 
-# ===== FRONTEND =====
+# ===== FRONTEND (Next.js) =====
 frontend/node_modules/
 frontend/.next/
 frontend/.env.local
 frontend/.env.*.local
+frontend/next-env.d.ts
 
 # ===== OS =====
 .DS_Store
 Thumbs.db
-*.suo
-*.user

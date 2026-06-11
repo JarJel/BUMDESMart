@@ -3,47 +3,48 @@
 Platform Digital BUMDes untuk Meningkatkan Layanan Pemasaran UMKM  
 Desa Lengkong, Kecamatan Bojongsoang, Kabupaten Bandung.
 
-## Struktur Repo
+## Struktur Repo (Monorepo)
 
 ```
 BUMDESMart/
-├── app/            → Laravel (Controllers, Models, Services)
-├── frontend/       → Next.js 14
-├── database/       → Migrations & Seeders
-├── routes/         → API Routes
-└── ...
+├── backend/    → Laravel 13 (REST API)
+└── frontend/   → Next.js 14 (React)
 ```
 
-## Branching Strategy
-
-```
-main          → stable, production ready
-dev           → integrasi semua fitur
-feature/xxx   → branch per fitur (contoh: feature/auth, feature/product)
-fix/xxx       → branch untuk bugfix
-```
-
-## Setup Backend (Laravel)
+## Setup Backend
 
 ```bash
+cd backend
 cp .env.example .env
 composer install
 php artisan key:generate
-php artisan migrate
-php artisan db:seed
+php artisan migrate --seed
 php artisan serve
 ```
 
-## Setup Frontend (Next.js)
+> Laravel berjalan di http://localhost:8000
+
+## Setup Frontend
 
 ```bash
 cd frontend
+cp .env.example .env.local
 npm install
 npm run dev
 ```
 
+> Next.js berjalan di http://localhost:3000
+
+## Branching Strategy
+
+```
+main            → production ready
+dev             → integrasi semua fitur
+feature/xxx     → per fitur baru
+fix/xxx         → bugfix
+```
+
 ## Tim
 
-- Backend    : Muhammad Fajar M
-- Frontend   : Muhammad Oki R
-- Penghubung : Muhammad Dzaki A
+- Backend  : Muhammad Dzaki A, Muhammad Fajar M
+- Frontend : Muhammad Oki R
