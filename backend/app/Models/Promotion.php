@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Promotions extends Model
+class Promotion extends Model
 {
     protected $table = 'promotions';
     protected $primaryKey = 'id';
@@ -40,6 +40,6 @@ class Promotions extends Model
      */
     public function promotionProducts(): HasMany
     {
-        return $this->hasMany(PromotionProducts::class, 'promotion_id');
+        return $this->hasMany(PromotionProduct::class, 'promotion_id');
     }
 }

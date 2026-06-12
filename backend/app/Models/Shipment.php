@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Shipments extends Model
+class Shipment extends Model
 {
     protected $table = 'shipments';
     protected $primaryKey = 'id';
@@ -26,7 +26,7 @@ class Shipments extends Model
      */
     public function order(): BelongsTo
     {
-        return $this->belongsTo(Orders::class, 'order_id');
+        return $this->belongsTo(Order::class, 'order_id');
     }
 
     /**
@@ -34,7 +34,7 @@ class Shipments extends Model
      */
     public function shippingService(): BelongsTo
     {
-        return $this->belongsTo(ShippingServices::class, 'shipping_service_id');
+        return $this->belongsTo(ShippingService::class, 'shipping_service_id');
     }
 
     /**

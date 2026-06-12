@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Addresses extends Model
+class Address extends Model
 {
     protected $table = 'addresses';
     protected $primaryKey = 'id';
@@ -21,7 +22,7 @@ class Addresses extends Model
         'is_default',
     ];
 
-    public function customer() {
-        return $this->belongsTo(Customers::class, 'customer_id');
+    public function customer(): BelongsTo {
+        return $this->belongsTo(Customer::class, 'customer_id');
     }
 }

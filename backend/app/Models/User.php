@@ -38,7 +38,7 @@ class User extends Authenticatable
 
     public function customer()
     {
-        return $this->hasOne(Customers::class, 'user_id');
+        return $this->hasOne(Customer::class, 'user_id');
     }
 
     public function orderHistories() {

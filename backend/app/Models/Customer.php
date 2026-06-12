@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Customers extends Model
+class Customer extends Model
 {
     protected $table = 'customers';
     protected $primaryKey = 'id';
@@ -20,22 +22,21 @@ class Customers extends Model
         'phone',
     ];
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function orders()
+    public function orders(): HasMany
     {
-        return $this->hasMany(Orders::class, 'customer_id');
+        return $this->hasMany(Order::class, 'customer_id');
     }
 
-    public function addresses() {
-        return $this->hasMany(Addresses::class, 'customer_id');
+    public function addresses(): HasMany {
+        return $this->hasMany(Address::class, 'customer_id');
     }
 
-    public function wishlist() {
+    public function wishlist(): HasMany {
         return $this->hasMany(Wishlist::class, 'customer_id');
     }
-
 }

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class ProductVariants extends Model
+class ProductVariant extends Model
 {
     protected $table = 'product_variants';
     protected $primaryKey = 'id';
@@ -30,7 +30,7 @@ class ProductVariants extends Model
      */
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Products::class, 'product_id');
+        return $this->belongsTo(Product::class, 'product_id');
     }
 
     /**
@@ -38,6 +38,6 @@ class ProductVariants extends Model
      */
     public function options(): HasMany
     {
-        return $this->hasMany(ProductVariantsOptions::class, 'product_variant_id');
+        return $this->hasMany(ProductVariantOption::class, 'product_variant_id');
     }
 }

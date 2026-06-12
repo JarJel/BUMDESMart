@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class PaymentDetails extends Model
+class PaymentDetail extends Model
 {
     protected $table = 'payment_details';
     protected $primaryKey = 'id';
@@ -21,6 +21,6 @@ class PaymentDetails extends Model
      */
     public function payment(): BelongsTo
     {
-        return $this->belongsTo(Payments::class, 'payment_id'); 
+        return $this->belongsTo(Payment::class, 'payment_id'); 
     }
 }
