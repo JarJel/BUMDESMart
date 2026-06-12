@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProductVariantsOptions extends Model
+class ProductVariantOption extends Model
 {
     protected $table = 'product_variant_options';
     protected $primaryKey = 'id';
@@ -15,8 +16,8 @@ class ProductVariantsOptions extends Model
         'value',
     ];
 
-    public function productVariant()
+    public function productVariant(): BelongsTo
     {
-        return $this->belongsTo(ProductVariants::class, 'product_variant_id');
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
 }

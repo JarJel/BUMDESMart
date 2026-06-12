@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class ShippingServices extends Model
+class ShippingService extends Model
 {
     protected $table = 'shipping_services';
     protected $primaryKey = 'id';
@@ -23,7 +23,7 @@ class ShippingServices extends Model
      */
     public function shipments(): HasMany
     {
-        return $this->hasMany(Shipments::class, 'shipping_service_id');
+        return $this->hasMany(Shipment::class, 'shipping_service_id');
     }
 
     protected $casts = [

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Products extends Model
+class Product extends Model
 {
     protected $table = 'products';
     protected $primaryKey = 'id';
@@ -37,7 +37,7 @@ class Products extends Model
      */
     public function category(): BelongsTo
     {
-        return $this->belongsTo(Categories::class, 'category_id');
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
     /**
@@ -45,7 +45,7 @@ class Products extends Model
      */
     public function images(): HasMany
     {
-        return $this->hasMany(ProductImages::class, 'product_id');
+        return $this->hasMany(ProductImage::class, 'product_id');
     }
 
     /**
@@ -53,6 +53,6 @@ class Products extends Model
      */
     public function variants(): HasMany
     {
-        return $this->hasMany(ProductVariants::class, 'product_id');
+        return $this->hasMany(ProductVariant::class, 'product_id');
     }
 }

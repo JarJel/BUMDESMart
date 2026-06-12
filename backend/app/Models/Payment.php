@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Payments extends Model
+class Payment extends Model
 {
     protected $table = 'payments';
     protected $primaryKey = 'id';
@@ -21,11 +23,11 @@ class Payments extends Model
         'refunded_at',
     ];
 
-    public function order() {
-        return $this->belongsTo(Orders::class, 'order_id');
+    public function order(): BelongsTo {
+        return $this->belongsTo(Order::class, 'order_id');
     }
 
-    public function paymentDetails() {
-        return $this->hasMany(PaymentDetails::class, 'payment_id');
+    public function paymentDetails(): HasMany {
+        return $this->hasMany(PaymentDetail::class, 'payment_id');
     }
 }

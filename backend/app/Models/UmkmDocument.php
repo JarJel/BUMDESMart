@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class UmkmDocuments extends Model
+class UmkmDocument extends Model
 {
     protected $table = 'umkm_documents';
     protected $primaryKey = 'id';
@@ -19,9 +20,7 @@ class UmkmDocuments extends Model
         'verified_at',
     ];
 
-    public function umkmProfile() {
+    public function umkmProfile(): BelongsTo {
         return $this->belongsTo(UmkmProfile::class, 'umkm_profile_id');
     }
-
-    
 }

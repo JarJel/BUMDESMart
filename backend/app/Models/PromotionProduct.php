@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class PromotionProducts extends Model
+class PromotionProduct extends Model
 {
     protected $table = 'promotion_products';
     protected $primaryKey = 'id';
@@ -21,7 +21,7 @@ class PromotionProducts extends Model
      */
     public function promotion(): BelongsTo
     {
-        return $this->belongsTo(Promotions::class, 'promotion_id');
+        return $this->belongsTo(Promotion::class, 'promotion_id');
     }
 
     /**
@@ -29,7 +29,7 @@ class PromotionProducts extends Model
      */
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Products::class, 'product_id');
+        return $this->belongsTo(Product::class, 'product_id');
     }
 
     /**
@@ -37,6 +37,6 @@ class PromotionProducts extends Model
      */
     public function category(): BelongsTo
     {
-        return $this->belongsTo(Categories::class, 'category_id');
+        return $this->belongsTo(Category::class, 'category_id');
     }
 }
