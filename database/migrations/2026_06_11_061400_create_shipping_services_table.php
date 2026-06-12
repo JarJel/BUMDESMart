@@ -11,15 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('shipping_service', function (Blueprint $table) {
+        Schema::create('shipping_services', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
             $table->string('name');
             $table->string('provider');
             $table->json('service')->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
-            $table->timestamps('created_at');
-            $table->timestamp('updated_at');
+            $table->timestamps();
         });
     }
 
@@ -28,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('shipping_service');
+        Schema::dropIfExists('shipping_services');
     }
 };

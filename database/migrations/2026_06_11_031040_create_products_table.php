@@ -13,18 +13,17 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->bigInt('umkm_profile_id')->constrained('umkm_profile')->cascadeOnDelete();
+            $table->foreignId('umkm_profile_id')->constrained('umkm_profile')->cascadeOnDelete();
             $table->string('name');
             $table->string('slug')->unique();
-            $table->bigInt('category_id')->constrained('categories')->cascadeOnDelete();
+            $table->foreignId('category_id')->constrained('categories')->cascadeOnDelete();
             $table->text('description');
             $table->decimal('price', 15, 2);
-            $table->bigInt('stock');
-            $table->bigInt('weight');
+            $table->integer('stock');
+            $table->integer('weight');
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->boolean('is_digital')->default(false);
-            $table->timestamp('created_at');
-            $table->timestamp('updated_at');
+            $table->timestamps();
         });
     }
 

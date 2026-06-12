@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('payment_id')->constrained('payments')->cascadeOnDelete();
             $table->string('key');
             $table->string('value');
-            $table->timestamps('created_at');
+            $table->timestamps();
         });
     }
 

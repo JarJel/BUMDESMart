@@ -15,13 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('order_id')->constrained('orders')->cascadeOnDelete();
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
-            $table->foreignId('variant_id')->constrained('product_variants')->cascadeOnDelete();
+            $table->foreignId('variant_id')->nullable()->constrained('product_variants')->nullOnDelete();
             $table->decimal('price', 15, 2);
-            $table->bigInt('quantity');
-            $table->decimal('discout', 15, 2)->default(0);
+            $table->integer('quantity');
+            $table->decimal('discount', 15, 2)->default(0);
             $table->decimal('sub_total', 15, 2);
-            $table->timestamps('created_at');
-            $table->timestamp('updated_at');
+            $table->timestamps();
         });
     }
 

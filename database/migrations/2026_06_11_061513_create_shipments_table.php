@@ -20,8 +20,7 @@ return new class extends Migration
             $table->enum('status', ['pending', 'shipped', 'delivered', 'cancelled']);
             $table->dateTime('shipped_at')->nullable();
             $table->dateTime('delivered_at')->nullable();
-            $table->timestamps('created_at');
-            $table->timestamp('updated_at');
+            $table->timestamps();
         });
     }
 

@@ -18,8 +18,7 @@ return new class extends Migration
             $table->dateTime('date')->nullable();
             $table->string('location');
             $table->string('description');
-            $table->timestamps('created_at');
-            $table->timestamp('updated_at');
+            $table->timestamps();
         });
     }
 

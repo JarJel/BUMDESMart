@@ -15,11 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('slug')->unique();
-            $table->bigInt('parent_id')->nullable();
+            $table->unsignedBigInteger('parent_id')->nullable();
             $table->string('description');
             $table->enum('status', ['active', 'inactive'])->default('active');
-            $table->timestamp('created_at');
-            $table->timestamp('updated_at');
+            $table->timestamps();
         });
     }
 

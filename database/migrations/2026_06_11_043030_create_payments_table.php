@@ -22,8 +22,7 @@ return new class extends Migration
             $table->string('notes')->nullable();
             $table->dateTime('paid_at')->nullable();
             $table->dateTime('refunded_at')->nullable();
-            $table->timestamps('created_at');
-            $table->timestamp('updated_at');
+            $table->timestamps();
         });
     }
 

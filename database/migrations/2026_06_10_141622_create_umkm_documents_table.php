@@ -18,10 +18,9 @@ return new class extends Migration
             $table->string('file_path');
             $table->string('information');
             $table->enum('status_verification', ['pending', 'active', 'rejected']);
-            $table->bigInt('verified_by')->nullable();
-            $table->bigInt('verified_at')->nullable();
-            $table->timestamp('created_at');
-            $table->timestamp('updated_at');
+            $table->unsignedBigInteger('verified_by')->nullable();
+            $table->timestamp('verified_at')->nullable();
+            $table->timestamps();
         });
     }
 

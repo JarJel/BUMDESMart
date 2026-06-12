@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('promotions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('umkm_profile_id')->constrained('umkm_profile')->cascadeOnDelete();
             $table->string('code')->unique();
             $table->string('name');
             $table->string('description');
@@ -25,8 +26,7 @@ return new class extends Migration
             $table->integer('usage_limit')->nullable();
             $table->integer('usage_count')->default(0);
             $table->enum('status', ['active', 'inactive'])->default('active');
-            $table->timestamps('created_at');
-            $table->timestamp('updated_at');
+            $table->timestamps();
         });
     }
 

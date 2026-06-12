@@ -14,9 +14,36 @@ use Illuminate\Notifications\Notifiable;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
+
+    protected $table = 'users';
+    protected $primaryKey = 'id';
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'role',
+        'phone',
+        'avatar',
+        'status',
+        'email_verified_at',
+        'created_at',
+        'updated_at',
+    ];
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+    public function umkmProfile()
+    {
+        return $this->hasOne(UmkmProfile::class, 'user_id');
+    }
 
+    public function customer()
+    {
+        return $this->hasOne(Customers::class, 'user_id');
+    }
+
+    public function orderHistories() {
+        return $this->hasMany(OrderHistory::class, 'user_id');
+    }
     /**
      * Get the attributes that should be cast.
      *

@@ -16,8 +16,7 @@ return new class extends Migration
             $table->foreignId('product_variant_id')->constrained('product_variants')->cascadeOnDelete();
             $table->string('name');
             $table->string('value');
-            $table->timestamps('created_at');
-            $table->timestamp('updated_at');
+            $table->timestamps();
         });
     }
 

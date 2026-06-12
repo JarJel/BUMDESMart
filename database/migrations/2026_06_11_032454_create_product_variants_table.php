@@ -16,12 +16,11 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
             $table->string('name');
             $table->string('sku')->unique();
-            $table->bigInt('stock');
+            $table->integer('stock');
             $table->decimal('price', 15, 2);
-            $table->bigInt('weight')->nullable();
+            $table->integer('weight')->nullable();
             $table->json('attribute');
-            $table->timestamps('created_at');
-            $table->timestamp('updated_at');
+            $table->timestamps();
         });
     }
 
