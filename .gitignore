@@ -1,3 +1,8 @@
+# ===== ROOT (legacy files) =====
+.env
+vendor/
+node_modules/
+
 # ===== BACKEND (Laravel) =====
 backend/vendor/
 backend/.env
