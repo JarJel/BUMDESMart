@@ -22,8 +22,7 @@ return new class extends Migration
             $table->string('province');
             $table->string('postal_code');
             $table->boolean('is_default')->default(false);
-            $table->timestamp('created_at');
-            $table->timestamp('updated_at');
+            $table->timestamps();
         });
     }
 

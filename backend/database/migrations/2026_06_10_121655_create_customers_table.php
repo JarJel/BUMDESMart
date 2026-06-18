@@ -15,15 +15,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('name');
-            $table->date('date_of_birth');
-            $table->enum('gender', ['male', 'female']);
-            $table->string('address');
-            $table->string('city');
-            $table->string('province');
-            $table->string('postal_code');
-            $table->string('phone');
-            $table->timestamp('created_at');
-            $table->timestamp('updated_at');
+            $table->date('date_of_birth')->nullable();
+            $table->enum('gender', ['male', 'female'])->nullable();
+            $table->string('address')->nullable();
+            $table->string('city')->nullable();
+            $table->string('province')->nullable();
+            $table->string('postal_code')->nullable();
+            $table->string('phone')->nullable();
+            $table->timestamps();
         });
     }
 

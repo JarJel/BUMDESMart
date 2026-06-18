@@ -15,18 +15,17 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('name_umkm');
-            $table->string('npwp');
-            $table->string('nib');
+            $table->string('npwp')->nullable();
+            $table->string('nib')->nullable();
             $table->string('logo')->nullable();
-            $table->string('address');
-            $table->string('city');
-            $table->string('province');
-            $table->string('postal_code');
-            $table->string('phone');
-            $table->string('description');
-            $table->enum('status', ['pending', 'active', 'rejected']);
-            $table->timestamp('created_at');
-            $table->timestamp('updated_at');
+            $table->string('address')->nullable();
+            $table->string('city')->nullable();
+            $table->string('province')->nullable();
+            $table->string('postal_code')->nullable();
+            $table->string('phone')->nullable();
+            $table->string('description')->nullable();
+            $table->enum('status', ['pending', 'active', 'rejected'])->default('pending');
+            $table->timestamps();
         });
     }
 
