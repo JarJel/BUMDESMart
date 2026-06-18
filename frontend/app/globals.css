@@ -2,7 +2,16 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1a1a;
+  --primary: #2D6A4F;
+  --primary-dark: #1B4332;
+  --primary-light: #52B788;
+  --primary-muted: #D8F3DC;
+  --accent: #F4A261;
+  --accent-dark: #E76F51;
+  --surface: #F8FAF9;
+  --border: #E2E8E5;
+  --text-muted: #6B7C75;
 }
 
 @theme inline {
@@ -12,15 +21,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
 }
