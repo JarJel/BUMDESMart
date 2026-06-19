@@ -1,21 +1,76 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { authApi } from "@/lib/api/auth";
 
 export default function DaftarPage() {
+  const router = useRouter();
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const EyeIcon = ({ show }: { show: boolean }) => show ? (
-    <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-    </svg>
-  ) : (
-    <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-4-8a9.953 9.953 0 014 0M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-    </svg>
-  );
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+  });
+
+  const [agreed, setAgreed] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!agreed) {
+      setError("Anda harus menyetujui Syarat dan Ketentuan terlebih dahulu.");
+      return;
+    }
+
+    if (form.password !== form.password_confirmation) {
+      setError("Konfirmasi kata sandi tidak cocok.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authApi.register({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        password_confirmation: form.password_confirmation,
+        phone: "",
+      });
+      router.push("/login?registered=1");
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.errors?.email?.[0] ||
+        err.response?.data?.errors?.password?.[0] ||
+        err.response?.data?.error ||
+        "Terjadi kesalahan. Silakan coba lagi.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const EyeIcon = ({ show }: { show: boolean }) =>
+    show ? (
+      <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+      </svg>
+    ) : (
+      <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-4-8a9.953 9.953 0 014 0M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+      </svg>
+    );
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#F0F7F4" }}>
@@ -37,19 +92,46 @@ export default function DaftarPage() {
             Bergabunglah untuk mendukung produk desa dan UMKM Indonesia.
           </p>
 
-          <form className="space-y-4">
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Lengkap</label>
-              <input type="text" placeholder="Masukkan nama lengkap Anda" className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50" />
+              <input
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                placeholder="Masukkan nama lengkap Anda"
+                className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Email atau No. HP</label>
-              <input type="text" placeholder="Contoh: 08123456789 atau email@domain.com" className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50" />
+              <input
+                type="text"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="Contoh: 08123456789 atau email@domain.com"
+                className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Kata Sandi</label>
               <div className="relative">
-                <input type={showPass ? "text" : "password"} placeholder="Minimal 8 karakter" className="w-full px-4 pr-12 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50" />
+                <input
+                  type={showPass ? "text" : "password"}
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Minimal 8 karakter"
+                  className="w-full px-4 pr-12 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
+                />
                 <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   <EyeIcon show={showPass} />
                 </button>
@@ -58,7 +140,14 @@ export default function DaftarPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Konfirmasi Kata Sandi</label>
               <div className="relative">
-                <input type={showConfirm ? "text" : "password"} placeholder="Ulangi kata sandi Anda" className="w-full px-4 pr-12 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50" />
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  name="password_confirmation"
+                  value={form.password_confirmation}
+                  onChange={handleChange}
+                  placeholder="Ulangi kata sandi Anda"
+                  className="w-full px-4 pr-12 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
+                />
                 <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   <EyeIcon show={showConfirm} />
                 </button>
@@ -66,7 +155,12 @@ export default function DaftarPage() {
             </div>
 
             <label className="flex items-start gap-2.5 cursor-pointer">
-              <input type="checkbox" className="w-4 h-4 mt-0.5 rounded border-gray-300 accent-green-600" />
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="w-4 h-4 mt-0.5 rounded border-gray-300 accent-green-600"
+              />
               <span className="text-xs text-gray-500 leading-relaxed">
                 Saya menyetujui{" "}
                 <Link href="#" className="font-medium" style={{ color: "var(--primary)" }}>Syarat dan Ketentuan</Link>
@@ -76,8 +170,13 @@ export default function DaftarPage() {
               </span>
             </label>
 
-            <button type="submit" className="w-full py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-colors" style={{ background: "var(--primary)" }}>
-              Daftar Sekarang
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: "var(--primary)" }}
+            >
+              {loading ? "Memproses..." : "Daftar Sekarang"}
             </button>
           </form>
 

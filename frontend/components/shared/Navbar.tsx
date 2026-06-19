@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
   { href: "/", label: "Beranda" },
@@ -14,6 +15,18 @@ const navLinks = [
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, loading, logout } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
+
+  const isLoggedIn = mounted && !loading && !!user;
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
@@ -45,12 +58,48 @@ export default function Navbar() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-2">
-            <Link href="/login" className="text-sm font-medium px-4 py-2 rounded-lg text-gray-700 hover:text-green-700 transition-colors">
-              Masuk
-            </Link>
-            <Link href="/daftar" className="text-sm font-semibold px-4 py-2 rounded-xl text-white hover:opacity-90 transition-colors" style={{ background: "var(--primary)" }}>
-              Daftar
-            </Link>
+            {isLoggedIn ? (
+              <>
+                {/* Notifikasi */}
+                <button
+                  onClick={() => router.push("/profil")}
+                  className="relative p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                </button>
+
+                {/* Keranjang */}
+                <button
+                  onClick={() => router.push("/keranjang")}
+                  className="relative p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+                  </svg>
+                </button>
+
+                {/* Profile */}
+                <button
+                  onClick={() => router.push("/profil")}
+                  className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm font-medium px-4 py-2 rounded-lg text-gray-700 hover:text-green-700 transition-colors">
+                  Masuk
+                </Link>
+                <Link href="/daftar" className="text-sm font-semibold px-4 py-2 rounded-xl text-white hover:opacity-90 transition-colors" style={{ background: "var(--primary)" }}>
+                  Daftar
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Hamburger */}
@@ -71,10 +120,38 @@ export default function Navbar() {
                 {l.label}
               </Link>
             ))}
-            <div className="flex gap-2 pt-3 px-3">
-              <Link href="/login" className="flex-1 text-center text-sm font-medium py-2.5 border border-gray-200 rounded-xl text-gray-700">Masuk</Link>
-              <Link href="/daftar" className="flex-1 text-center text-sm font-semibold py-2.5 rounded-xl text-white" style={{ background: "var(--primary)" }}>Daftar</Link>
-            </div>
+            {isLoggedIn ? (
+              <div className="pt-3 px-3 space-y-2">
+                <div className="flex items-center gap-3 px-3 py-2">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-100 shrink-0">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                  </div>
+                </div>
+                <Link href="/profil" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
+                  Profil Saya
+                </Link>
+                <Link href="/keranjang" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
+                  Keranjang
+                </Link>
+                <Link href="/pesanan" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
+                  Pesanan Saya
+                </Link>
+                <button onClick={() => { setOpen(false); handleLogout(); }} className="w-full text-left px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 rounded-lg">
+                  Keluar
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2 pt-3 px-3">
+                <Link href="/login" className="flex-1 text-center text-sm font-medium py-2.5 border border-gray-200 rounded-xl text-gray-700">Masuk</Link>
+                <Link href="/daftar" className="flex-1 text-center text-sm font-semibold py-2.5 rounded-xl text-white" style={{ background: "var(--primary)" }}>Daftar</Link>
+              </div>
+            )}
           </div>
         )}
       </div>

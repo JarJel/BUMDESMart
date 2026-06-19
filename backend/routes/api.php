@@ -3,8 +3,10 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProfileController;
 
-Route::get('/user', [AuthController::class, 'me'])->middleware('auth:sanctum');
+Route::get('/profile', [ProfileController::class, 'show'])->middleware('auth:sanctum');
+Route::put('/profile', [ProfileController::class, 'update'])->middleware('auth:sanctum');
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/register/umkm', [AuthController::class, 'registerUmkm']);

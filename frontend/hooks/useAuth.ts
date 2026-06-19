@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { User } from '@/types'
 import { authApi } from '@/lib/api/auth'
 
@@ -6,33 +6,52 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const fetchUser = useCallback(async () => {
     const token = localStorage.getItem('token')
     if (token) {
-      authApi.me()
-        .then((res) => setUser(res.data.data))
-        .catch(() => localStorage.removeItem('token'))
-        .finally(() => setLoading(false))
+      try {
+        const res = await authApi.getProfile()
+        setUser(res.data.data)
+      } catch {
+        localStorage.removeItem('token')
+        setUser(null)
+      }
     } else {
-      setLoading(false)
+      setUser(null)
     }
+    setLoading(false)
   }, [])
+
+  useEffect(() => {
+    fetchUser()
+
+    const onStorage = () => fetchUser()
+    window.addEventListener('storage', onStorage)
+    window.addEventListener('auth-change', onStorage)
+
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener('auth-change', onStorage)
+    }
+  }, [fetchUser])
 
   const login = async (email: string, password: string) => {
     const res = await authApi.login({ email, password })
-    const { token, user } = res.data.data
+    const { token, user } = res.data
     localStorage.setItem('token', token)
     setUser(user)
+    window.dispatchEvent(new Event('auth-change'))
     return user
   }
 
   const logout = async () => {
-    await authApi.logout()
+    try { await authApi.logout() } catch {}
     localStorage.removeItem('token')
     setUser(null)
+    window.dispatchEvent(new Event('auth-change'))
   }
 
   const isRole = (role: User['role']) => user?.role === role
 
-  return { user, loading, login, logout, isRole }
+  return { user, loading, login, logout, isRole, refetch: fetchUser }
 }
