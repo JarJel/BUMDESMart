@@ -15,6 +15,7 @@ export default function DaftarPage() {
   const [form, setForm] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
     password_confirmation: "",
   });
@@ -46,7 +47,7 @@ export default function DaftarPage() {
         email: form.email,
         password: form.password,
         password_confirmation: form.password_confirmation,
-        phone: "",
+        phone: form.phone,
       });
       router.push("/login?registered=1");
     } catch (err: any) {
@@ -111,13 +112,24 @@ export default function DaftarPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email atau No. HP</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
               <input
-                type="text"
+                type="email"
                 name="email"
                 value={form.email}
                 onChange={handleChange}
-                placeholder="Contoh: 08123456789 atau email@domain.com"
+                placeholder="Contoh: email@domain.com"
+                className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">No. Telepon</label>
+              <input
+                type="tel"
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                placeholder="Contoh: 08123456789"
                 className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
               />
             </div>
