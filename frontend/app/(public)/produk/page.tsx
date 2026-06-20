@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { getAllProduk } from "@/lib/data/dummy";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { getAllProduk, kategoriList } from "@/lib/data/dummy";
 import { Button } from "@/components/ui/Button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ProductCard } from "@/components/shared/ProductCard";
@@ -14,13 +15,33 @@ const DEFAULT_FILTER = {
   minRating: 0,
 };
 
-export default function ProdukPage() {
+function ProdukContent() {
+  const searchParams = useSearchParams();
+  const query = searchParams?.get("q") || "";
   const allProduk = getAllProduk();
+
   const [kategori, setKategori] = useState(DEFAULT_FILTER.kategori);
   const [sort, setSort] = useState("terlaris");
   const [hargaMax, setHargaMax] = useState(DEFAULT_FILTER.hargaMax);
   const [minRating, setMinRating] = useState(DEFAULT_FILTER.minRating);
   const [showFilter, setShowFilter] = useState(false);
+
+  // Sync category param from URL with filter state
+  useEffect(() => {
+    const catParam = searchParams?.get("kategori");
+    if (catParam) {
+      const matched = kategoriList.find(
+        (k) =>
+          k.toLowerCase() === catParam.toLowerCase() ||
+          k.toLowerCase().includes(catParam.toLowerCase())
+      );
+      if (matched) {
+        setKategori(matched);
+      }
+    } else {
+      setKategori(DEFAULT_FILTER.kategori);
+    }
+  }, [searchParams]);
 
   const resetFilter = () => {
     setKategori(DEFAULT_FILTER.kategori);
@@ -30,6 +51,15 @@ export default function ProdukPage() {
 
   const filtered = allProduk
     .filter((p) => kategori === "Semua Kategori" || p.kategori === kategori)
+    .filter((p) => {
+      if (!query) return true;
+      const lowerQuery = query.toLowerCase();
+      return (
+        p.nama.toLowerCase().includes(lowerQuery) ||
+        p.deskripsi.toLowerCase().includes(lowerQuery) ||
+        p.tokNama.toLowerCase().includes(lowerQuery)
+      );
+    })
     .filter((p) => p.harga <= hargaMax)
     .filter((p) => p.rating >= minRating)
     .sort((a, b) => {
@@ -55,7 +85,9 @@ export default function ProdukPage() {
             <span>/</span>
             <span className="text-gray-700">Produk UMKM</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Semua Produk UMKM</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {query ? `Hasil Pencarian: "${query}"` : "Semua Produk UMKM"}
+          </h1>
           <p className="text-sm text-gray-500 mt-1">
             Menampilkan {filtered.length} dari {allProduk.length} produk dari Desa Lengkong
           </p>
@@ -143,7 +175,7 @@ export default function ProdukPage() {
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                   />
                 </svg>
-                <p className="font-medium text-sm">Tidak ada produk yang sesuai filter</p>
+                <p className="font-medium text-sm">Tidak ada produk yang sesuai pencarian atau filter</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -184,5 +216,13 @@ export default function ProdukPage() {
         />
       </BottomSheet>
     </div>
+  );
+}
+
+export default function ProdukPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20 text-gray-500">Memuat produk...</div>}>
+      <ProdukContent />
+    </Suspense>
   );
 }

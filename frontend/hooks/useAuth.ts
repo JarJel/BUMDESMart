@@ -40,7 +40,6 @@ export const useAuth = () => {
     const { token, user } = res.data
     localStorage.setItem('token', token)
     setUser(user)
-    window.dispatchEvent(new Event('auth-change'))
     return user
   }
 

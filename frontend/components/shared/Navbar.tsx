@@ -42,8 +42,23 @@ export default function Navbar() {
             <span className="text-lg font-bold" style={{ color: "var(--primary-dark)" }}>BumdesMart</span>
           </Link>
 
+          {/* Search Form (Desktop) */}
+          <form action="/produk" method="GET" className="hidden md:flex items-center relative max-w-[180px] lg:max-w-xs xl:max-w-md w-full mx-4">
+            <input
+              type="text"
+              name="q"
+              placeholder="Cari produk desa..."
+              className="w-full pl-4 pr-9 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white focus:ring-2 focus:ring-green-600/10 transition-all text-gray-700 placeholder-gray-400"
+            />
+            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-700 cursor-pointer transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+          </form>
+
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-7">
+          <nav className="hidden md:flex items-center gap-5">
             {navLinks.map((l) => (
               <Link
                 key={l.href}
@@ -115,6 +130,22 @@ export default function Navbar() {
         {/* Mobile Menu */}
         {open && (
           <div className="md:hidden border-t border-gray-100 py-4 space-y-1">
+            {/* Search Input for Mobile */}
+            <div className="px-3 pb-3">
+              <form action="/produk" method="GET" className="relative">
+                <input
+                  type="text"
+                  name="q"
+                  placeholder="Cari produk desa..."
+                  className="w-full pl-4 pr-10 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:border-green-600 focus:bg-white transition-all text-gray-700 placeholder-gray-400"
+                />
+                <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-700 cursor-pointer">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
+              </form>
+            </div>
             {navLinks.map((l) => (
               <Link key={l.href} href={l.href} className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
                 {l.label}
