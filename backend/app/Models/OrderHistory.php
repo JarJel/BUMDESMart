@@ -3,23 +3,26 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderHistory extends Model
 {
     protected $table = 'order_histories';
-    protected $primaryKey = 'id';
+
     protected $fillable = [
         'order_id',
+        'user_id',
         'status',
         'description',
-        'user_id',
     ];
 
-    public function order() {
+    public function order(): BelongsTo
+    {
         return $this->belongsTo(Order::class, 'order_id');
     }
 
-    public function user() {
+    public function user(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'user_id');
     }
 }

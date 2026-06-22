@@ -9,38 +9,40 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Shipment extends Model
 {
     protected $table = 'shipments';
-    protected $primaryKey = 'id';
 
     protected $fillable = [
         'order_id',
         'shipping_service_id',
-        'tracking_code',
+        'tracking_number',
+        'weight',
         'shipping_cost',
         'status',
+        'notes',
         'shipped_at',
+        'estimated_delivery_at',
         'delivered_at',
     ];
 
-    /**
-     * Dapatkan data pesanan terkait pengiriman ini.
-     */
+    protected function casts(): array
+    {
+        return [
+            'shipped_at'            => 'datetime',
+            'estimated_delivery_at' => 'datetime',
+            'delivered_at'          => 'datetime',
+        ];
+    }
+
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class, 'order_id');
     }
 
-    /**
-     * Dapatkan layanan pengiriman yang digunakan.
-     */
     public function shippingService(): BelongsTo
     {
         return $this->belongsTo(ShippingService::class, 'shipping_service_id');
     }
 
-    /**
-     * Dapatkan semua riwayat pelacakan pengiriman ini.
-     */
-    public function shipmentTrackings(): HasMany
+    public function trackings(): HasMany
     {
         return $this->hasMany(ShipmentTracking::class, 'shipment_id');
     }

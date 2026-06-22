@@ -6,34 +6,34 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('umkm_profile', function (Blueprint $table) {
+        Schema::create('umkm_profiles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('name_umkm');
-            $table->string('npwp')->nullable();
-            $table->string('nib')->nullable();
+            $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
+            $table->string('shop_name');
+            $table->string('slug')->unique();
+            $table->string('owner_name');
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
             $table->string('logo')->nullable();
+            $table->string('banner')->nullable();
+            $table->text('description')->nullable();
             $table->string('address')->nullable();
             $table->string('city')->nullable();
             $table->string('province')->nullable();
-            $table->string('postal_code')->nullable();
-            $table->string('phone')->nullable();
-            $table->string('description')->nullable();
-            $table->enum('status', ['pending', 'active', 'rejected'])->default('pending');
+            $table->string('postal_code', 10)->nullable();
+            $table->string('npwp', 20)->nullable();
+            $table->string('nib', 20)->nullable();
+            $table->enum('status', ['pending', 'active', 'rejected', 'suspended'])->default('pending');
+            $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('verified_at')->nullable();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('umkm_profile');
+        Schema::dropIfExists('umkm_profiles');
     }
 };

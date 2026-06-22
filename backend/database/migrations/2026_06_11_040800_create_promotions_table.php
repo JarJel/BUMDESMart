@@ -6,18 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('promotions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('umkm_profile_id')->constrained('umkm_profile')->cascadeOnDelete();
+            $table->foreignId('umkm_profile_id')->constrained('umkm_profiles')->cascadeOnDelete();
             $table->string('code')->unique();
             $table->string('name');
-            $table->string('description');
-            $table->enum('type', ['discount_product', 'discount_shipping', 'ongkir_free']);
+            $table->text('description')->nullable();
+            $table->enum('type', ['percentage', 'fixed_amount', 'free_shipping']);
             $table->decimal('value', 15, 2);
             $table->decimal('min_order_amount', 15, 2)->nullable();
             $table->decimal('max_discount_amount', 15, 2)->nullable();
@@ -30,9 +27,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('promotions');

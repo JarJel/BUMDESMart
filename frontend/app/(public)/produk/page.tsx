@@ -77,24 +77,7 @@ function ProdukContent() {
 
   return (
     <div style={{ background: "#F4F7F5", minHeight: "100vh" }}>
-      {/* Header */}
-      <div className="bg-white border-b border-gray-100 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
-            <Link href="/" className="hover:text-green-700">Beranda</Link>
-            <span>/</span>
-            <span className="text-gray-700">Produk UMKM</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {query ? `Hasil Pencarian: "${query}"` : "Semua Produk UMKM"}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Menampilkan {filtered.length} dari {allProduk.length} produk dari Desa Lengkong
-          </p>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar Filter — Desktop only */}
           <aside
@@ -119,6 +102,11 @@ function ProdukContent() {
             {/* Sort bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div className="flex flex-wrap items-center gap-2">
+                {query && (
+                  <span className="text-xs text-gray-500">
+                    Hasil untuk <span className="font-semibold text-gray-800">"{query}"</span> · {filtered.length} produk
+                  </span>
+                )}
                 {/* Mobile filter button */}
                 <button
                   onClick={() => setShowFilter(true)}
@@ -178,9 +166,9 @@ function ProdukContent() {
                 <p className="font-medium text-sm">Tidak ada produk yang sesuai pencarian atau filter</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                 {filtered.map((p) => (
-                  <ProductCard key={p.id} product={p} />
+                  <ProductCard key={p.id} product={p} compact />
                 ))}
               </div>
             )}

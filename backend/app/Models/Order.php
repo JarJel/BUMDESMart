@@ -10,63 +10,56 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Order extends Model
 {
     protected $table = 'orders';
-    protected $primaryKey = 'id';
 
     protected $fillable = [
         'customer_id',
-        'umkm_id',
+        'umkm_profile_id',
+        'address_id',
+        'promotion_id',
         'order_code',
         'sub_total',
         'shipping_cost',
-        'total',
         'discount',
+        'total',
         'status',
         'notes',
     ];
 
-    /**
-     * Dapatkan data pelanggan yang membuat pesanan ini.
-     */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class, 'customer_id');
     }
 
-    /**
-     * Dapatkan data profil UMKM yang memproses pesanan ini.
-     */
     public function umkmProfile(): BelongsTo
     {
         return $this->belongsTo(UmkmProfile::class, 'umkm_profile_id');
     }
 
-    /**
-     * Dapatkan semua riwayat status pesanan ini.
-     */
-    public function orderHistories(): HasMany
+    public function address(): BelongsTo
+    {
+        return $this->belongsTo(Address::class, 'address_id');
+    }
+
+    public function promotion(): BelongsTo
+    {
+        return $this->belongsTo(Promotion::class, 'promotion_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class, 'order_id');
+    }
+
+    public function histories(): HasMany
     {
         return $this->hasMany(OrderHistory::class, 'order_id');
     }
 
-    /**
-     * Dapatkan semua item di dalam pesanan ini.
-     */
-    public function orderItems(): HasMany
-    {
-        return $this->hasMany(OrderItem::class, 'order_id');
-    }
-    
-    /**
-     * Dapatkan data pembayaran untuk pesanan ini.
-     */
     public function payment(): HasOne
     {
         return $this->hasOne(Payment::class, 'order_id');
     }
 
-    /**
-     * Dapatkan data pengiriman untuk pesanan ini.
-     */
     public function shipment(): HasOne
     {
         return $this->hasOne(Shipment::class, 'order_id');

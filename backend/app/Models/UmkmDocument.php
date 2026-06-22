@@ -8,19 +8,34 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class UmkmDocument extends Model
 {
     protected $table = 'umkm_documents';
-    protected $primaryKey = 'id';
 
     protected $fillable = [
         'umkm_profile_id',
         'document_type',
+        'document_number',
         'file_path',
-        'information',
-        'status_verification',
+        'notes',
+        'expired_at',
+        'status',
         'verified_by',
         'verified_at',
     ];
 
-    public function umkmProfile(): BelongsTo {
+    protected function casts(): array
+    {
+        return [
+            'expired_at'  => 'date',
+            'verified_at' => 'datetime',
+        ];
+    }
+
+    public function umkmProfile(): BelongsTo
+    {
         return $this->belongsTo(UmkmProfile::class, 'umkm_profile_id');
+    }
+
+    public function verifiedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 }

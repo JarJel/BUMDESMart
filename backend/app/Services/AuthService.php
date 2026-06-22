@@ -20,7 +20,7 @@ class AuthService
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'password' => $data['password'],
             'role' => 'customer',
             'phone' => $data['phone'] ?? '',
             'status' => 'active', // Langsung aktif
@@ -45,18 +45,19 @@ class AuthService
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'password' => $data['password'],
             'role' => 'umkm',
             'phone' => $data['phone'] ?? '',
             'status' => 'active', // Aktif agar bisa login ke dashboard untuk verifikasi
         ]);
 
-        // 2. Buat profil UMKM di tabel 'umkm_profile'
+        // 2. Buat profil UMKM di tabel 'umkm_profiles'
         UmkmProfile::create([
-            'user_id' => $user->id,
-            'name_umkm' => $data['name_umkm'],
-            'phone' => $data['phone'] ?? null,
-            'status' => 'pending', // Menunggu persetujuan BUMDes
+            'user_id'    => $user->id,
+            'shop_name'  => $data['shop_name'],
+            'owner_name' => $data['name'],
+            'phone'      => $data['phone'] ?? null,
+            'status'     => 'pending',
         ]);
 
         return $user->load('umkmProfile');

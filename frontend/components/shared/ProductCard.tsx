@@ -32,42 +32,18 @@ export function ProductCard({ product, compact = false }: { product: Product; co
         )}
       </div>
 
-      <div className="p-3 min-w-0">
-        <p className="text-xs text-gray-400 truncate mb-0.5">{product.tokNama}</p>
-        <h3
-          className={`font-semibold text-gray-800 line-clamp-2 mb-1.5 group-hover:text-green-700 transition-colors leading-snug ${
-            compact ? "text-xs" : "text-sm"
-          }`}
-        >
+      <div className={`min-w-0 ${compact ? "p-2" : "p-3"}`}>
+        <p className="text-xs text-gray-400 truncate mb-0.5 leading-none">{product.tokNama}</p>
+        <h3 className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1 group-hover:text-green-700 transition-colors leading-snug">
           {product.nama}
         </h3>
-
-        <div className="flex items-center gap-1 mb-2">
-          <StarIcon size={compact ? "sm" : "md"} />
+        <div className="flex items-center gap-0.5 mb-1">
+          <StarIcon size="sm" />
           <span className="text-xs text-gray-500">{product.rating}</span>
-          {!compact && (
-            <>
-              <span className="text-xs text-gray-300">·</span>
-              <span className="text-xs text-gray-400">
-                {product.terjual.toLocaleString("id")} terjual
-              </span>
-            </>
-          )}
         </div>
-
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-bold" style={{ color: "var(--primary)" }}>
-            Rp {product.harga.toLocaleString("id-ID")}
-          </p>
-          {!compact && (
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-lg font-light shrink-0"
-              style={{ background: "var(--primary)" }}
-            >
-              +
-            </div>
-          )}
-        </div>
+        <p className="text-xs font-bold" style={{ color: "var(--primary)" }}>
+          Rp {product.harga.toLocaleString("id-ID")}
+        </p>
       </div>
     </Link>
   );

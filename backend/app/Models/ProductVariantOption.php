@@ -8,13 +8,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProductVariantOption extends Model
 {
     protected $table = 'product_variant_options';
-    protected $primaryKey = 'id';
 
     protected $fillable = [
         'product_variant_id',
-        'name',
         'value',
+        'sku',
+        'price',
+        'stock',
+        'weight',
+        'is_active',
+        'sort_order',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 
     public function productVariant(): BelongsTo
     {

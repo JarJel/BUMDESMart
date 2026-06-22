@@ -6,25 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('shipping_services', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->unique();
+            $table->string('courier_code');
+            $table->string('service_code');
             $table->string('name');
-            $table->string('provider');
-            $table->json('service')->nullable();
-            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->text('description')->nullable();
+            $table->string('estimated_days')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
+
+            $table->unique(['courier_code', 'service_code']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('shipping_services');

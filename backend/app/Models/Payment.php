@@ -9,25 +9,40 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Payment extends Model
 {
     protected $table = 'payments';
-    protected $primaryKey = 'id';
 
     protected $fillable = [
         'order_id',
+        'xendit_invoice_id',
+        'xendit_external_id',
         'payment_code',
+        'channel',
+        'channel_code',
         'amount',
-        'provider',
-        'method',
+        'fee_amount',
+        'xendit_data',
         'status',
-        'notes',
         'paid_at',
+        'expired_at',
         'refunded_at',
     ];
 
-    public function order(): BelongsTo {
+    protected function casts(): array
+    {
+        return [
+            'xendit_data' => 'array',
+            'paid_at'     => 'datetime',
+            'expired_at'  => 'datetime',
+            'refunded_at' => 'datetime',
+        ];
+    }
+
+    public function order(): BelongsTo
+    {
         return $this->belongsTo(Order::class, 'order_id');
     }
 
-    public function paymentDetails(): HasMany {
+    public function details(): HasMany
+    {
         return $this->hasMany(PaymentDetail::class, 'payment_id');
     }
 }

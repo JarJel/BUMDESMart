@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { User } from '@/types'
 import { authApi } from '@/lib/api/auth'
+import { clearAuthCookies } from '@/lib/utils/auth'
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null)
@@ -11,9 +12,10 @@ export const useAuth = () => {
     if (token) {
       try {
         const res = await authApi.getProfile()
-        setUser(res.data.data)
+        setUser(res.data.data ?? res.data)
       } catch {
         localStorage.removeItem('token')
+        clearAuthCookies()
         setUser(null)
       }
     } else {
@@ -24,11 +26,9 @@ export const useAuth = () => {
 
   useEffect(() => {
     fetchUser()
-
     const onStorage = () => fetchUser()
     window.addEventListener('storage', onStorage)
     window.addEventListener('auth-change', onStorage)
-
     return () => {
       window.removeEventListener('storage', onStorage)
       window.removeEventListener('auth-change', onStorage)
@@ -46,6 +46,7 @@ export const useAuth = () => {
   const logout = async () => {
     try { await authApi.logout() } catch {}
     localStorage.removeItem('token')
+    clearAuthCookies()
     setUser(null)
     window.dispatchEvent(new Event('auth-change'))
   }

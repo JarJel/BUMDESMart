@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { authApi } from "@/lib/api/auth";
+import { setAuthCookies, getRoleHome } from "@/lib/utils/auth";
 
 declare global {
   interface Window {
@@ -11,8 +12,10 @@ declare global {
   }
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams?.get('redirect') || null;
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -45,8 +48,11 @@ export default function LoginPage() {
       });
       const { token, user } = res.data;
       localStorage.setItem("token", token);
+      localStorage.setItem("user_email", user.email ?? "");
+      setAuthCookies(token, user.role);
       window.dispatchEvent(new Event("auth-change"));
-      router.push("/produk");
+      const dest = redirectTo || getRoleHome(user.role);
+      router.push(dest);
     } catch (err: any) {
       const msg =
         err.response?.data?.errors?.email?.[0] ||
@@ -63,10 +69,12 @@ export default function LoginPage() {
     setError("");
     try {
       const res = await authApi.loginWithGoogle(credential);
-      const { token } = res.data;
+      const { token, user } = res.data;
       localStorage.setItem("token", token);
+      setAuthCookies(token, user.role);
       window.dispatchEvent(new Event("auth-change"));
-      router.push("/produk");
+      const dest = redirectTo || getRoleHome(user.role);
+      router.push(dest);
     } catch (err: any) {
       const msg =
         err.response?.data?.error ||
@@ -230,5 +238,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center" style={{ background: "#F0F7F4" }} />}>
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -9,50 +9,62 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Product extends Model
 {
     protected $table = 'products';
-    protected $primaryKey = 'id';
 
     protected $fillable = [
         'umkm_profile_id',
+        'category_id',
         'name',
         'slug',
-        'category_id',
         'description',
         'price',
         'stock',
         'weight',
-        'status',
+        'has_variant',
         'is_digital',
+        'sold_count',
+        'status',
     ];
 
-    /**
-     * Dapatkan profil UMKM pemilik produk ini.
-     */
+    protected function casts(): array
+    {
+        return [
+            'has_variant' => 'boolean',
+            'is_digital'  => 'boolean',
+        ];
+    }
+
     public function umkmProfile(): BelongsTo
     {
         return $this->belongsTo(UmkmProfile::class, 'umkm_profile_id');
     }
 
-    /**
-     * Dapatkan kategori produk ini.
-     */
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'category_id');
     }
 
-    /**
-     * Dapatkan semua gambar produk ini.
-     */
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class, 'product_id');
     }
 
-    /**
-     * Dapatkan semua varian produk ini.
-     */
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class, 'product_id');
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(ProductDocument::class, 'product_id');
+    }
+
+    public function wishlists(): HasMany
+    {
+        return $this->hasMany(Wishlist::class, 'product_id');
+    }
+
+    public function primaryImage()
+    {
+        return $this->hasOne(ProductImage::class, 'product_id')->where('is_primary', true);
     }
 }

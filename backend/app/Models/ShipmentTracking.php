@@ -8,19 +8,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ShipmentTracking extends Model
 {
     protected $table = 'shipment_tracking';
-    protected $primaryKey = 'id';
 
     protected $fillable = [
         'shipment_id',
         'status',
-        'date',
         'location',
-        'description',
+        'notes',
+        'event_time',
     ];
 
-    /**
-     * Dapatkan data pengiriman terkait pelacakan ini.
-     */
+    protected function casts(): array
+    {
+        return [
+            'event_time' => 'datetime',
+        ];
+    }
+
     public function shipment(): BelongsTo
     {
         return $this->belongsTo(Shipment::class, 'shipment_id');

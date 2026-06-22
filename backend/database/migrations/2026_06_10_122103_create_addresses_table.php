@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('addresses', function (Blueprint $table) {
@@ -17,18 +14,15 @@ return new class extends Migration
             $table->string('label')->nullable();
             $table->string('recipient_name');
             $table->string('phone');
-            $table->string('address');
+            $table->string('address_line');
             $table->string('city');
             $table->string('province');
-            $table->string('postal_code');
+            $table->string('postal_code', 10);
             $table->boolean('is_default')->default(false);
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('addresses');

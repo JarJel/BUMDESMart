@@ -8,25 +8,25 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ShippingService extends Model
 {
     protected $table = 'shipping_services';
-    protected $primaryKey = 'id';
 
     protected $fillable = [
-        'code',
+        'courier_code',
+        'service_code',
         'name',
-        'provider',
-        'service',
-        'status',
+        'description',
+        'estimated_days',
+        'is_active',
     ];
 
-    /**
-     * Dapatkan semua pengiriman yang menggunakan layanan ini.
-     */
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
+
     public function shipments(): HasMany
     {
         return $this->hasMany(Shipment::class, 'shipping_service_id');
     }
-
-    protected $casts = [
-        'service' => 'array',
-    ];
 }

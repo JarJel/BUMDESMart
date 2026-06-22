@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Promotion extends Model
 {
     protected $table = 'promotions';
-    protected $primaryKey = 'id';
 
     protected $fillable = [
         'umkm_profile_id',
@@ -27,19 +26,26 @@ class Promotion extends Model
         'status',
     ];
 
-    /**
-     * Dapatkan profil UMKM yang membuat promosi ini.
-     */
+    protected function casts(): array
+    {
+        return [
+            'start_date' => 'datetime',
+            'end_date'   => 'datetime',
+        ];
+    }
+
     public function umkmProfile(): BelongsTo
     {
         return $this->belongsTo(UmkmProfile::class, 'umkm_profile_id');
     }
 
-    /**
-     * Dapatkan daftar item produk yang terhubung dengan promosi ini.
-     */
     public function promotionProducts(): HasMany
     {
         return $this->hasMany(PromotionProduct::class, 'promotion_id');
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'promotion_id');
     }
 }

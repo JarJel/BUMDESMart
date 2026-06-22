@@ -8,16 +8,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProductImage extends Model
 {
     protected $table = 'product_images';
-    protected $primaryKey = 'id';
 
     protected $fillable = [
         'product_id',
-        'image_url',
+        'file_path',
         'is_primary',
-        'order',
-    ];  
+        'sort_order',
+    ];
 
-    public function product(): BelongsTo {
+    protected function casts(): array
+    {
+        return [
+            'is_primary' => 'boolean',
+        ];
+    }
+
+    public function product(): BelongsTo
+    {
         return $this->belongsTo(Product::class, 'product_id');
     }
 }

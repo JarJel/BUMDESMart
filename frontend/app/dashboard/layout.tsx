@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { clearAuthCookies } from "@/lib/utils/auth";
 
 const navItems = [
   {
@@ -63,6 +64,13 @@ const navItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    clearAuthCookies()
+    router.push('/login')
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -114,12 +122,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </svg>
             Help Center
           </Link>
-          <Link href="/login" className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 py-1">
+          <button onClick={handleLogout} className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 py-1 w-full">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
             Logout
-          </Link>
+          </button>
         </div>
 
         {/* User */}
