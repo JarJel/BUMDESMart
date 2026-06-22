@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { notificationApi } from "@/lib/api/notification";
 
 const navLinks = [
   { href: "/", label: "Beranda" },
@@ -18,15 +19,45 @@ export default function Navbar() {
   const router = useRouter();
   const { user, loading, logout } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => setMounted(true), []);
+
+  const isLoggedIn = mounted && !loading && !!user;
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setUnreadCount(0);
+      return;
+    }
+
+    const fetchNotifications = async () => {
+      try {
+        const res = await notificationApi.list();
+        if (res.data && res.data.success) {
+          const unread = res.data.data.filter(n => !n.is_read).length;
+          setUnreadCount(unread);
+        }
+      } catch (err) {
+        console.error("Failed to fetch notifications count in navbar:", err);
+      }
+    };
+
+    fetchNotifications();
+
+    window.addEventListener("notificationsUpdated", fetchNotifications);
+    const interval = setInterval(fetchNotifications, 15000);
+
+    return () => {
+      window.removeEventListener("notificationsUpdated", fetchNotifications);
+      clearInterval(interval);
+    };
+  }, [isLoggedIn]);
 
   const handleLogout = async () => {
     await logout();
     router.push("/login");
   };
-
-  const isLoggedIn = mounted && !loading && !!user;
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
@@ -77,11 +108,28 @@ export default function Navbar() {
               <>
                 {/* Notifikasi */}
                 <button
-                  onClick={() => router.push("/profil")}
+                  onClick={() => router.push("/profil?tab=Notifikasi")}
                   className="relative p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                  title="Notifikasi"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-[10px] font-bold text-white rounded-full flex items-center justify-center animate-pulse">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Wishlist */}
+                <button
+                  onClick={() => router.push("/wishlist")}
+                  className="relative p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                  title="Wishlist"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                 </button>
 
@@ -167,8 +215,21 @@ export default function Navbar() {
                 <Link href="/profil" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
                   Profil Saya
                 </Link>
+                <Link href="/profil?tab=Notifikasi" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
+                  <div className="flex items-center justify-between">
+                    <span>Notifikasi</span>
+                    {unreadCount > 0 && (
+                      <span className="px-2 py-0.5 bg-red-500 text-[10px] font-bold text-white rounded-full">
+                        {unreadCount} Baru
+                      </span>
+                    )}
+                  </div>
+                </Link>
                 <Link href="/keranjang" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
                   Keranjang
+                </Link>
+                <Link href="/wishlist" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
+                  Wishlist Saya
                 </Link>
                 <Link href="/pesanan" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
                   Pesanan Saya

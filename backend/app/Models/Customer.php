@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Customer extends Model
 {
@@ -39,4 +40,13 @@ class Customer extends Model
     public function wishlist(): HasMany {
         return $this->hasMany(Wishlist::class, 'customer_id');
     }
+
+    public function cart(): HasOne {
+        return $this->hasOne(Cart::class, 'customer_id');
+    }
+
+    public function notifications(): HasMany {
+        return $this->hasMany(Notification::class, 'customer_id');
+    }
 }
+

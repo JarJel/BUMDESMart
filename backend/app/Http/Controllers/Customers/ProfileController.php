@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Customers;
+
+use App\Http\Controllers\Controller;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -65,6 +67,52 @@ class ProfileController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Gagal memperbarui profil: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateAvatar(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        try {
+            if ($request->hasFile('avatar')) {
+                // Delete old avatar if exists and is not default/remote URL
+                if ($user->avatar && !str_starts_with($user->avatar, 'http') && file_exists(public_path($user->avatar))) {
+                    @unlink(public_path($user->avatar));
+                }
+
+                $file = $request->file('avatar');
+                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                
+                // Ensure directory exists
+                $destinationPath = public_path('uploads/avatars');
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0755, true);
+                }
+
+                $file->move($destinationPath, $filename);
+                $user->avatar = '/uploads/avatars/' . $filename;
+                $user->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Foto profil berhasil diubah.',
+                'avatar_url' => $user->avatar
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Gagal mengunggah foto profil: ' . $e->getMessage()
             ], 500);
         }
     }

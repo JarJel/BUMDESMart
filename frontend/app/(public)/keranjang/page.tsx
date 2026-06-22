@@ -1,34 +1,114 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-
-const cartItems = [
-  { id: 1, toko: "Keripik Mang Asep", tokoSlug: "keripik-mang-asep", produk: "Keripik Singkong Original", harga: 12000, qty: 2, stok: 150 },
-  { id: 2, toko: "Manisan & Catering Bu Lilis", tokoSlug: "manisan-bu-lilis", produk: "Manisan Cangkaleng 250gr", harga: 25000, qty: 1, stok: 60 },
-  { id: 3, toko: "MomeeRa Bakery", tokoSlug: "momeera-bakery", produk: "Roti Tawar Gandum Loaf", harga: 22000, qty: 1, stok: 30 },
-];
+import { useEffect, useState } from "react";
+import { cartApi, CartItemData } from "@/lib/api/cart";
 
 function formatRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
 }
 
-export default function KeranjangPage() {
-  const [items, setItems] = useState(cartItems);
+const getAssetUrl = (path: string | undefined) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+  try {
+    const origin = new URL(apiUrl).origin;
+    return `${origin}${path.startsWith('/') ? '' : '/'}${path}`;
+  } catch (e) {
+    return `http://localhost:8000/${path.startsWith('/') ? path.substring(1) : path}`;
+  }
+};
 
-  const updateQty = (id: number, delta: number) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, qty: Math.max(1, Math.min(item.stok, item.qty + delta)) } : item
-      )
-    );
+const slugify = (text: string | undefined) => {
+  if (!text) return 'toko';
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+};
+
+export default function KeranjangPage() {
+  const [items, setItems] = useState<CartItemData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
+  const fetchCart = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await cartApi.get();
+      if (response.data.success && response.data.data) {
+        setItems(response.data.data.items || []);
+      } else {
+        setItems([]);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError("Gagal memuat keranjang belanja. Silakan coba beberapa saat lagi.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const remove = (id: number) => setItems((prev) => prev.filter((i) => i.id !== id));
+  const updateQty = async (cartItemId: number, currentQty: number, delta: number, maxStock: number) => {
+    const targetQty = currentQty + delta;
+    if (targetQty < 1 || targetQty > maxStock) return;
 
-  const subtotal = items.reduce((s, i) => s + i.harga * i.qty, 0);
+    try {
+      const response = await cartApi.update(cartItemId, targetQty);
+      if (response.data.success && response.data.data) {
+        setItems(response.data.data.items || []);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || "Gagal memperbarui kuantitas.");
+    }
+  };
+
+  const remove = async (cartItemId: number) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus produk ini dari keranjang?")) return;
+    try {
+      const response = await cartApi.remove(cartItemId);
+      if (response.data.success && response.data.data) {
+        setItems(response.data.data.items || []);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Gagal menghapus item dari keranjang.");
+    }
+  };
+
+  const subtotal = items.reduce((s, i) => {
+    const price = i.variant ? Number(i.variant.price) : Number(i.product?.price || 0);
+    return s + price * i.quantity;
+  }, 0);
+  
   const ongkir = 15000;
   const total = subtotal + ongkir;
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" style={{ borderColor: "var(--primary) transparent" }}></div>
+        <p className="text-sm text-gray-500">Memuat keranjang belanja...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
+        <div className="text-5xl mb-4">⚠️</div>
+        <h2 className="text-lg font-bold text-gray-900 mb-2">Terjadi Kesalahan</h2>
+        <p className="text-sm text-gray-500 mb-6">{error}</p>
+        <button onClick={fetchCart} className="px-6 py-2 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90" style={{ background: "var(--primary)" }}>
+          Coba Lagi
+        </button>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -36,7 +116,7 @@ export default function KeranjangPage() {
         <div className="text-6xl mb-4">🛒</div>
         <h2 className="text-lg font-bold text-gray-900 mb-2">Keranjang Kosong</h2>
         <p className="text-sm text-gray-500 mb-6">Belum ada produk di keranjang kamu.</p>
-        <Link href="/" className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: "var(--primary)" }}>
+        <Link href="/" className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity" style={{ background: "var(--primary)" }}>
           Mulai Belanja
         </Link>
       </div>
@@ -50,31 +130,49 @@ export default function KeranjangPage() {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Items */}
         <div className="flex-1 space-y-3">
-          {items.map((item) => (
-            <div key={item.id} className="bg-white rounded-xl border border-gray-100 p-4 flex gap-4 items-start">
-              <div className="w-16 h-16 rounded-lg flex items-center justify-center text-2xl shrink-0" style={{ background: "var(--surface)" }}>
-                🛍️
-              </div>
-              <div className="flex-1 min-w-0">
-                <Link href={`/${item.tokoSlug}`} className="text-xs text-gray-500 hover:underline">{item.toko}</Link>
-                <p className="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">{item.produk}</p>
-                <p className="text-sm font-bold" style={{ color: "var(--primary)" }}>{formatRupiah(item.harga)}</p>
-              </div>
-              <div className="flex flex-col items-end gap-2 shrink-0">
-                <button onClick={() => remove(item.id)} className="text-gray-300 hover:text-red-400 transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-                <div className="flex items-center gap-2 border border-gray-200 rounded-lg overflow-hidden">
-                  <button onClick={() => updateQty(item.id, -1)} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-sm font-bold">−</button>
-                  <span className="text-sm font-semibold w-6 text-center">{item.qty}</span>
-                  <button onClick={() => updateQty(item.id, 1)} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-sm font-bold">+</button>
+          {items.map((item) => {
+            const productPrice = item.variant ? Number(item.variant.price) : Number(item.product?.price || 0);
+            const maxStock = item.variant ? item.variant.stock : (item.product?.stock || 0);
+            const storeName = item.product?.umkm_profile?.name_umkm || "Toko BUMDES";
+            const storeSlug = slugify(storeName);
+            const imagePath = item.product?.images?.[0]?.image_path;
+            const imageUrl = getAssetUrl(imagePath);
+
+            return (
+              <div key={item.id} className="bg-white rounded-xl border border-gray-100 p-4 flex gap-4 items-start">
+                <div className="w-16 h-16 rounded-lg overflow-hidden flex items-center justify-center text-2xl shrink-0 bg-gray-50 border border-gray-100">
+                  {imageUrl ? (
+                    <img src={imageUrl} alt={item.product?.name} className="w-full h-full object-cover" />
+                  ) : (
+                    "🛍️"
+                  )}
                 </div>
-                <p className="text-sm font-bold text-gray-900">{formatRupiah(item.harga * item.qty)}</p>
+                <div className="flex-1 min-w-0">
+                  <Link href={`/${storeSlug}`} className="text-xs text-gray-500 hover:underline">{storeName}</Link>
+                  <p className="text-sm font-semibold text-gray-900 mb-0.5 line-clamp-1">{item.product?.name}</p>
+                  {item.variant && (
+                    <span className="inline-block text-[11px] bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded border border-gray-100 mb-1">
+                      Varian: {item.variant.name}
+                    </span>
+                  )}
+                  <p className="text-sm font-bold" style={{ color: "var(--primary)" }}>{formatRupiah(productPrice)}</p>
+                </div>
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <button onClick={() => remove(item.id)} className="text-gray-300 hover:text-red-400 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <div className="flex items-center gap-2 border border-gray-200 rounded-lg overflow-hidden">
+                    <button onClick={() => updateQty(item.id, item.quantity, -1, maxStock)} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-sm font-bold">−</button>
+                    <span className="text-sm font-semibold w-6 text-center">{item.quantity}</span>
+                    <button onClick={() => updateQty(item.id, item.quantity, 1, maxStock)} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-sm font-bold">+</button>
+                  </div>
+                  <p className="text-sm font-bold text-gray-900">{formatRupiah(productPrice * item.quantity)}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Ringkasan */}
@@ -83,7 +181,7 @@ export default function KeranjangPage() {
             <h2 className="font-bold text-gray-900 mb-4">Ringkasan Pesanan</h2>
             <div className="space-y-2 text-sm mb-4">
               <div className="flex justify-between text-gray-600">
-                <span>Subtotal ({items.reduce((s, i) => s + i.qty, 0)} item)</span>
+                <span>Subtotal ({items.reduce((s, i) => s + i.quantity, 0)} item)</span>
                 <span>{formatRupiah(subtotal)}</span>
               </div>
               <div className="flex justify-between text-gray-600">

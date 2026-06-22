@@ -23,6 +23,13 @@ export const authApi = {
     gender?: string
   }) => api.put('/profile', data),
 
+  updateAvatar: (formData: FormData) =>
+    api.post('/profile/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
+
   forgotPassword: (email: string) =>
     api.post('/forgot-password', { email }),
 
