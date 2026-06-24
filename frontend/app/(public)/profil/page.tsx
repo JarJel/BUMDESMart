@@ -297,11 +297,11 @@ export default function ProfilPage() {
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors border-b border-gray-50 last:border-0 ${tab === item ? "font-semibold" : "text-gray-600 hover:bg-gray-50"}`}
                 style={tab === item ? { color: "var(--primary)", background: "var(--primary-muted)" } : {}}
               >
-                {item === "Profil Saya" && "👤"} {item === "Alamat" && "📍"} {item === "Keamanan" && "🔒"} {item}
+                {item === "Profil Saya"} {item === "Alamat"} {item === "Keamanan"} {item}
               </button>
             ))}
             <Link href="/pesanan" className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 border-b border-gray-50">
-              <span>📦</span> Pesanan Saya
+               Pesanan Saya
             </Link>
             <button
               onClick={handleLogout}

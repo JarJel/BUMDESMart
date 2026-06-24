@@ -15,7 +15,7 @@ class Address extends Model
         'label',
         'recipient_name',
         'phone',
-        'address_line',
+        'address',
         'city',
         'province',
         'postal_code',

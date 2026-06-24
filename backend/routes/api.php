@@ -8,6 +8,8 @@ use App\Http\Controllers\Customers\AddressController;
 use App\Http\Controllers\Customers\CartController;
 use App\Http\Controllers\Customers\WishlistController;
 use App\Http\Controllers\Customers\NotificationController;
+use App\Http\Controllers\Customers\SellerController;
+use App\Http\Controllers\Customers\ProductController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
@@ -48,5 +50,10 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/auth/google', [AuthController::class, 'loginWithGoogle']);
 
+// Seller/UMKM public routes for customers
+Route::get('/sellers', [SellerController::class, 'index']);
+Route::get('/sellers/{idOrSlug}', [SellerController::class, 'show']);
 
-
+// Product public routes for customers
+Route::get('/products', [ProductController::class, 'index']);
+Route::get('/products/{idOrSlug}', [ProductController::class, 'show']);

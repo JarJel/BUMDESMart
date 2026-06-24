@@ -79,7 +79,7 @@ export default function Navbar() {
               type="text"
               name="q"
               placeholder="Cari produk desa..."
-              className="w-full pl-4 pr-9 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white focus:ring-2 focus:ring-green-600/10 transition-all text-gray-700 placeholder-gray-400"
+              className="w-full pl-4 pr-9 py-1.5 bg-gray-50 border-1 border-black-600 rounded-full text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white focus:ring-2 focus:ring-green-600/10 transition-all text-gray-700 placeholder-gray-400"
             />
             <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-700 cursor-pointer transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -146,11 +146,20 @@ export default function Navbar() {
                 {/* Profile */}
                 <button
                   onClick={() => router.push("/profil")}
-                  className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="relative w-8 h-8 rounded-full overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity flex items-center justify-center shrink-0 ml-1"
+                  title="Profil Saya"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`}
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs font-bold text-white" style={{ background: "var(--primary)" }}>
+                      {user.name ? user.name.charAt(0).toUpperCase() : "?"}
+                    </div>
+                  )}
                 </button>
               </>
             ) : (
@@ -175,6 +184,8 @@ export default function Navbar() {
           </button>
         </div>
 
+
+
         {/* Mobile Menu */}
         {open && (
           <div className="md:hidden border-t border-gray-100 py-4 space-y-1">
@@ -185,7 +196,8 @@ export default function Navbar() {
                   type="text"
                   name="q"
                   placeholder="Cari produk desa..."
-                  className="w-full pl-4 pr-10 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:border-green-600 focus:bg-white transition-all text-gray-700 placeholder-gray-400"
+                  className="w-full pl-4 pr-10 py-2 bg-gray-50 border-2 border-gray-200 rounded-full text-sm focus:outline-none focus:border-green-600 focus:bg-white transition-all text-gray-700 placeholder-gray-400"
+                  style={{ borderWidth: '2px' }}
                 />
                 <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-700 cursor-pointer">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -202,10 +214,18 @@ export default function Navbar() {
             {isLoggedIn ? (
               <div className="pt-3 px-3 space-y-2">
                 <div className="flex items-center gap-3 px-3 py-2">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-100 shrink-0">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
+                  <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 shrink-0 border border-gray-200">
+                    {user.avatar ? (
+                      <img
+                        src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`}
+                        alt={user.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center font-bold text-white text-sm" style={{ background: "var(--primary)" }}>
+                        {user.name ? user.name.charAt(0).toUpperCase() : "?"}
+                      </div>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
