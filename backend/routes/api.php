@@ -10,6 +10,7 @@ use App\Http\Controllers\Customers\WishlistController;
 use App\Http\Controllers\Customers\NotificationController;
 use App\Http\Controllers\Customers\SellerController;
 use App\Http\Controllers\Customers\ProductController;
+use App\Http\Controllers\Seller\ProductController as SellerProductController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
@@ -40,6 +41,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+
+    // Seller product management routes
+    Route::get('/seller/products', [SellerProductController::class, 'index']);
+    Route::post('/seller/products', [SellerProductController::class, 'store']);
+    Route::get('/seller/products/{id}', [SellerProductController::class, 'show']);
+    Route::put('/seller/products/{id}', [SellerProductController::class, 'update']);
+    Route::post('/seller/products/{id}', [SellerProductController::class, 'update']); // Support for multipart PUT request
+    Route::delete('/seller/products/{id}', [SellerProductController::class, 'destroy']);
 });
 
 Route::post('/register', [AuthController::class, 'register']);

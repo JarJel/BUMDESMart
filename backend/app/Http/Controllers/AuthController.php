@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\SendOtpMail;
 use Illuminate\Support\Facades\Http;
+use OpenApi\Attributes as OA;
 
 class AuthController extends Controller
 {
@@ -95,9 +96,47 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * API Login Multi-Role (BUMDes/Admin, Seller/UMKM, Customer).
-     */
+    #[OA\Post(
+        path: "/login",
+        summary: "User Login",
+        description: "Authenticate user by email and password, returns access token and user info",
+        tags: ["Authentication"]
+    )]
+    #[OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: ["email", "password"],
+            properties: [
+                new OA\Property(property: "email", type: "string", format: "email", example: "umkm@bumdesmart.id"),
+                new OA\Property(property: "password", type: "string", format: "password", example: "password123")
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 200,
+        description: "Login successful",
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(property: "message", type: "string", example: "Login successful"),
+                new OA\Property(property: "role", type: "string", example: "umkm"),
+                new OA\Property(property: "token", type: "string", example: "1|mWzzUuGwI2JrS3ml..."),
+                new OA\Property(property: "user", type: "object")
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 401,
+        description: "Invalid credentials or disabled account",
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(property: "error", type: "string", example: "Email atau password salah.")
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 422,
+        description: "Validation error"
+    )]
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
