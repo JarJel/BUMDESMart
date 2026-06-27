@@ -82,5 +82,64 @@ class UserSeeder extends Seeder
             'status'            => 'active',
             'email_verified_at' => now(),
         ]);
+
+        // Categories
+        $catMakanan = \App\Models\Category::create([
+            'name' => 'Makanan',
+            'slug' => 'makanan',
+        ]);
+        $catMinuman = \App\Models\Category::create([
+            'name' => 'Minuman',
+            'slug' => 'minuman',
+        ]);
+        $catKerajinan = \App\Models\Category::create([
+            'name' => 'Kerajinan',
+            'slug' => 'kerajinan',
+        ]);
+
+        // Products for Mang Asep (umkm_profile_id = 1)
+        $prod1 = \App\Models\Product::create([
+            'umkm_profile_id' => 1,
+            'category_id'     => $catMakanan->id,
+            'name'            => 'Keripik Singkong Keju',
+            'slug'            => 'keripik-singkong-keju',
+            'description'     => 'Keripik singkong gurih rasa keju spesial dari desa.',
+            'price'           => 12000.00,
+            'stock'           => 100,
+            'weight'          => 150,
+            'has_variant'     => false,
+            'is_digital'      => false,
+            'sold_count'      => 5,
+            'status'          => 'active',
+        ]);
+
+        \App\Models\ProductImage::create([
+            'product_id' => $prod1->id,
+            'file_path'  => '/uploads/products/singkong_keju.jpg',
+            'is_primary' => true,
+            'sort_order' => 0,
+        ]);
+
+        $prod2 = \App\Models\Product::create([
+            'umkm_profile_id' => 1,
+            'category_id'     => $catMakanan->id,
+            'name'            => 'Madu Hutan Asli',
+            'slug'            => 'madu-hutan-asli',
+            'description'     => 'Madu hutan murni 100% alami tanpa bahan campuran.',
+            'price'           => 75000.00,
+            'stock'           => 20,
+            'weight'          => 250,
+            'has_variant'     => false,
+            'is_digital'      => false,
+            'sold_count'      => 2,
+            'status'          => 'active',
+        ]);
+
+        \App\Models\ProductImage::create([
+            'product_id' => $prod2->id,
+            'file_path'  => '/uploads/products/madu_hutan.jpg',
+            'is_primary' => true,
+            'sort_order' => 0,
+        ]);
     }
 }

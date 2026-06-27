@@ -1,8 +1,15 @@
 "use client";
-import Link from "next/link";
 import { useState } from "react";
 
-export function QtyButtons({ stok }: { stok: number }) {
+export function QtyButtons({ 
+  stok, 
+  onAddToCart, 
+  onBuyNow 
+}: { 
+  stok: number; 
+  onAddToCart?: (qty: number) => void; 
+  onBuyNow?: (qty: number) => void; 
+}) {
   const [qty, setQty] = useState(1);
 
   return (
@@ -12,7 +19,7 @@ export function QtyButtons({ stok }: { stok: number }) {
         <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white">
           <button
             onClick={() => setQty((q) => Math.max(1, q - 1))}
-            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-gray-600 hover:bg-gray-50"
+            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-gray-600 hover:bg-gray-50 cursor-pointer"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
@@ -21,7 +28,7 @@ export function QtyButtons({ stok }: { stok: number }) {
           <span className="w-7 sm:w-9 text-center text-xs sm:text-sm font-semibold">{qty}</span>
           <button
             onClick={() => setQty((q) => Math.min(stok, q + 1))}
-            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-gray-600 hover:bg-gray-50"
+            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-gray-600 hover:bg-gray-50 cursor-pointer"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -32,20 +39,20 @@ export function QtyButtons({ stok }: { stok: number }) {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2">
-        <Link
-          href="/keranjang"
-          className="flex-1 text-center py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs font-semibold border-2 hover:bg-gray-50 bg-white transition-colors"
+        <button
+          onClick={() => onAddToCart && onAddToCart(qty)}
+          className="flex-1 text-center py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs font-semibold border-2 hover:bg-gray-50 bg-white transition-colors cursor-pointer"
           style={{ borderColor: "var(--primary)", color: "var(--primary)" }}
         >
           + Keranjang
-        </Link>
-        <Link
-          href="/checkout"
-          className="flex-1 text-center py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-colors"
+        </button>
+        <button
+          onClick={() => onBuyNow && onBuyNow(qty)}
+          className="flex-1 text-center py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-colors cursor-pointer"
           style={{ background: "var(--primary)" }}
         >
           Beli Sekarang
-        </Link>
+        </button>
       </div>
     </>
   );

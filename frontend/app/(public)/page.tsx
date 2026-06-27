@@ -1,42 +1,56 @@
+"use client";
+
 import Link from "next/link";
-import { tokoList } from "@/lib/data/dummy";
+import { useState, useEffect } from "react";
+import { sellerApi, SellerData } from "@/lib/api/seller";
 import { StarIcon } from "@/components/ui/StarIcon";
 
-function TokoCard({ toko }: { toko: typeof tokoList[0] }) {
+function TokoCard({ toko }: { toko: any }) {
+  const shopName = toko.shop_name || toko.nama || "Nama Toko";
+  const desc = toko.description || toko.deskripsi || "Deskripsi toko";
+  const banner = toko.banner || toko.foto || "";
+  const city = toko.city || toko.lokasi || "Jawa Barat";
+  const rating = toko.rating || "5.0";
+  const totalProduk = toko.totalProduk ?? 0;
+  const totalPenjualan = toko.totalPenjualan ?? 0;
+
+  const bannerUrl = banner.startsWith('http') || banner.startsWith('/') ? banner : (banner ? `http://localhost:8000${banner}` : 'https://placehold.co/600x300?text=No+Banner');
+
   return (
     <Link
       href={`/${toko.slug}`}
       className="group bg-white rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border border-gray-100"
     >
       {/* Banner foto toko */}
-      <div
-        className="h-44 relative overflow-hidden"
-        style={{
-          backgroundImage: toko.foto
-            ? `linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.45)), url('${toko.foto}')`
-            : `linear-gradient(135deg, var(--primary-dark), var(--primary-light))`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full">
+      <div className="h-44 relative overflow-hidden bg-gray-50 flex items-center justify-center">
+        <img
+          src={bannerUrl}
+          alt={shopName}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+          onError={(e) => {
+            e.currentTarget.src = 'https://placehold.co/600x300?text=No+Banner';
+          }}
+        />
+        <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full z-10">
           <StarIcon size="sm" className="text-yellow-400" />
-          <span className="text-xs font-semibold text-white">{toko.rating}</span>
+          <span className="text-xs font-semibold text-white">{rating}</span>
         </div>
-        <div className="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-white font-medium">
-          {toko.totalProduk} produk
-        </div>
+        {totalProduk > 0 && (
+          <div className="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-white font-medium z-10">
+            {totalProduk} produk
+          </div>
+        )}
         {/* Nama toko overlay bawah */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/60 to-transparent z-0" />
       </div>
 
       {/* Info toko */}
       <div className="p-4">
         <h3 className="font-semibold text-gray-900 text-sm mb-1 group-hover:text-green-700 transition-colors line-clamp-1">
-          {toko.nama}
+          {shopName}
         </h3>
         <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3">
-          {toko.deskripsi}
+          {desc}
         </p>
         <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-50">
           <div className="flex items-center gap-1">
@@ -44,9 +58,11 @@ function TokoCard({ toko }: { toko: typeof tokoList[0] }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span className="truncate">{toko.lokasi.split(",")[0]}</span>
+            <span className="truncate">{city.split(",")[0]}</span>
           </div>
-          <span className="font-medium text-green-700">{toko.totalPenjualan.toLocaleString("id")} terjual</span>
+          {totalPenjualan > 0 && (
+            <span className="font-medium text-green-700">{totalPenjualan.toLocaleString("id")} terjual</span>
+          )}
         </div>
       </div>
     </Link>
@@ -54,7 +70,23 @@ function TokoCard({ toko }: { toko: typeof tokoList[0] }) {
 }
 
 export default function BerandaPage() {
-  const tokoUnggulan = [...tokoList].sort((a, b) => b.totalPenjualan - a.totalPenjualan).slice(0, 4);
+  const [tokoUnggulan, setTokoUnggulan] = useState<SellerData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    sellerApi.list({ limit: 4 })
+      .then(res => {
+        if (res.data && res.data.success) {
+          setTokoUnggulan(res.data.data);
+        }
+      })
+      .catch(err => {
+        console.error("Gagal memuat toko unggulan:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <>
@@ -158,9 +190,17 @@ export default function BerandaPage() {
               </svg>
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {tokoUnggulan.map((toko) => <TokoCard key={toko.id} toko={toko} />)}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {[1, 2, 3, 4].map(n => (
+                <div key={n} className="bg-white rounded-2xl h-72 animate-pulse border border-gray-100" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {tokoUnggulan.map((toko) => <TokoCard key={toko.id} toko={toko} />)}
+            </div>
+          )}
         </div>
       </section>
 

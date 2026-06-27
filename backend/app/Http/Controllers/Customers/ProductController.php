@@ -13,8 +13,9 @@ class ProductController extends Controller
         try {
             $query = Product::query()->where('status', 'active');
 
-            if ($request->has('search') && !empty($request->search)) {
-                $query->where('name', 'like', '%' . $request->search . '%');
+            $search = $request->input('search') ?: $request->input('q');
+            if (!empty($search)) {
+                $query->where('name', 'like', '%' . $search . '%');
             }
 
             if ($request->has('category_id') && !empty($request->category_id)) {

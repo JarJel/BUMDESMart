@@ -1,28 +1,45 @@
 import Link from "next/link";
 import { StarIcon } from "@/components/ui/StarIcon";
-import type { Produk } from "@/lib/data/dummy";
 
-type Product = Produk & { tokoSlug: string; tokNama: string; tokoPemilik: string };
+export function ProductCard({ product, compact = false }: { product: any; compact?: boolean }) {
+  const name = product.name || product.nama || "Nama Produk";
+  const price = Number(product.price || product.harga || 0);
+  const rating = product.rating || "4.8";
+  
+  let imageUrl = "";
+  if (product.primary_image?.file_path) {
+    imageUrl = product.primary_image.file_path;
+  } else if (product.images?.[0]?.file_path) {
+    imageUrl = product.images[0].file_path;
+  } else if (product.foto) {
+    imageUrl = product.foto;
+  }
+  
+  if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+    imageUrl = '/' + imageUrl;
+  }
+  if (imageUrl && !imageUrl.startsWith('http')) {
+    imageUrl = `http://localhost:8000${imageUrl}`;
+  }
 
-export function ProductCard({ product, compact = false }: { product: Product; compact?: boolean }) {
-  const fotoBg = product.foto
-    ? `url('${product.foto}')`
-    : `linear-gradient(135deg, var(--primary-muted), #B7E4C7)`;
+  const shopName = product.tokNama || product.umkm_profile?.shop_name || "BumdesMart";
+  const soldCount = product.sold_count ?? product.terjual ?? 0;
 
   return (
     <Link
       href={`/produk/${product.slug}`}
       className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 min-w-0"
     >
-      <div
-        className="aspect-square relative overflow-hidden"
-        style={{
-          backgroundImage: fotoBg,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        {!compact && product.terjual > 300 && (
+      <div className="aspect-square relative overflow-hidden bg-gray-50 flex items-center justify-center">
+        <img
+          src={imageUrl || 'https://placehold.co/400x400?text=No+Image'}
+          alt={name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+          onError={(e) => {
+            e.currentTarget.src = 'https://placehold.co/400x400?text=No+Image';
+          }}
+        />
+        {!compact && soldCount > 300 && (
           <span
             className="absolute top-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full text-white"
             style={{ background: "var(--accent-dark)" }}
@@ -33,16 +50,16 @@ export function ProductCard({ product, compact = false }: { product: Product; co
       </div>
 
       <div className={`min-w-0 ${compact ? "p-2" : "p-3"}`}>
-        <p className="text-xs text-gray-400 truncate mb-0.5 leading-none">{product.tokNama}</p>
+        <p className="text-xs text-gray-400 truncate mb-0.5 leading-none">{shopName}</p>
         <h3 className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1 group-hover:text-green-700 transition-colors leading-snug">
-          {product.nama}
+          {name}
         </h3>
         <div className="flex items-center gap-0.5 mb-1">
           <StarIcon size="sm" />
-          <span className="text-xs text-gray-500">{product.rating}</span>
+          <span className="text-xs text-gray-500">{rating}</span>
         </div>
         <p className="text-xs font-bold" style={{ color: "var(--primary)" }}>
-          Rp {product.harga.toLocaleString("id-ID")}
+          Rp {price.toLocaleString("id-ID")}
         </p>
       </div>
     </Link>
