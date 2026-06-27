@@ -20,10 +20,12 @@ const PATH_ROLE: Record<string, string> = {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const token = request.cookies.get('bumdesmart-token')?.value
   const role = request.cookies.get('bumdesmart-role')?.value
+  const isLoggedIn = !!token && !!role
 
   // Sudah login → jangan masuk ke /login
-  if (pathname === '/login' && role) {
+  if (pathname === '/login' && isLoggedIn) {
     return NextResponse.redirect(new URL(ROLE_HOME[role] ?? '/', request.url))
   }
 
@@ -32,7 +34,7 @@ export function middleware(request: NextRequest) {
   if (!matchedBase) return NextResponse.next()
 
   // Belum login → ke login
-  if (!role) {
+  if (!isLoggedIn) {
     const url = new URL('/login', request.url)
     url.searchParams.set('redirect', pathname)
     return NextResponse.redirect(url)
