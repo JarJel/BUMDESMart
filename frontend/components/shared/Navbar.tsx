@@ -261,7 +261,7 @@ export default function Navbar() {
                 {isCustomer ? (
                   <>
                     {/* Notifikasi */}
-                    <div 
+                    <div
                       className="relative nav-dropdown-container group"
                       onMouseEnter={fetchNotifications}
                     >
@@ -284,8 +284,8 @@ export default function Navbar() {
                         <div className="flex items-center justify-between p-4 border-b border-gray-50">
                           <h3 className="font-bold text-gray-900 text-sm">Notifikasi</h3>
                           {notifications.some(n => !n.is_read) && (
-                            <button 
-                              onClick={handleMarkAllAsRead} 
+                            <button
+                              onClick={handleMarkAllAsRead}
                               className="text-[11px] font-semibold text-green-600 hover:text-green-700 transition-colors cursor-pointer border-0 bg-transparent"
                             >
                               Tandai semua terbaca
@@ -301,14 +301,13 @@ export default function Navbar() {
                           ) : (
                             notifications.slice(0, 5).map((notif) => (
                               <div key={notif.id} className={`p-4 hover:bg-gray-50/50 transition-colors flex gap-3 items-start relative group ${!notif.is_read ? 'bg-green-50/10' : ''}`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                                  notif.type === 'order' ? 'bg-blue-50 text-blue-600' :
-                                  notif.type === 'promo' ? 'bg-amber-50 text-amber-600' :
-                                  notif.type === 'wishlist' ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-600'
-                                }`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${notif.type === 'order' ? 'bg-blue-50 text-blue-600' :
+                                    notif.type === 'promo' ? 'bg-amber-50 text-amber-600' :
+                                      notif.type === 'wishlist' ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-600'
+                                  }`}>
                                   {notif.type === 'order' ? '📦' :
-                                   notif.type === 'promo' ? '🏷️' :
-                                   notif.type === 'wishlist' ? '❤️' : '🔔'}
+                                    notif.type === 'promo' ? '🏷️' :
+                                      notif.type === 'wishlist' ? '❤️' : '🔔'}
                                 </div>
                                 <div className="flex-1 min-w-0 pr-6">
                                   <h4 className="font-semibold text-xs text-gray-900 truncate mb-0.5">{notif.title}</h4>
@@ -319,10 +318,10 @@ export default function Navbar() {
                                     })}
                                   </span>
                                 </div>
-                                
+
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                   {!notif.is_read && (
-                                    <button 
+                                    <button
                                       onClick={() => handleMarkAsRead(notif.id)}
                                       className="p-1 rounded bg-white border border-gray-100 hover:bg-gray-50 shadow-sm text-gray-500 cursor-pointer"
                                       title="Tandai Terbaca"
@@ -332,7 +331,7 @@ export default function Navbar() {
                                       </svg>
                                     </button>
                                   )}
-                                  <button 
+                                  <button
                                     onClick={() => handleDeleteNotification(notif.id)}
                                     className="p-1 rounded bg-white border border-gray-100 hover:bg-gray-50 shadow-sm text-gray-500 cursor-pointer"
                                     title="Hapus"
@@ -342,7 +341,7 @@ export default function Navbar() {
                                     </svg>
                                   </button>
                                 </div>
-                                
+
                                 {!notif.is_read && (
                                   <span className="absolute right-4 top-4 w-1.5 h-1.5 bg-green-600 rounded-full group-hover:opacity-0 transition-opacity" />
                                 )}
@@ -351,8 +350,8 @@ export default function Navbar() {
                           )}
                         </div>
                         <div className="p-3 bg-gray-50 border-t border-gray-100 text-center">
-                          <button 
-                            onClick={() => router.push("/profil?tab=Notifikasi")} 
+                          <button
+                            onClick={() => router.push("/profil?tab=Notifikasi")}
                             className="text-xs font-semibold text-gray-700 hover:text-green-600 transition-colors w-full cursor-pointer border-0 bg-transparent text-center"
                           >
                             Lihat Semua Notifikasi
@@ -362,7 +361,7 @@ export default function Navbar() {
                     </div>
 
                     {/* Wishlist */}
-                    <div 
+                    <div
                       className="relative nav-dropdown-container group"
                       onMouseEnter={fetchWishlist}
                     >
@@ -411,7 +410,7 @@ export default function Navbar() {
                                     <p className="font-bold text-xs text-green-600">{formatPrice(item.product?.price)}</p>
                                   </div>
                                   <div className="flex gap-1">
-                                    <button 
+                                    <button
                                       onClick={() => handleMoveToCart(item.product_id)}
                                       className="p-1.5 rounded-lg hover:bg-green-50 text-green-600 transition-colors cursor-pointer border-0 bg-transparent"
                                       title="Masukkan Keranjang"
@@ -420,7 +419,7 @@ export default function Navbar() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
                                       </svg>
                                     </button>
-                                    <button 
+                                    <button
                                       onClick={() => handleRemoveWishlist(item.product_id)}
                                       className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors cursor-pointer border-0 bg-transparent"
                                       title="Hapus"
@@ -436,8 +435,8 @@ export default function Navbar() {
                           )}
                         </div>
                         <div className="p-3 bg-gray-50 border-t border-gray-100 text-center">
-                          <button 
-                            onClick={() => router.push("/wishlist")} 
+                          <button
+                            onClick={() => router.push("/wishlist")}
                             className="text-xs font-semibold text-gray-700 hover:text-green-600 transition-colors w-full cursor-pointer border-0 bg-transparent text-center"
                           >
                             Lihat Semua Wishlist
@@ -447,7 +446,7 @@ export default function Navbar() {
                     </div>
 
                     {/* Keranjang */}
-                    <div 
+                    <div
                       className="relative nav-dropdown-container group"
                       onMouseEnter={fetchCart}
                     >
@@ -503,7 +502,7 @@ export default function Navbar() {
                                   </div>
                                   <div className="text-right">
                                     <p className="font-bold text-xs text-green-600 mb-1">{formatPrice(itemPrice * item.quantity)}</p>
-                                    <button 
+                                    <button
                                       onClick={() => handleRemoveCart(item.id)}
                                       className="p-1 rounded-lg hover:bg-red-50 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-0 bg-transparent"
                                       title="Hapus"
@@ -518,7 +517,7 @@ export default function Navbar() {
                             })
                           )}
                         </div>
-                        
+
                         {cartItems.length > 0 && (
                           <div className="p-4 bg-gray-50/50 border-t border-gray-100 space-y-3">
                             <div className="flex justify-between items-center text-xs">
@@ -531,13 +530,13 @@ export default function Navbar() {
                               </span>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                              <button 
+                              <button
                                 onClick={() => router.push("/keranjang")}
                                 className="w-full text-center text-xs font-semibold py-2 px-3 border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-xl transition-colors cursor-pointer"
                               >
                                 Lihat Keranjang
                               </button>
-                              <button 
+                              <button
                                 onClick={() => router.push("/keranjang")}
                                 className="w-full text-center text-xs font-bold py-2 px-3 text-white rounded-xl transition-colors cursor-pointer border-0"
                                 style={{ background: "var(--primary)" }}
@@ -623,51 +622,51 @@ export default function Navbar() {
                       </div>
                     </div>
                     <div className="p-2 space-y-0.5">
-                      <button 
+                      <button
                         onClick={() => router.push("/profil")}
                         className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer border-0 bg-transparent"
                       >
                         Profil Saya
                       </button>
-                      
+
                       {isCustomer && (
-                        <button 
+                        <button
                           onClick={() => router.push("/profil?tab=Notifikasi")}
                           className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer border-0 bg-transparent"
                         >
-                         Notifikasi Saya
+                          Notifikasi Saya
                         </button>
                       )}
 
                       {isCustomer && (
-                        <button 
+                        <button
                           onClick={() => router.push("/pesanan")}
                           className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer border-0 bg-transparent"
                         >
                           Pesanan Saya
                         </button>
                       )}
-                      
+
                       {user?.role === 'umkm' && (
-                        <button 
+                        <button
                           onClick={() => router.push("/dashboard")}
                           className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer border-0 bg-transparent"
                         >
                           Dashboard Toko
                         </button>
                       )}
-                      
+
                       {(user?.role === 'admin_bumdes' || user?.role === 'super_admin') && (
-                        <button 
+                        <button
                           onClick={() => router.push("/admin")}
                           className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer border-0 bg-transparent"
                         >
                           Dashboard Admin
                         </button>
                       )}
-                      
+
                       {user?.role === 'pengirim' && (
-                        <button 
+                        <button
                           onClick={() => router.push("/pengirim")}
                           className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer border-0 bg-transparent"
                         >
@@ -676,7 +675,7 @@ export default function Navbar() {
                       )}
                     </div>
                     <div className="p-2 border-t border-gray-50">
-                      <button 
+                      <button
                         onClick={handleLogout}
                         className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer border-0 bg-transparent"
                       >
