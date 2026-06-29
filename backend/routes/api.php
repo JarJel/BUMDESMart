@@ -10,6 +10,7 @@ use App\Http\Controllers\Customers\WishlistController;
 use App\Http\Controllers\Customers\NotificationController;
 use App\Http\Controllers\Customers\SellerController;
 use App\Http\Controllers\Customers\ProductController;
+use App\Http\Controllers\Customers\CheckoutController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -31,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/cart', [CartController::class, 'store']);
     Route::put('/cart', [CartController::class, 'update']);
     Route::delete('/cart', [CartController::class, 'destroy']);
+    Route::get('/checkout/preview', [CheckoutController::class, 'preview']);
 
     // Wishlist management routes
     Route::get('/wishlist', [WishlistController::class, 'index']);
