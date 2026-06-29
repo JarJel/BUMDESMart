@@ -116,4 +116,45 @@ class ProfileController extends Controller
             ], 500);
         }
     }
+
+    public function changePassword(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ], [
+            'current_password.required' => 'Kata sandi saat ini wajib diisi.',
+            'new_password.required' => 'Kata sandi baru wajib diisi.',
+            'new_password.min' => 'Kata sandi baru minimal 8 karakter.',
+            'new_password.confirmed' => 'Konfirmasi kata sandi baru tidak cocok.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kata sandi saat ini salah.'
+            ], 422);
+        }
+
+        try {
+            $user->password = Hash::make($request->new_password);
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Kata sandi berhasil diperbarui.'
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengubah kata sandi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

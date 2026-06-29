@@ -20,6 +20,7 @@ export const useAuth = () => {
       }
     } else {
       setUser(null)
+      clearAuthCookies()
     }
     setLoading(false)
   }, [])

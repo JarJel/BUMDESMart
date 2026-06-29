@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('label')->nullable();
             $table->string('recipient_name');
             $table->string('phone');
-            $table->string('address_line');
+            $table->string('address');
             $table->string('city');
             $table->string('province');
             $table->string('postal_code', 10);
