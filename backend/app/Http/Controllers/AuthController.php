@@ -33,7 +33,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
         ]);
 
@@ -69,8 +69,9 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'shop_name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
+            'bumdes_profile_id' => 'required|exists:bumdes_profiles,id',
         ]);
 
         if ($validator->fails()) {
@@ -238,7 +239,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'otp' => 'required|string|size:6',
             'email' => 'required|string|email|exists:users,email',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         if ($validator->fails()) {

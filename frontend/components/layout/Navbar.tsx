@@ -187,7 +187,7 @@ export const Navbar = () => {
                               <i className="fa-regular fa-clipboard mr-2"></i> Pesanan Saya
                             </Link>
                             {user.role === 'umkm' ? (
-                              <Link href="/dashboard" className="dropdown-item no-underline">
+                              <Link href="/seller" className="dropdown-item no-underline">
                                 <i className="fa-solid fa-store mr-2"></i> Dashboard Toko
                               </Link>
                             ) : (

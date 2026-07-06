@@ -53,11 +53,13 @@ class AuthService
 
         // 2. Buat profil UMKM di tabel 'umkm_profiles'
         UmkmProfile::create([
-            'user_id'    => $user->id,
-            'shop_name'  => $data['shop_name'],
-            'owner_name' => $data['name'],
-            'phone'      => $data['phone'] ?? null,
-            'status'     => 'pending',
+            'user_id'           => $user->id,
+            'bumdes_profile_id' => $data['bumdes_profile_id'],
+            'shop_name'         => $data['shop_name'],
+            'slug'              => \Illuminate\Support\Str::slug($data['shop_name'] . '-' . uniqid()),
+            'owner_name'        => $data['name'],
+            'phone'             => $data['phone'] ?? null,
+            'status'            => 'pending',
         ]);
 
         return $user->load('umkmProfile');

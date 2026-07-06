@@ -23,8 +23,8 @@ export default function PembayaranPage() {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center text-4xl mx-auto mb-4" style={{ background: "var(--primary-muted)" }}>
-            ✅
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "var(--primary-muted)" }}>
+            <svg className="w-10 h-10" style={{ color: "var(--primary)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Pembayaran Berhasil!</h2>
           <p className="text-sm text-gray-500 mb-1">No. Pesanan: <strong>ORD-20240622-005</strong></p>

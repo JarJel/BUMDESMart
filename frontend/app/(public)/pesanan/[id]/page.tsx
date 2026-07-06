@@ -76,7 +76,9 @@ export default async function DetailPesananPage({ params }: { params: Promise<{ 
       <div className="bg-white rounded-xl border border-gray-100 p-5 mb-4">
         <p className="text-sm font-semibold text-gray-800 mb-3">Detail Produk</p>
         <div className="flex gap-3 items-center mb-3">
-          <div className="w-14 h-14 rounded-lg flex items-center justify-center text-2xl shrink-0" style={{ background: "var(--surface)" }}>🛍️</div>
+          <div className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--surface)" }}>
+            <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+          </div>
           <div className="flex-1">
             <Link href={`/${order.tokoSlug}`} className="text-xs text-gray-500 hover:underline">{order.toko}</Link>
             <p className="text-sm font-semibold text-gray-900">{order.produk}</p>

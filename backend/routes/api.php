@@ -12,6 +12,9 @@ use App\Http\Controllers\Customers\SellerController;
 use App\Http\Controllers\Customers\ProductController;
 use App\Http\Controllers\Customers\CheckoutController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
+use App\Http\Controllers\SuperAdmin\BumdesController as SuperAdminBumdesController;
+use App\Http\Controllers\Admin\RequiredDocumentController;
+use App\Http\Controllers\Admin\UmkmVerificationController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
@@ -66,6 +69,40 @@ Route::post('/auth/google', [AuthController::class, 'loginWithGoogle']);
 Route::get('/sellers', [SellerController::class, 'index']);
 Route::get('/sellers/{idOrSlug}', [SellerController::class, 'show']);
 
+// Admin BUMDes routes
+Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
+    // Verifikasi mitra
+    Route::get('/umkm', [UmkmVerificationController::class, 'index']);
+    Route::get('/umkm/{umkm}', [UmkmVerificationController::class, 'show']);
+    Route::put('/umkm/{umkm}/verify', [UmkmVerificationController::class, 'verify']);
+    Route::put('/umkm/{umkm}/reject', [UmkmVerificationController::class, 'reject']);
+    Route::put('/umkm/{umkm}/reapply', [UmkmVerificationController::class, 'reapply']);
+
+    Route::get('/required-documents', [RequiredDocumentController::class, 'index']);
+    Route::post('/required-documents', [RequiredDocumentController::class, 'store']);
+    Route::put('/required-documents/{document}', [RequiredDocumentController::class, 'update']);
+    Route::delete('/required-documents/{document}', [RequiredDocumentController::class, 'destroy']);
+});
+
+// Public: ambil dokumen wajib berdasarkan bumdes (untuk form daftar mitra)
+Route::get('/bumdes/{bumdesId}/required-documents', function ($bumdesId) {
+    $docs = \App\Models\BumdesRequiredDocument::where('bumdes_profile_id', $bumdesId)->get();
+    return response()->json(['data' => $docs]);
+});
+
+// Super Admin routes
+Route::middleware(['auth:sanctum'])->prefix('super-admin')->group(function () {
+    Route::apiResource('bumdes', SuperAdminBumdesController::class);
+});
+
+// Public bumdes list (untuk FE pilih bumdes saat daftar mitra)
+Route::get('/bumdes', [SuperAdminBumdesController::class, 'index']);
+
 // Product public routes for customers
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{idOrSlug}', [ProductController::class, 'show']);
+
+// Categories
+Route::get('/categories', function () {
+    return response()->json(['data' => \App\Models\Category::orderBy('name')->get(['id', 'name', 'slug'])]);
+});

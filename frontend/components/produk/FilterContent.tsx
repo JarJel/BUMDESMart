@@ -1,5 +1,14 @@
 import { StarIcon } from "@/components/ui/StarIcon";
-import { kategoriList } from "@/lib/data/dummy";
+
+const DEFAULT_KATEGORI = [
+  "Semua Kategori",
+  "Makanan & Minuman",
+  "Pertanian",
+  "Kerajinan",
+  "Fashion",
+  "Elektronik",
+  "Lainnya",
+];
 
 interface FilterContentProps {
   kategori: string;
@@ -9,6 +18,7 @@ interface FilterContentProps {
   minRating: number;
   onRatingChange: (value: number) => void;
   onReset: () => void;
+  categories?: string[];
 }
 
 export function FilterContent({
@@ -19,7 +29,9 @@ export function FilterContent({
   minRating,
   onRatingChange,
   onReset,
+  categories,
 }: FilterContentProps) {
+  const kategoriList = categories ?? DEFAULT_KATEGORI;
   return (
     <div className="space-y-6">
       {/* Kategori */}
@@ -57,8 +69,8 @@ export function FilterContent({
         <input
           type="range"
           min={5000}
-          max={500000}
-          step={5000}
+          max={10000000}
+          step={10000}
           value={hargaMax}
           onChange={(e) => onHargaChange(Number(e.target.value))}
           className="w-full accent-green-600"

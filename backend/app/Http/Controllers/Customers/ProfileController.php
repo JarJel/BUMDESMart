@@ -32,10 +32,17 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|required|string|max:255',
-            'phone' => 'sometimes|nullable|string|max:20',
+            'name'        => 'sometimes|required|string|max:255',
+            'phone'       => 'sometimes|nullable|string|max:20',
             'date_of_birth' => 'sometimes|nullable|date',
-            'gender' => 'sometimes|nullable|in:male,female,other',
+            'gender'      => 'sometimes|nullable|in:male,female,other',
+            // UMKM fields
+            'shop_name'   => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|nullable|string',
+            'address'     => 'sometimes|nullable|string|max:500',
+            'city'        => 'sometimes|nullable|string|max:100',
+            'province'    => 'sometimes|nullable|string|max:100',
+            'postal_code' => 'sometimes|nullable|string|max:10',
         ]);
 
         if ($validator->fails()) {
@@ -52,11 +59,25 @@ class ProfileController extends Controller
                 $customerData = collect($request->only([
                     'phone', 'date_of_birth', 'gender'
                 ]))->filter()->toArray();
-
                 $user->customer->update($customerData);
             }
 
-            $user->load('customer');
+            if ($user->role === 'umkm') {
+                $user->load('umkmProfile');
+                if ($user->umkmProfile) {
+                    $umkmData = $request->only([
+                        'shop_name', 'description', 'phone',
+                        'address', 'city', 'province', 'postal_code'
+                    ]);
+                    $user->umkmProfile->update(array_filter($umkmData, fn($v) => !is_null($v)));
+                }
+            }
+
+            if ($user->role === 'umkm') {
+                $user->load('umkmProfile');
+            } else {
+                $user->load('customer');
+            }
 
             return response()->json([
                 'success' => true,
@@ -122,13 +143,14 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $validator = Validator::make($request->all(), [
-            'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed',
+            'current_password'          => 'required|string',
+            'new_password'              => 'required|string|min:8',
+            'new_password_confirmation' => 'required|same:new_password',
         ], [
-            'current_password.required' => 'Kata sandi saat ini wajib diisi.',
-            'new_password.required' => 'Kata sandi baru wajib diisi.',
-            'new_password.min' => 'Kata sandi baru minimal 8 karakter.',
-            'new_password.confirmed' => 'Konfirmasi kata sandi baru tidak cocok.',
+            'current_password.required'          => 'Kata sandi saat ini wajib diisi.',
+            'new_password.required'              => 'Kata sandi baru wajib diisi.',
+            'new_password.min'                   => 'Kata sandi baru minimal 8 karakter.',
+            'new_password_confirmation.same'     => 'Konfirmasi kata sandi baru tidak cocok.',
         ]);
 
         if ($validator->fails()) {

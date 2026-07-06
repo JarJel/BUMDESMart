@@ -100,7 +100,9 @@ export default function KeranjangPage() {
   if (error) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
-        <div className="text-5xl mb-4">⚠️</div>
+        <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4 mx-auto">
+          <svg className="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        </div>
         <h2 className="text-lg font-bold text-gray-900 mb-2">Terjadi Kesalahan</h2>
         <p className="text-sm text-gray-500 mb-6">{error}</p>
         <button onClick={fetchCart} className="px-6 py-2 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90" style={{ background: "var(--primary)" }}>
@@ -113,7 +115,9 @@ export default function KeranjangPage() {
   if (items.length === 0) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
-        <div className="text-6xl mb-4">🛒</div>
+        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4 mx-auto">
+          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+        </div>
         <h2 className="text-lg font-bold text-gray-900 mb-2">Keranjang Kosong</h2>
         <p className="text-sm text-gray-500 mb-6">Belum ada produk di keranjang kamu.</p>
         <Link href="/" className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity" style={{ background: "var(--primary)" }}>
@@ -144,7 +148,7 @@ export default function KeranjangPage() {
                   {imageUrl ? (
                     <img src={imageUrl} alt={item.product?.name} className="w-full h-full object-cover" />
                   ) : (
-                    "🛍️"
+                    <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">

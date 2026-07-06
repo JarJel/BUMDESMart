@@ -75,11 +75,7 @@ export default function DaftarPage() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#F0F7F4" }}>
-      <div className="flex items-center px-6 py-4">
-        <Link href="/" className="text-lg font-bold" style={{ color: "var(--primary-dark)" }}>BumdesMart</Link>
-      </div>
-
-      <div className="flex-1 flex items-start justify-center px-4 pb-12 pt-4">
+      <div className="flex-1 flex items-start justify-center px-4 pb-12 pt-8">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-md border border-gray-100 p-8">
           <Link href="/" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,7 +84,15 @@ export default function DaftarPage() {
             Kembali
           </Link>
 
-          <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Daftar di BumdesMart</h1>
+          {/* Logo */}
+          <div className="flex flex-col items-center mb-5">
+            <Link href="/">
+              <img src="/logo.png" alt="BUMDESmart" className="h-16 w-auto" />
+            </Link>
+            <span className="font-bold text-lg mt-1" style={{ color: "var(--primary-dark)" }}>BUMDESmart</span>
+          </div>
+
+          <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Buat Akun Baru</h1>
           <p className="text-sm text-gray-500 text-center mb-7 leading-relaxed">
             Bergabunglah untuk mendukung produk desa dan UMKM Indonesia.
           </p>

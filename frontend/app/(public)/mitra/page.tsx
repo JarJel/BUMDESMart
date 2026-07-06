@@ -95,7 +95,7 @@ export default function MitraPage() {
             </ul>
             <div className="flex flex-wrap gap-3">
               <Link
-                href="/daftar"
+                href="/daftar/seller"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white hover:opacity-90 transition-all shadow-md"
                 style={{ background: "var(--primary)" }}
               >
@@ -160,13 +160,13 @@ export default function MitraPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: "💸", title: "Gratis Selamanya", desc: "Tidak ada biaya pendaftaran maupun komisi penjualan" },
-              { icon: "📦", title: "Kelola Mudah", desc: "Dashboard sederhana, cocok untuk pemula sekalipun" },
-              { icon: "🔒", title: "Pembayaran Aman", desc: "Uang langsung masuk rekening Anda via Xendit" },
-              { icon: "📣", title: "Promosi Aktif", desc: "Tim kami aktif mempromosikan produk mitra di media sosial" },
+              { icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>, title: "Gratis Selamanya", desc: "Tidak ada biaya pendaftaran maupun komisi penjualan" },
+              { icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>, title: "Kelola Mudah", desc: "Dashboard sederhana, cocok untuk pemula sekalipun" },
+              { icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>, title: "Pembayaran Aman", desc: "Uang langsung masuk rekening Anda via Xendit" },
+              { icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>, title: "Promosi Aktif", desc: "Tim kami aktif mempromosikan produk mitra di media sosial" },
             ].map((f) => (
               <div key={f.title} className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
-                <div className="text-3xl mb-3">{f.icon}</div>
+                <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center mb-3 mx-auto">{f.icon}</div>
                 <h3 className="font-semibold text-gray-900 text-sm mb-1.5">{f.title}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
               </div>
@@ -236,7 +236,7 @@ export default function MitraPage() {
             Daftarkan usaha Anda sekarang dan mulai berjualan di BumdesMart. Gratis, mudah, dan terpercaya.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/daftar" className="px-8 py-3 rounded-xl font-semibold text-sm bg-white hover:bg-gray-50 transition-colors" style={{ color: "var(--primary-dark)" }}>
+            <Link href="/daftar/seller" className="px-8 py-3 rounded-xl font-semibold text-sm bg-white hover:bg-gray-50 transition-colors" style={{ color: "var(--primary-dark)" }}>
               Daftar Sekarang — Gratis
             </Link>
             <Link href="/tentang" className="px-8 py-3 rounded-xl font-semibold text-sm border border-white/40 text-white hover:bg-white/10 transition-colors">

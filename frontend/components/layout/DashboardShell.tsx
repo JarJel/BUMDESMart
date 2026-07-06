@@ -53,9 +53,12 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
       {/* ── Sidebar ── */}
       <aside className="w-56 shrink-0 bg-white border-r border-gray-100 flex flex-col">
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-gray-100">
-          <p className="font-bold text-base" style={{ color: accent }}>BumdesMart</p>
-          <p className="text-xs text-gray-400 mt-0.5">{roleLabel}</p>
+        <div className="px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-1.5">
+            <img src="/logo.png" alt="BUMDESmart" className="h-8 w-auto" />
+            <span className="font-bold text-sm" style={{ color: accent }}>BUMDESmart</span>
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5 pl-0.5">{roleLabel}</p>
         </div>
 
         {/* Nav */}
@@ -133,12 +136,6 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
             </svg>
             <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
           </button>
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-            style={{ background: accent }}
-          >
-            {initials(user?.name)}
-          </div>
         </header>
 
         {/* Content */}

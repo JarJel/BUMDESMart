@@ -12,6 +12,7 @@ class UmkmProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'bumdes_profile_id',
         'shop_name',
         'slug',
         'owner_name',
@@ -29,6 +30,7 @@ class UmkmProfile extends Model
         'status',
         'verified_by',
         'verified_at',
+        'rejection_reason',
     ];
 
     protected function casts(): array
@@ -36,6 +38,11 @@ class UmkmProfile extends Model
         return [
             'verified_at' => 'datetime',
         ];
+    }
+
+    public function bumdesProfile(): BelongsTo
+    {
+        return $this->belongsTo(BumdesProfile::class, 'bumdes_profile_id');
     }
 
     public function user(): BelongsTo

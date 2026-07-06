@@ -16,6 +16,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams?.get('redirect') || null;
+  const registered = searchParams?.get('registered') || null;
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -120,30 +121,26 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#F0F7F4" }}>
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-4">
-        <Link href="/" className="text-lg font-bold" style={{ color: "var(--primary-dark)" }}>BumdesMart</Link>
-        <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 bg-white">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button>
-      </div>
 
       {/* Card */}
       <div className="flex-1 flex items-center justify-center px-4 pb-12">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-md border border-gray-100 p-8">
-          {/* Icon */}
-          <div className="flex justify-center mb-5">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "var(--primary-muted)" }}>
-              <svg className="w-8 h-8" style={{ color: "var(--primary)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
+          {/* Logo */}
+          <div className="flex flex-col items-center mb-5">
+            <Link href="/">
+              <img src="/logo.png" alt="BUMDESmart" className="h-16 w-auto" />
+            </Link>
+            <span className="font-bold text-lg mt-1" style={{ color: "var(--primary-dark)" }}>BUMDESmart</span>
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Masuk ke BumdesMart</h1>
           <p className="text-sm text-gray-500 text-center mb-7">Selamat datang kembali·Silakan masuk ke akun Anda.</p>
+
+          {registered === "mitra" && (
+            <div className="mb-4 p-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700">
+              Pendaftaran mitra berhasil! Silakan login dan tunggu verifikasi dari Admin BUMDes.
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">

@@ -216,13 +216,9 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "var(--primary)" }}>
-              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20C19 20 22 3 22 3c-1 2-8 2-8 2s-2-5-8-5c-4 0-7 2-7 2s4 2 8 4c-1.5 1-3 3-3 5s1.5 4 5 4c2 0 3.5-1 4-2" />
-              </svg>
-            </div>
-            <span className="text-lg font-bold" style={{ color: "var(--primary-dark)" }}>BumdesMart</span>
+          <Link href="/" className="flex items-center gap-1.5 shrink-0">
+            <img src="/logo.png" alt="BUMDESmart" className="h-9 w-auto" />
+            <span className="text-base font-bold hidden sm:block" style={{ color: "var(--primary-dark)" }}>BUMDESmart</span>
           </Link>
 
           {/* Search Form (Desktop) */}
@@ -553,7 +549,7 @@ export default function Navbar() {
                   <>
                     {user?.role === 'umkm' && (
                       <Link
-                        href="/dashboard"
+                        href="/seller"
                         className="text-xs font-semibold px-3.5 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors text-gray-700 no-underline"
                       >
                         Dashboard Toko
@@ -649,7 +645,7 @@ export default function Navbar() {
 
                       {user?.role === 'umkm' && (
                         <button
-                          onClick={() => router.push("/dashboard")}
+                          onClick={() => router.push("/seller")}
                           className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer border-0 bg-transparent"
                         >
                           Dashboard Toko
@@ -783,7 +779,7 @@ export default function Navbar() {
                 ) : (
                   <>
                     {user?.role === 'umkm' && (
-                      <Link href="/dashboard" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg no-underline" onClick={() => setOpen(false)}>
+                      <Link href="/seller" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg no-underline" onClick={() => setOpen(false)}>
                         Dashboard Toko (UMKM)
                       </Link>
                     )}

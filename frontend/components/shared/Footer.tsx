@@ -8,8 +8,8 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-6 h-6 rounded-md flex items-center justify-center text-xs" style={{ background: "var(--primary-light)" }}>🌿</div>
-              <span className="font-bold text-white">BumdesMart</span>
+              <img src="/logo.png" alt="BUMDESmart" className="h-9 w-auto" />
+              <span className="font-bold text-white text-sm">BUMDESmart</span>
             </div>
             <p className="text-xs leading-relaxed text-green-200">
               Platform digital marketplace UMKM desa Indonesia. Menghubungkan produk lokal dengan pembeli di seluruh nusantara.
@@ -20,9 +20,9 @@ export default function Footer() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-green-300 mb-4">Produk Unggulan</p>
             <ul className="space-y-2.5 text-xs text-green-200">
-              <li><Link href="/produk" className="hover:text-white transition-colors">Best Sellers</Link></li>
-              <li><Link href="/produk?sort=terbaru" className="hover:text-white transition-colors">New Arrivals</Link></li>
-              <li><Link href="/produk?kategori=Makanan+%26+Minuman" className="hover:text-white transition-colors">Organic Produce</Link></li>
+              <li><Link href="/produk" className="hover:text-white transition-colors">Terlaris</Link></li>
+              <li><Link href="/produk?sort=terbaru" className="hover:text-white transition-colors">Produk Terbaru</Link></li>
+              <li><Link href="/produk?kategori=Makanan+%26+Minuman" className="hover:text-white transition-colors">Makanan & Minuman</Link></li>
             </ul>
           </div>
 
@@ -30,9 +30,9 @@ export default function Footer() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-green-300 mb-4">Mitra Desa</p>
             <ul className="space-y-2.5 text-xs text-green-200">
-              <li><Link href="/mitra" className="hover:text-white transition-colors">Merchant Portal</Link></li>
-              <li><Link href="/mitra#join" className="hover:text-white transition-colors">Join as Vendor</Link></li>
-              <li><Link href="/tentang" className="hover:text-white transition-colors">Village Logistics</Link></li>
+              <li><Link href="/mitra" className="hover:text-white transition-colors">Portal Mitra</Link></li>
+              <li><Link href="/daftar/seller" className="hover:text-white transition-colors">Daftar sebagai Mitra</Link></li>
+              <li><Link href="/tentang" className="hover:text-white transition-colors">Logistik Desa</Link></li>
             </ul>
           </div>
 
@@ -40,9 +40,9 @@ export default function Footer() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-green-300 mb-4">Bantuan</p>
             <ul className="space-y-2.5 text-xs text-green-200">
-              <li><Link href="/tentang" className="hover:text-white transition-colors">Help Center</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Shipping Policy</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Terms of Service</Link></li>
+              <li><Link href="/tentang" className="hover:text-white transition-colors">Pusat Bantuan</Link></li>
+              <li><Link href="#" className="hover:text-white transition-colors">Kebijakan Pengiriman</Link></li>
+              <li><Link href="#" className="hover:text-white transition-colors">Syarat & Ketentuan</Link></li>
             </ul>
           </div>
         </div>

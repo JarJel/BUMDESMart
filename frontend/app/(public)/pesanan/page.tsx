@@ -39,8 +39,8 @@ export default function PesananPage() {
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center text-xl shrink-0" style={{ background: "var(--surface)" }}>
-                  🛍️
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--surface)" }}>
+                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-700 line-clamp-1">{order.produk}</p>
@@ -50,7 +50,8 @@ export default function PesananPage() {
               </div>
               {order.noResi && (
                 <div className="mt-3 pt-3 border-t border-gray-50 flex items-center gap-2 text-xs text-gray-500">
-                  <span>📦 No. Resi: <strong className="text-gray-700">{order.noResi}</strong></span>
+                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                  <span>No. Resi: <strong className="text-gray-700">{order.noResi}</strong></span>
                   <span className="text-gray-300">·</span>
                   <span>{order.ekspedisi}</span>
                 </div>

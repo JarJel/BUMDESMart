@@ -7,6 +7,10 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 export const metadata: Metadata = {
   title: "BUMDESMart — Dari Desa, Untuk Semua",
   description: "Platform marketplace digital UMKM Desa Lengkong, Kecamatan Bojongsoang, Kabupaten Bandung.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

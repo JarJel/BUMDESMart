@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server'
 const ROLE_HOME: Record<string, string> = {
   super_admin:  '/admin',
   admin_bumdes: '/bumdes',
-  umkm:         '/dashboard',
+  umkm:         '/seller',
   customer:     '/produk',
   pengirim:     '/pengirim',
 }
@@ -13,7 +13,7 @@ const ROLE_HOME: Record<string, string> = {
 const PATH_ROLE: Record<string, string> = {
   '/admin':     'super_admin',
   '/bumdes':    'admin_bumdes',
-  '/dashboard': 'umkm',
+  '/seller': 'umkm',
   '/user':      'customer',
   '/pengirim':  'pengirim',
 }
@@ -53,7 +53,7 @@ export const config = {
     '/login',
     '/admin/:path*',
     '/bumdes/:path*',
-    '/dashboard/:path*',
+    '/seller/:path*',
     '/user/:path*',
     '/pengirim/:path*',
   ],

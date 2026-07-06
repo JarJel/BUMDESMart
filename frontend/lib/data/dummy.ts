@@ -232,7 +232,7 @@ export const tokoList = [
 
 // ─── Tipe & konstanta dokumen legalitas ───────────────────────────────────────
 
-export type DokumenType = 'nib' | 'halal' | 'spp_irt' | 'bpom_md' | 'slhs' | 'haki' | 'ing'
+export type DokumenType = 'nib' | 'halal' | 'spp_irt' | 'bpom_md' | 'slhs' | 'haki' | 'ing' | 'npwp'
 
 export type Dokumen = {
   type: DokumenType
@@ -252,6 +252,7 @@ export const DOKUMEN_META: Record<DokumenType, {
   slhs:    { nama: 'SLHS',                  penerbit: 'Dinas Kesehatan',         kategori: 'Jasa Boga',       efek: 'Dapur higienis, air bersih, koki sehat' },
   haki:    { nama: 'Sertifikat Merek',      penerbit: 'DJKI Kemenkumham',        kategori: 'Perlindungan Merek', efek: 'Brand terlindungi, bukan peniru' },
   ing:     { nama: 'Info Nilai Gizi (ING)', penerbit: 'Lab Pangan / Universitas', kategori: 'Klaim Kesehatan', efek: 'Data nutrisi jujur untuk konsumen sehat' },
+  npwp:    { nama: 'NPWP',                 penerbit: 'Direktorat Jenderal Pajak',  kategori: 'Pajak',           efek: 'Terdaftar sebagai wajib pajak' },
 }
 
 // Tambahkan dokumen ke tiap toko di bawah:
