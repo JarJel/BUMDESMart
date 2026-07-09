@@ -31,6 +31,7 @@ class UmkmProfile extends Model
         'verified_by',
         'verified_at',
         'rejection_reason',
+        'business_category',
     ];
 
     protected function casts(): array

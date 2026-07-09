@@ -29,7 +29,16 @@ class ProductController extends Controller
             $products = $query->with([
                 'primaryImage',
                 'umkmProfile:id,shop_name,slug',
+                'activeDiscount',
             ])->paginate(12);
+
+            $products->getCollection()->transform(function ($product) {
+                if ($product->activeDiscount) {
+                    $product->activeDiscount->discounted_price =
+                        $product->activeDiscount->calculateDiscountedPrice((float) $product->price);
+                }
+                return $product;
+            });
 
             return response()->json([
                 'success' => true,
@@ -57,9 +66,15 @@ class ProductController extends Controller
                     'images',
                     'variants.options',
                     'category',
-                    'umkmProfile:id,shop_name,slug,logo,description'
+                    'umkmProfile:id,shop_name,slug,logo,description',
+                    'activeDiscount',
                 ])
                 ->first();
+
+            if ($product && $product->activeDiscount) {
+                $product->activeDiscount->discounted_price =
+                    $product->activeDiscount->calculateDiscountedPrice((float) $product->price);
+            }
 
             if (!$product) {
                 return response()->json([

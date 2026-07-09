@@ -12,6 +12,8 @@ use App\Http\Controllers\Customers\SellerController;
 use App\Http\Controllers\Customers\ProductController;
 use App\Http\Controllers\Customers\CheckoutController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
+use App\Http\Controllers\Seller\SellerDiscountController;
+use App\Http\Controllers\Seller\SellerDocumentController;
 use App\Http\Controllers\SuperAdmin\BumdesController as SuperAdminBumdesController;
 use App\Http\Controllers\Admin\RequiredDocumentController;
 use App\Http\Controllers\Admin\UmkmVerificationController;
@@ -47,6 +49,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+
+    // Seller document management routes
+    Route::get('/seller/documents', [SellerDocumentController::class, 'index']);
+    Route::post('/seller/documents/{requiredDocId}', [SellerDocumentController::class, 'upload']);
+
+    // Seller discount management routes
+    Route::get('/seller/discounts', [SellerDiscountController::class, 'index']);
+    Route::post('/seller/discounts', [SellerDiscountController::class, 'store']);
+    Route::put('/seller/discounts/{id}', [SellerDiscountController::class, 'update']);
+    Route::delete('/seller/discounts/{id}', [SellerDiscountController::class, 'destroy']);
+    Route::patch('/seller/discounts/{id}/toggle', [SellerDiscountController::class, 'toggle']);
 
     // Seller product management routes
     Route::get('/seller/products', [SellerProductController::class, 'index']);

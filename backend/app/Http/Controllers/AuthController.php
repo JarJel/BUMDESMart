@@ -72,6 +72,7 @@ class AuthController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
             'bumdes_profile_id' => 'required|exists:bumdes_profiles,id',
+            'business_category' => 'nullable|string|in:makanan_minuman,fashion_kerajinan,pertanian_peternakan,perdagangan_umum,jasa',
         ]);
 
         if ($validator->fails()) {

@@ -59,6 +59,8 @@ class AuthService
             'slug'              => \Illuminate\Support\Str::slug($data['shop_name'] . '-' . uniqid()),
             'owner_name'        => $data['name'],
             'phone'             => $data['phone'] ?? null,
+            'description'       => $data['description'] ?? null,
+            'business_category' => $data['business_category'] ?? null,
             'status'            => 'pending',
         ]);
 

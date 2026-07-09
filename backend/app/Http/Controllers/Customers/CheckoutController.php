@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Models\ProductDiscount;
 use App\Models\ProductVariant;
 use App\Models\Address;
 use Exception;
@@ -33,7 +34,7 @@ class CheckoutController extends Controller
                 $quantity = (int) $request->input('quantity', 1);
                 $variantId = $request->filled('variant_id') ? (int) $request->input('variant_id') : null;
 
-                $product = Product::with(['images', 'umkmProfile'])->find($productId);
+                $product = Product::with(['images', 'umkmProfile', 'activeDiscount'])->find($productId);
                 if (!$product) {
                     return response()->json([
                         'success' => false,
@@ -54,6 +55,11 @@ class CheckoutController extends Controller
                     }
                 }
 
+                $basePrice      = $variant ? $variant->price : $product->price;
+                $discount       = $product->activeDiscount;
+                $discountAmount = $discount ? ($basePrice - $discount->calculateDiscountedPrice((float) $basePrice)) : 0;
+                $finalPrice     = $basePrice - $discountAmount;
+
                 $items[] = [
                     'id' => 0,
                     'cart_id' => 0,
@@ -64,7 +70,9 @@ class CheckoutController extends Controller
                         'id' => $product->id,
                         'name' => $product->name,
                         'slug' => $product->slug,
-                        'price' => $variant ? $variant->price : $product->price,
+                        'price' => $basePrice,
+                        'discount_amount' => $discountAmount,
+                        'final_price' => $finalPrice,
                         'stock' => $variant ? $variant->stock : $product->stock,
                         'weight' => $product->weight,
                         'umkm_profile' => $product->umkmProfile ? [
@@ -91,13 +99,18 @@ class CheckoutController extends Controller
                 $cart = Cart::where('customer_id', $customerId)->first();
                 if ($cart) {
                     $cartItems = CartItem::where('cart_id', $cart->id)
-                        ->with(['product.images', 'product.umkmProfile', 'variant'])
+                        ->with(['product.images', 'product.umkmProfile', 'product.activeDiscount', 'variant'])
                         ->get();
 
                     foreach ($cartItems as $item) {
                         $product = $item->product;
                         $variant = $item->variant;
                         if (!$product) continue;
+
+                        $basePrice      = $variant ? $variant->price : $product->price;
+                        $discount       = $product->activeDiscount;
+                        $discountAmount = $discount ? ($basePrice - $discount->calculateDiscountedPrice((float) $basePrice)) : 0;
+                        $finalPrice     = $basePrice - $discountAmount;
 
                         $items[] = [
                             'id' => $item->id,
@@ -109,7 +122,9 @@ class CheckoutController extends Controller
                                 'id' => $product->id,
                                 'name' => $product->name,
                                 'slug' => $product->slug,
-                                'price' => $variant ? $variant->price : $product->price,
+                                'price' => $basePrice,
+                                'discount_amount' => $discountAmount,
+                                'final_price' => $finalPrice,
                                 'stock' => $variant ? $variant->stock : $product->stock,
                                 'weight' => $product->weight,
                                 'umkm_profile' => $product->umkmProfile ? [

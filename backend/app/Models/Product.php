@@ -63,8 +63,22 @@ class Product extends Model
         return $this->hasMany(Wishlist::class, 'product_id');
     }
 
+    public function discounts(): HasMany
+    {
+        return $this->hasMany(ProductDiscount::class, 'product_id');
+    }
+
     public function primaryImage()
     {
         return $this->hasOne(ProductImage::class, 'product_id')->where('is_primary', true);
+    }
+
+    public function activeDiscount()
+    {
+        return $this->hasOne(ProductDiscount::class, 'product_id')
+            ->where('is_active', true)
+            ->where(fn($q) => $q->whereNull('start_date')->orWhere('start_date', '<=', now()))
+            ->where(fn($q) => $q->whereNull('end_date')->orWhere('end_date', '>', now()))
+            ->where(fn($q) => $q->whereNull('max_uses')->orWhereColumn('used_count', '<', 'max_uses'));
     }
 }

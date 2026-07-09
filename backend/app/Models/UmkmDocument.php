@@ -11,6 +11,7 @@ class UmkmDocument extends Model
 
     protected $fillable = [
         'umkm_profile_id',
+        'required_document_id',
         'document_type',
         'document_number',
         'file_path',
