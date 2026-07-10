@@ -24,6 +24,14 @@ export function ProductCard({ product, compact = false }: { product: any; compac
 
   const shopName = product.tokNama || product.umkm_profile?.shop_name || "BumdesMart";
   const soldCount = product.sold_count ?? product.terjual ?? 0;
+  const activeDiscount = product.active_discount ?? null;
+  const finalPrice = activeDiscount ? activeDiscount.discounted_price : price;
+  const discountLabel = activeDiscount
+    ? activeDiscount.type === "percentage"
+      ? `-${Number(activeDiscount.value).toFixed(0)}%`
+      : `-Rp ${Number(activeDiscount.value).toLocaleString("id-ID")}`
+    : null;
+
 
   return (
     <Link
@@ -47,6 +55,11 @@ export function ProductCard({ product, compact = false }: { product: any; compac
             TERLARIS
           </span>
         )}
+        {discountLabel && (
+          <span className="absolute top-2 right-2 text-xs font-bold px-2 py-0.5 rounded-full text-white bg-red-500">
+            {discountLabel}
+          </span>
+        )}
       </div>
 
       <div className={`min-w-0 ${compact ? "p-2" : "p-3"}`}>
@@ -58,9 +71,16 @@ export function ProductCard({ product, compact = false }: { product: any; compac
           <StarIcon size="sm" />
           <span className="text-xs text-gray-500">{rating}</span>
         </div>
-        <p className="text-xs font-bold" style={{ color: "var(--primary)" }}>
-          Rp {price.toLocaleString("id-ID")}
-        </p>
+        <div className="flex items-center gap-1 flex-wrap">
+          <p className="text-xs font-bold" style={{ color: "var(--primary)" }}>
+            Rp {Number(finalPrice).toLocaleString("id-ID")}
+          </p>
+          {activeDiscount && (
+            <p className="text-xs text-gray-400 line-through">
+              Rp {price.toLocaleString("id-ID")}
+            </p>
+          )}
+        </div>
       </div>
     </Link>
   );
