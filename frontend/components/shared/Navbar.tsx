@@ -16,6 +16,21 @@ const navLinks = [
   { href: "/tentang", label: "Tentang Kami" },
 ];
 
+// Kelompokkan item keranjang berdasarkan tenant (toko UMKM)
+function groupCartByTenant(items: CartItemData[]) {
+  const groups: Record<string, { tenantId: number | null; tenantName: string; items: CartItemData[] }> = {};
+  items.forEach((item) => {
+    const tenantId = item.product?.umkm_profile?.id ?? null;
+    const tenantName = item.product?.umkm_profile?.shop_name || item.product?.umkm_profile?.name_umkm || "Toko";
+    const key = tenantId !== null ? String(tenantId) : "unknown";
+    if (!groups[key]) {
+      groups[key] = { tenantId, tenantName, items: [] };
+    }
+    groups[key].items.push(item);
+  });
+  return Object.values(groups);
+}
+
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -465,48 +480,80 @@ export default function Navbar() {
                         <div className="flex items-center justify-between p-4 border-b border-gray-50">
                           <h3 className="font-bold text-gray-900 text-sm">Keranjang Belanja</h3>
                           <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold text-green-700 bg-green-50">
-                            {cartItems.length} Jenis Produk
+                            {groupCartByTenant(cartItems).length} Toko · {cartItems.length} Produk
                           </span>
                         </div>
-                        <div className="max-h-[260px] overflow-y-auto divide-y divide-gray-50">
+                        <div className="max-h-[300px] overflow-y-auto">
                           {cartItems.length === 0 ? (
                             <div className="p-8 text-center text-gray-400">
                               <span className="text-2xl block mb-1">🛒</span>
                               <p className="text-xs font-medium">Keranjang belanja kosong</p>
                             </div>
                           ) : (
-                            cartItems.map((item) => {
-                              const imageUrl = item.product?.images?.[0]?.image_path ? getAssetUrl(item.product.images[0].image_path) : '';
-                              const itemPrice = item.variant ? Number(item.variant.price) : Number(item.product?.price || 0);
+                            groupCartByTenant(cartItems).map((group, groupIdx) => {
+                              const groupSubtotal = group.items.reduce((s, i) => {
+                                const p = i.variant ? Number(i.variant.price) : Number(i.product?.price || 0);
+                                return s + p * i.quantity;
+                              }, 0);
                               return (
-                                <div key={item.id} className="p-4 hover:bg-gray-50/50 transition-colors flex gap-3 items-center group">
-                                  <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center shrink-0 bg-gray-50 border border-gray-100">
-                                    {imageUrl ? (
-                                      <img src={imageUrl} alt={item.product?.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      "🛍️"
-                                    )}
+                                <div key={group.tenantId ?? 'unknown'}>
+                                  {/* Header Toko */}
+                                  <div className={`flex items-center justify-between px-4 py-2 bg-gray-50/70 ${groupIdx > 0 ? 'border-t border-gray-100' : ''}`}>
+                                    <div className="flex items-center gap-1.5">
+                                      <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--primary)" }}>
+                                        <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-[11px] font-semibold text-gray-700 truncate max-w-[160px]">{group.tenantName}</span>
+                                    </div>
+                                    <span className="text-[10px] text-gray-400">{group.items.length} produk</span>
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-xs text-gray-900 truncate mb-0.5">{item.product?.name}</h4>
-                                    {item.variant && (
-                                      <p className="text-[10px] text-gray-400 mb-0.5">Varian: {item.variant.name}</p>
-                                    )}
-                                    <p className="text-xs text-gray-500">
-                                      {item.quantity} x <span className="font-semibold text-gray-700">{formatPrice(itemPrice)}</span>
-                                    </p>
+
+                                  {/* Item dalam toko */}
+                                  <div className="divide-y divide-gray-50">
+                                    {group.items.map((item) => {
+                                      const imageUrl = item.product?.images?.[0]?.image_path ? getAssetUrl(item.product.images[0].image_path) : '';
+                                      const itemPrice = item.variant ? Number(item.variant.price) : Number(item.product?.price || 0);
+                                      return (
+                                        <div key={item.id} className="px-4 py-2.5 hover:bg-gray-50/50 transition-colors flex gap-3 items-center group/item">
+                                          <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center shrink-0 bg-gray-50 border border-gray-100">
+                                            {imageUrl ? (
+                                              <img src={imageUrl} alt={item.product?.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                              <span className="text-base">🛍️</span>
+                                            )}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <h4 className="font-semibold text-xs text-gray-900 truncate mb-0.5">{item.product?.name}</h4>
+                                            {item.variant && (
+                                              <p className="text-[10px] text-gray-400 mb-0.5">Varian: {item.variant.name}</p>
+                                            )}
+                                            <p className="text-xs text-gray-500">
+                                              {item.quantity} x <span className="font-semibold text-gray-700">{formatPrice(itemPrice)}</span>
+                                            </p>
+                                          </div>
+                                          <div className="text-right">
+                                            <p className="font-bold text-xs text-green-600 mb-1">{formatPrice(itemPrice * item.quantity)}</p>
+                                            <button
+                                              onClick={() => handleRemoveCart(item.id)}
+                                              className="p-1 rounded-lg hover:bg-red-50 text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity cursor-pointer border-0 bg-transparent"
+                                              title="Hapus"
+                                            >
+                                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                              </svg>
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
-                                  <div className="text-right">
-                                    <p className="font-bold text-xs text-green-600 mb-1">{formatPrice(itemPrice * item.quantity)}</p>
-                                    <button
-                                      onClick={() => handleRemoveCart(item.id)}
-                                      className="p-1 rounded-lg hover:bg-red-50 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-0 bg-transparent"
-                                      title="Hapus"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                      </svg>
-                                    </button>
+
+                                  {/* Subtotal per toko */}
+                                  <div className="flex justify-between items-center px-4 py-1.5 bg-gray-50/40 border-t border-dashed border-gray-100">
+                                    <span className="text-[10px] text-gray-400">Subtotal {group.tenantName}</span>
+                                    <span className="text-[11px] font-bold text-gray-700">{formatPrice(groupSubtotal)}</span>
                                   </div>
                                 </div>
                               );

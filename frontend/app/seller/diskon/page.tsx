@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api/axios";
+import { useToast } from "@/components/ui/Toast";
 
 /* ─── Types ─── */
 interface Discount {
@@ -321,6 +322,7 @@ export default function DiskonPage() {
   const [editing, setEditing] = useState<Discount | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [toggling, setToggling] = useState<number | null>(null);
+  const toast = useToast();
 
   const fetchDiscounts = async () => {
     setLoading(true);
@@ -375,7 +377,7 @@ export default function DiskonPage() {
 
   const openAdd = () => {
     if (products.length === 0) {
-      alert("Anda harus memiliki produk yang aktif terlebih dahulu sebelum membuat diskon.");
+      toast.warning("Anda harus memiliki produk yang aktif terlebih dahulu sebelum membuat diskon.");
       return;
     }
     setEditing(null);

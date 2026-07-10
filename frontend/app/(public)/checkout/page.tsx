@@ -4,11 +4,29 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { addressApi, AddressData } from "@/lib/api/address";
-import { cartApi } from "@/lib/api/cart";
+import { cartApi, CartItemData } from "@/lib/api/cart";
+import { useToast } from "@/components/ui/Toast";
 
 function formatRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
 }
+
+const getAssetUrl = (path: string | undefined) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+  try {
+    const origin = new URL(apiUrl).origin;
+    return `${origin}${path.startsWith('/') ? '' : '/'}${path}`;
+  } catch (e) {
+    return `http://localhost:8000/${path.startsWith('/') ? path.substring(1) : path}`;
+  }
+};
+
+const slugify = (text: string | undefined) => {
+  if (!text) return 'toko';
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+};
 
 const ekspedisi = [
   { id: "jne-reg", nama: "JNE Regular", estimasi: "2-3 hari", harga: 12000 },
@@ -17,15 +35,49 @@ const ekspedisi = [
   { id: "pickup", nama: "Ambil Sendiri", estimasi: "Hari ini", harga: 0 },
 ];
 
+// Kelompokkan item cart berdasarkan tenant (umkm_profile)
+interface TenantGroup {
+  tenantId: number | null;
+  tenantKey: string;
+  tenantName: string;
+  storeSlug: string;
+  items: CartItemData[];
+}
+
+function groupByTenant(items: CartItemData[]): TenantGroup[] {
+  const groups: Record<string, TenantGroup> = {};
+
+  items.forEach((item) => {
+    const tenantId = item.product?.umkm_profile?.id ?? null;
+    const tenantName = item.product?.umkm_profile?.shop_name || item.product?.umkm_profile?.name_umkm || "Toko";
+    const key = tenantId !== null ? String(tenantId) : "unknown";
+
+    if (!groups[key]) {
+      groups[key] = {
+        tenantId,
+        tenantKey: key,
+        tenantName,
+        storeSlug: slugify(tenantName),
+        items: [],
+      };
+    }
+    groups[key].items.push(item);
+  });
+
+  return Object.values(groups);
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
-  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [cartItems, setCartItems] = useState<CartItemData[]>([]);
   const [addresses, setAddresses] = useState<AddressData[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
 
-  const [kurir, setKurir] = useState("jne-reg");
+  // Kurir per tenant: { [tenantKey]: ekspedisiId }
+  const [kurirPerTenant, setKurirPerTenant] = useState<Record<string, string>>({});
   const [bayar, setBayar] = useState("qris");
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   // Address Modal States
   const [showModal, setShowModal] = useState(false);
@@ -47,7 +99,16 @@ export default function CheckoutPage() {
       // Fetch Cart
       const cartRes = await cartApi.get();
       if (cartRes.data && cartRes.data.success) {
-        setCartItems(cartRes.data.data.items || []);
+        const items: CartItemData[] = cartRes.data.data.items || [];
+        setCartItems(items);
+
+        // Inisialisasi kurir default (jne-reg) untuk setiap tenant
+        const groups = groupByTenant(items);
+        const defaultKurir: Record<string, string> = {};
+        groups.forEach((g) => {
+          defaultKurir[g.tenantKey] = "jne-reg";
+        });
+        setKurirPerTenant(defaultKurir);
       }
 
       // Fetch Addresses
@@ -55,7 +116,6 @@ export default function CheckoutPage() {
       if (addressRes.data && addressRes.data.success) {
         const addrList = addressRes.data.data || [];
         setAddresses(addrList);
-        // Auto-select default address
         const defaultAddr = addrList.find((a: any) => a.is_default);
         if (defaultAddr) {
           setSelectedAddressId(defaultAddr.id || null);
@@ -113,7 +173,6 @@ export default function CheckoutPage() {
         await addressApi.store(form);
       }
       setShowModal(false);
-      // Refresh list
       const addressRes = await addressApi.list();
       if (addressRes.data && addressRes.data.success) {
         const addrList = addressRes.data.data || [];
@@ -124,7 +183,7 @@ export default function CheckoutPage() {
       }
     } catch (err) {
       console.error("Gagal menyimpan alamat:", err);
-      alert("Gagal menyimpan alamat. Harap periksa input Anda.");
+      toast.error("Gagal menyimpan alamat. Harap periksa input Anda.");
     }
   };
 
@@ -135,7 +194,6 @@ export default function CheckoutPage() {
       if (selectedAddressId === id) {
         setSelectedAddressId(null);
       }
-      // Refresh list
       const addressRes = await addressApi.list();
       if (addressRes.data && addressRes.data.success) {
         const addrList = addressRes.data.data || [];
@@ -152,7 +210,6 @@ export default function CheckoutPage() {
   const handleSelectDefault = async (id: number) => {
     try {
       await addressApi.setDefault(id);
-      // Refresh list
       const addressRes = await addressApi.list();
       if (addressRes.data && addressRes.data.success) {
         setAddresses(addressRes.data.data || []);
@@ -187,13 +244,24 @@ export default function CheckoutPage() {
     );
   }
 
-  const selectedKurir = ekspedisi.find((e) => e.id === kurir) || ekspedisi[0];
-  const subtotal = cartItems.reduce((s, item) => {
-    const price = Number(item.product?.price || 0);
-    return s + price * item.quantity;
-  }, 0);
-  const total = subtotal + selectedKurir.harga;
+  const tenantGroups = groupByTenant(cartItems);
   const activeAddress = addresses.find((a) => a.id === selectedAddressId);
+
+  // Hitung subtotal dan ongkir per tenant
+  const tenantSummaries = tenantGroups.map((group) => {
+    const kurirId = kurirPerTenant[group.tenantKey] || "jne-reg";
+    const selectedKurir = ekspedisi.find((e) => e.id === kurirId) || ekspedisi[0];
+    const subtotal = group.items.reduce((s, item) => {
+      const price = item.variant ? Number(item.variant.price) : Number(item.product?.price || 0);
+      return s + price * item.quantity;
+    }, 0);
+    const totalQty = group.items.reduce((s, i) => s + i.quantity, 0);
+    return { ...group, subtotal, selectedKurir, totalQty };
+  });
+
+  const grandSubtotal = tenantSummaries.reduce((s, t) => s + t.subtotal, 0);
+  const grandOngkir = tenantSummaries.reduce((s, t) => s + t.selectedKurir.harga, 0);
+  const grandTotal = grandSubtotal + grandOngkir;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -207,9 +275,10 @@ export default function CheckoutPage() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Form */}
+        {/* Form Kiri */}
         <div className="flex-1 space-y-5">
-          {/* Alamat */}
+
+          {/* 1. Alamat Pengiriman */}
           <div className="bg-white rounded-xl border border-gray-100 p-5">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -224,7 +293,6 @@ export default function CheckoutPage() {
               </button>
             </div>
 
-            {/* List Alamat */}
             {addresses.length === 0 ? (
               <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-xl">
                 <p className="text-sm text-gray-400 mb-3">Belum ada alamat pengiriman terdaftar.</p>
@@ -261,30 +329,21 @@ export default function CheckoutPage() {
                         </div>
                         <div className="flex gap-2.5 z-10">
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenEditModal(addr);
-                            }}
+                            onClick={(e) => { e.stopPropagation(); handleOpenEditModal(addr); }}
                             className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer font-medium"
                           >
                             Edit
                           </button>
                           {!addr.is_default && (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSelectDefault(addr.id!);
-                              }}
+                              onClick={(e) => { e.stopPropagation(); handleSelectDefault(addr.id!); }}
                               className="text-xs text-green-600 hover:text-green-800 cursor-pointer font-medium"
                             >
                               Set Utama
                             </button>
                           )}
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteAddress(addr.id!);
-                            }}
+                            onClick={(e) => { e.stopPropagation(); handleDeleteAddress(addr.id!); }}
                             className="text-xs text-red-500 hover:text-red-700 cursor-pointer font-medium"
                           >
                             Hapus
@@ -303,49 +362,131 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* Pengiriman */}
+          {/* 2. Metode Pengiriman — Per Tenant */}
           <div className="bg-white rounded-xl border border-gray-100 p-5">
             <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <span className="w-6 h-6 rounded-full text-xs font-bold text-white flex items-center justify-center" style={{ background: "var(--primary)" }}>2</span>
               Metode Pengiriman
             </h2>
-            <div className="space-y-2">
-              {ekspedisi.map((e) => (
-                <label key={e.id} className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${kurir === e.id ? "border-green-500 bg-green-50" : "border-gray-100 hover:border-gray-200"}`}>
-                  <div className="flex items-center gap-3">
-                    <input type="radio" name="kurir" value={e.id} checked={kurir === e.id} onChange={() => setKurir(e.id)} className="accent-green-700" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{e.nama}</p>
-                      <p className="text-xs text-gray-500">Estimasi {e.estimasi}</p>
+
+            <div className="space-y-5">
+              {tenantGroups.map((group) => {
+                const kurirId = kurirPerTenant[group.tenantKey] || "jne-reg";
+                const groupQty = group.items.reduce((s, i) => s + i.quantity, 0);
+
+                return (
+                  <div key={group.tenantKey}>
+                    {/* Header Toko */}
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--primary)" }}>
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-800">{group.tenantName}</span>
+                      <span className="text-xs text-gray-400">({groupQty} item)</span>
                     </div>
+
+                    {/* Daftar produk mini per toko */}
+                    <div className="ml-7 mb-3 space-y-1">
+                      {group.items.map((item) => {
+                        const imagePath = item.product?.images?.[0]?.image_path;
+                        const imageUrl = getAssetUrl(imagePath);
+                        return (
+                          <div key={item.id} className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded overflow-hidden shrink-0 bg-gray-100 border border-gray-100">
+                              {imageUrl ? (
+                                <img src={imageUrl} alt={item.product?.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-600 line-clamp-1">{item.product?.name} ×{item.quantity}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Pilihan Ekspedisi per Toko */}
+                    <div className="ml-7 space-y-1.5">
+                      {ekspedisi.map((e) => (
+                        <label
+                          key={e.id}
+                          className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${kurirId === e.id ? "border-green-500 bg-green-50" : "border-gray-100 hover:border-gray-200"}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name={`kurir-${group.tenantKey}`}
+                              value={e.id}
+                              checked={kurirId === e.id}
+                              onChange={() => setKurirPerTenant((prev) => ({ ...prev, [group.tenantKey]: e.id }))}
+                              className="accent-green-700"
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{e.nama}</p>
+                              <p className="text-xs text-gray-500">Estimasi {e.estimasi}</p>
+                            </div>
+                          </div>
+                          <p className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
+                            {e.harga === 0 ? "Gratis" : formatRupiah(e.harga)}
+                          </p>
+                        </label>
+                      ))}
+                    </div>
+
+                    {/* Separator antar tenant */}
+                    {tenantGroups.indexOf(group) < tenantGroups.length - 1 && (
+                      <div className="mt-5 border-t border-dashed border-gray-200" />
+                    )}
                   </div>
-                  <p className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
-                    {e.harga === 0 ? "Gratis" : formatRupiah(e.harga)}
-                  </p>
-                </label>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Ringkasan */}
+        {/* Ringkasan Kanan */}
         <div className="w-full lg:w-72 shrink-0">
           <div className="bg-white rounded-xl border border-gray-100 p-5 sticky top-20">
             <h2 className="font-bold text-gray-900 mb-4">Ringkasan</h2>
-            <div className="space-y-2 mb-4">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex justify-between text-xs text-gray-600">
-                  <span className="line-clamp-1 flex-1 mr-2">{item.product?.name || "Produk"} ×{item.quantity}</span>
-                  <span className="shrink-0">{formatRupiah(Number(item.product?.price || 0) * item.quantity)}</span>
+            <div className="space-y-3 mb-4">
+
+              {/* Ringkasan per Tenant */}
+              {tenantSummaries.map((t) => (
+                <div key={t.tenantKey} className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-700 truncate">🏪 {t.tenantName}</p>
+                  {t.items.map((item) => (
+                    <div key={item.id} className="flex justify-between text-xs text-gray-500 ml-3">
+                      <span className="line-clamp-1 flex-1 mr-1">{item.product?.name} ×{item.quantity}</span>
+                      <span className="shrink-0">
+                        {formatRupiah((item.variant ? Number(item.variant.price) : Number(item.product?.price || 0)) * item.quantity)}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between text-xs text-gray-500 ml-3">
+                    <span>Ongkir ({t.selectedKurir.nama})</span>
+                    <span>{t.selectedKurir.harga === 0 ? "Gratis" : formatRupiah(t.selectedKurir.harga)}</span>
+                  </div>
                 </div>
               ))}
-              <div className="flex justify-between text-xs text-gray-600 pt-1 border-t border-gray-50">
-                <span>Ongkir ({selectedKurir.nama})</span>
-                <span>{selectedKurir.harga === 0 ? "Gratis" : formatRupiah(selectedKurir.harga)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-sm text-gray-900 pt-2 border-t border-gray-100">
-                <span>Total</span>
-                <span style={{ color: "var(--primary)" }}>{formatRupiah(total)}</span>
+
+              {/* Total */}
+              <div className="border-t border-gray-100 pt-2 space-y-1">
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Total Subtotal</span>
+                  <span>{formatRupiah(grandSubtotal)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Total Ongkir ({tenantGroups.length} toko)</span>
+                  <span>{grandOngkir === 0 ? "Gratis" : formatRupiah(grandOngkir)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-sm text-gray-900 pt-1 border-t border-gray-100">
+                  <span>Total</span>
+                  <span style={{ color: "var(--primary)" }}>{formatRupiah(grandTotal)}</span>
+                </div>
               </div>
             </div>
 
@@ -370,14 +511,14 @@ export default function CheckoutPage() {
             </div>
 
             <Link
-              href={activeAddress ? `/pembayaran?address_id=${selectedAddressId}&kurir=${kurir}&payment=${bayar}` : "#"}
+              href={activeAddress ? `/pembayaran?address_id=${selectedAddressId}&kurir=${JSON.stringify(kurirPerTenant)}&payment=${bayar}` : "#"}
               className={`block w-full text-center py-3 rounded-xl text-sm font-bold text-white transition-all ${activeAddress ? "hover:opacity-90 cursor-pointer" : "opacity-50 cursor-not-allowed"
                 }`}
               style={{ background: "var(--primary)" }}
               onClick={(e) => {
                 if (!activeAddress) {
                   e.preventDefault();
-                  alert("Harap pilih alamat pengiriman terlebih dahulu.");
+                  toast.warning("Harap pilih alamat pengiriman terlebih dahulu.");
                 }
               }}
             >

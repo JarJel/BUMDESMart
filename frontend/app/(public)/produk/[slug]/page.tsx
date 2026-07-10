@@ -11,10 +11,12 @@ import { DOKUMEN_META } from "@/lib/data/dummy";
 import type { Dokumen } from "@/lib/data/dummy";
 import { productApi } from "@/lib/api/product";
 import { cartApi } from "@/lib/api/cart";
+import { useToast } from "@/components/ui/Toast";
 
 export default function ProdukDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const router = useRouter();
+  const toast = useToast();
   const [produk, setProduk] = useState<any>(null);
   const [toko, setToko] = useState<any>(null);
   const [related, setRelated] = useState<any[]>([]);
@@ -53,17 +55,17 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
     try {
       const res = await cartApi.add(produk.id, qty, selectedVariantId);
       if (res.data && res.data.success) {
-        alert("Produk berhasil ditambahkan ke keranjang!");
+        toast.success("Produk berhasil ditambahkan ke keranjang!");
         window.dispatchEvent(new Event("cart-updated"));
       } else {
-        alert(res.data.message || "Gagal menambahkan ke keranjang.");
+        toast.error(res.data.message || "Gagal menambahkan ke keranjang.");
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
-        alert("Silakan masuk (login) terlebih dahulu.");
+        toast.warning("Silakan masuk (login) terlebih dahulu.");
         router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       } else {
-        alert("Gagal menambahkan ke keranjang.");
+        toast.error(err.response?.data?.message || "Gagal menambahkan ke keranjang.");
       }
     }
   };
@@ -77,10 +79,10 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
-        alert("Silakan masuk (login) terlebih dahulu.");
+        toast.warning("Silakan masuk (login) terlebih dahulu.");
         router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       } else {
-        alert("Gagal menambahkan ke keranjang.");
+        toast.error(err.response?.data?.message || "Gagal menambahkan ke keranjang.");
       }
     }
   };
