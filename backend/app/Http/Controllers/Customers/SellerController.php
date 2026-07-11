@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customers;
 use App\Http\Controllers\Controller;
 use App\Models\UmkmProfile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class SellerController extends Controller
@@ -67,10 +68,17 @@ class SellerController extends Controller
             $data['total_sold']     = (int) $seller->products()->sum('sold_count');
             $data['products_count'] = (int) $seller->products()->where('status', 'active')->count();
 
-            // Public trust badges (boolean only — dokumen asli tidak diekspos)
-            $data['has_nib']        = !empty($seller->nib);
-            $data['has_npwp']       = !empty($seller->npwp);
-            $data['has_halal_cert'] = !empty($seller->halal_cert);
+            // Trust badges dari UmkmDocument yang sudah approved
+            $approvedDocs = DB::table('umkm_documents')
+                ->join('bumdes_required_documents', 'umkm_documents.required_document_id', '=', 'bumdes_required_documents.id')
+                ->where('umkm_documents.umkm_profile_id', $seller->id)
+                ->where('umkm_documents.status', 'approved')
+                ->pluck('bumdes_required_documents.name')
+                ->map(fn($n) => strtolower((string) $n));
+
+            $data['has_nib']        = $approvedDocs->some(fn($n) => str_contains($n, 'nib'));
+            $data['has_npwp']       = $approvedDocs->some(fn($n) => str_contains($n, 'npwp'));
+            $data['has_halal_cert'] = $approvedDocs->some(fn($n) => str_contains($n, 'halal'));
 
             return response()->json([
                 'success' => true,

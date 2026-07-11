@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import api from "@/lib/api/axios";
 
 const IMG_BASE = "http://localhost:8000";
@@ -15,8 +16,6 @@ interface ProfileForm {
   province: string;
   postal_code: string;
   business_category: string;
-  nib: string;
-  npwp: string;
 }
 
 interface UmkmStatus {
@@ -25,20 +24,19 @@ interface UmkmStatus {
   rejection_reason: string | null;
   logo: string | null;
   banner: string | null;
-  halal_cert: string | null;
 }
 
 const EMPTY_FORM: ProfileForm = {
   shop_name: "", owner_name: "", description: "", phone: "",
   email: "", address: "", city: "", province: "", postal_code: "",
-  business_category: "", nib: "", npwp: "",
+  business_category: "",
 };
 
 function MediaUpload({
-  label, hint, current, endpoint, accept = "image/*", onDone,
+  label, hint, current, endpoint, onDone,
 }: {
   label: string; hint: string; current: string | null;
-  endpoint: string; accept?: string; onDone: (path: string) => void;
+  endpoint: string; onDone: (path: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -96,24 +94,8 @@ function MediaUpload({
         )}
       </div>
       {err && <p className="text-xs text-red-500 mt-1">{err}</p>}
-      <input ref={inputRef} type="file" accept={accept} className="hidden"
+      <input ref={inputRef} type="file" accept="image/*" className="hidden"
         onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
-    </div>
-  );
-}
-
-function Badge({ icon, label, active }: { icon: string; label: string; active: boolean }) {
-  return (
-    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-      active ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-50 text-gray-400 border-gray-100"
-    }`}>
-      <span>{icon}</span>
-      <span>{label}</span>
-      {active && (
-        <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-        </svg>
-      )}
     </div>
   );
 }
@@ -146,8 +128,6 @@ export default function PengaturanPage() {
       province: umkm.province ?? "",
       postal_code: umkm.postal_code ?? "",
       business_category: umkm.business_category ?? "",
-      nib: umkm.nib ?? "",
-      npwp: umkm.npwp ?? "",
     });
     if (umkm.id) {
       if (prevStatusRef.current && prevStatusRef.current !== umkm.status) {
@@ -161,7 +141,6 @@ export default function PengaturanPage() {
         rejection_reason: umkm.rejection_reason ?? null,
         logo: umkm.logo ?? null,
         banner: umkm.banner ?? null,
-        halal_cert: umkm.halal_cert ?? null,
       });
     }
   };
@@ -221,14 +200,11 @@ export default function PengaturanPage() {
     finally { setReapplying(false); }
   };
 
-  const set = (field: keyof ProfileForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-    setForm(prev => ({ ...prev, [field]: e.target.value }));
+  const set = (field: keyof ProfileForm) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => setForm(prev => ({ ...prev, [field]: e.target.value }));
 
   if (loading) return <div className="p-6 text-sm text-gray-400">Memuat data profil...</div>;
-
-  const hasNib = form.nib.trim().length > 0;
-  const hasNpwp = form.npwp.trim().length > 0;
-  const hasHalalCert = !!(umkmStatus?.halal_cert);
 
   return (
     <div className="p-6 space-y-6 max-w-3xl">
@@ -324,7 +300,7 @@ export default function PengaturanPage() {
         </div>
       )}
 
-      {/* Profil Toko */}
+      {/* Informasi Toko */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
         <h2 className="text-sm font-semibold text-gray-900 border-b border-gray-50 pb-3">Informasi Toko</h2>
 
@@ -386,80 +362,24 @@ export default function PengaturanPage() {
         </button>
       </div>
 
-      {/* Dokumen Legalitas */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
-        <div className="border-b border-gray-50 pb-3">
-          <h2 className="text-sm font-semibold text-gray-900">Dokumen Legalitas</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Dokumen ini bersifat privat — hanya admin yang bisa melihat isinya. Pembeli hanya melihat label badge.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-1.5 block">NIB (Nomor Induk Berusaha)</label>
-            <input value={form.nib} onChange={set("nib")} placeholder="Masukkan nomor NIB"
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400" />
-            <p className="text-xs text-gray-400 mt-1">Dari sistem OSS · daftarkan di oss.go.id</p>
+      {/* Link ke Dokumen */}
+      <Link href="/seller/dokumen"
+        className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 p-5 hover:border-green-300 hover:shadow-sm transition-all group">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-700 mb-1.5 block">NPWP</label>
-            <input value={form.npwp} onChange={set("npwp")} placeholder="xx.xxx.xxx.x-xxx.xxx"
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400" />
-            <p className="text-xs text-gray-400 mt-1">Opsional untuk usaha mikro perorangan</p>
+            <p className="text-sm font-semibold text-gray-900">Dokumen Legalitas</p>
+            <p className="text-xs text-gray-400 mt-0.5">KTP, NIB, NPWP, dan dokumen lain yang diminta BUMDes</p>
           </div>
         </div>
-
-        {/* Sertifikat Halal */}
-        {umkmStatus && (
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-1.5 block">Sertifikat Halal</label>
-            <p className="text-xs text-gray-400 mb-2">Upload sertifikat halal dari MUI/BPJPH (PDF/gambar, maks. 5 MB)</p>
-            <div className="flex items-center gap-3">
-              {umkmStatus.halal_cert ? (
-                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl text-xs text-green-700">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Sertifikat sudah diunggah
-                </div>
-              ) : (
-                <span className="text-xs text-gray-400">Belum ada sertifikat</span>
-              )}
-              <MediaUpload
-                label=""
-                hint=""
-                current={null}
-                endpoint="/profile/shop/halal-cert"
-                accept="image/*,.pdf"
-                onDone={(path) => setUmkmStatus(prev => prev ? { ...prev, halal_cert: path } : prev)}
-              />
-            </div>
-          </div>
-        )}
-
-        <button onClick={handleSave} disabled={saving}
-          className="px-5 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 disabled:opacity-50"
-          style={{ background: "var(--primary)" }}>
-          {saving ? "Menyimpan..." : "Simpan Dokumen"}
-        </button>
-      </div>
-
-      {/* Preview Badge Publik */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
-        <div className="border-b border-gray-50 pb-3">
-          <h2 className="text-sm font-semibold text-gray-900">Preview Badge Publik</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Badge ini tampil di halaman toko kamu dan dilihat oleh calon pembeli.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge icon="📋" label="NIB Terdaftar" active={hasNib} />
-          <Badge icon="🧾" label="NPWP Terdaftar" active={hasNpwp} />
-          <Badge icon="✅" label="Halal Certified" active={hasHalalCert} />
-        </div>
-        <p className="text-xs text-gray-400">
-          {!hasNib && !hasNpwp && !hasHalalCert
-            ? "Lengkapi dokumen di atas untuk menampilkan badge kepercayaan di halaman toko."
-            : "Badge aktif akan muncul di halaman toko kamu."}
-        </p>
-      </div>
+        <svg className="w-4 h-4 text-gray-400 group-hover:text-green-500 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </Link>
 
       {/* Ubah Password */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">

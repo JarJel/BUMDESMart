@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import axios from "axios";
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+import api from "@/lib/api/axios";
 
 interface UploadedDoc {
   id: number;
@@ -35,12 +33,9 @@ export default function DokumenPage() {
   const [toast, setToast] = useState("");
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const headers = { Authorization: `Bearer ${token}` };
-
   const fetchDocs = async () => {
     try {
-      const res = await axios.get(`${API}/seller/documents`, { headers });
+      const res = await api.get("/seller/documents");
       setDocs(res.data.data ?? []);
     } catch {
       setError("Gagal memuat daftar dokumen.");
@@ -67,8 +62,8 @@ export default function DokumenPage() {
     formData.append("file", file);
 
     try {
-      await axios.post(`${API}/seller/documents/${docId}`, formData, {
-        headers: { ...headers, "Content-Type": "multipart/form-data" },
+      await api.post(`/seller/documents/${docId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       showToast("Dokumen berhasil diupload!");
       await fetchDocs();
