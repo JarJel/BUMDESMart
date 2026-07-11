@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cartApi, CartItemData } from "@/lib/api/cart";
+import { useToast } from "@/components/ui/Toast";
 
 function formatRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
@@ -25,10 +26,34 @@ const slugify = (text: string | undefined) => {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 };
 
+// Kelompokkan item cart berdasarkan tenant (umkm_profile)
+function groupByTenant(items: CartItemData[]) {
+  const groups: Record<string, { tenantId: number | null; tenantName: string; storeSlug: string; items: CartItemData[] }> = {};
+
+  items.forEach((item) => {
+    const tenantId = item.product?.umkm_profile?.id ?? null;
+    const tenantName = item.product?.umkm_profile?.shop_name || item.product?.umkm_profile?.name_umkm || "Toko";
+    const key = tenantId !== null ? String(tenantId) : "unknown";
+
+    if (!groups[key]) {
+      groups[key] = {
+        tenantId,
+        tenantName,
+        storeSlug: slugify(tenantName),
+        items: [],
+      };
+    }
+    groups[key].items.push(item);
+  });
+
+  return Object.values(groups);
+}
+
 export default function KeranjangPage() {
   const [items, setItems] = useState<CartItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     fetchCart();
@@ -63,7 +88,7 @@ export default function KeranjangPage() {
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || "Gagal memperbarui kuantitas.");
+      toast.error(err.response?.data?.message || "Gagal memperbarui kuantitas.");
     }
   };
 
@@ -76,17 +101,16 @@ export default function KeranjangPage() {
       }
     } catch (err: any) {
       console.error(err);
-      alert("Gagal menghapus item dari keranjang.");
+      toast.error("Gagal menghapus item dari keranjang.");
     }
   };
 
+  const tenantGroups = groupByTenant(items);
+  const totalItems = items.reduce((s, i) => s + i.quantity, 0);
   const subtotal = items.reduce((s, i) => {
     const price = i.variant ? Number(i.variant.price) : Number(i.product?.price || 0);
     return s + price * i.quantity;
   }, 0);
-  
-  const ongkir = 15000;
-  const total = subtotal + ongkir;
 
   if (loading) {
     return (
@@ -132,71 +156,126 @@ export default function KeranjangPage() {
       <h1 className="text-xl font-bold text-gray-900 mb-6">Keranjang Belanja</h1>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Items */}
-        <div className="flex-1 space-y-3">
-          {items.map((item) => {
-            const productPrice = item.variant ? Number(item.variant.price) : Number(item.product?.price || 0);
-            const maxStock = item.variant ? item.variant.stock : (item.product?.stock || 0);
-            const storeName = item.product?.umkm_profile?.name_umkm || "Toko BUMDES";
-            const storeSlug = slugify(storeName);
-            const imagePath = item.product?.images?.[0]?.image_path;
-            const imageUrl = getAssetUrl(imagePath);
+        {/* Daftar Item — Dikelompokkan per Tenant */}
+        <div className="flex-1 space-y-4">
+          {tenantGroups.map((group) => {
+            const groupSubtotal = group.items.reduce((s, i) => {
+              const price = i.variant ? Number(i.variant.price) : Number(i.product?.price || 0);
+              return s + price * i.quantity;
+            }, 0);
 
             return (
-              <div key={item.id} className="bg-white rounded-xl border border-gray-100 p-4 flex gap-4 items-start">
-                <div className="w-16 h-16 rounded-lg overflow-hidden flex items-center justify-center text-2xl shrink-0 bg-gray-50 border border-gray-100">
-                  {imageUrl ? (
-                    <img src={imageUrl} alt={item.product?.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <Link href={`/${storeSlug}`} className="text-xs text-gray-500 hover:underline">{storeName}</Link>
-                  <p className="text-sm font-semibold text-gray-900 mb-0.5 line-clamp-1">{item.product?.name}</p>
-                  {item.variant && (
-                    <span className="inline-block text-[11px] bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded border border-gray-100 mb-1">
-                      Varian: {item.variant.name}
-                    </span>
-                  )}
-                  <p className="text-sm font-bold" style={{ color: "var(--primary)" }}>{formatRupiah(productPrice)}</p>
-                </div>
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  <button onClick={() => remove(item.id)} className="text-gray-300 hover:text-red-400 transition-colors">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <div key={group.tenantId ?? 'unknown'} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                {/* Header Toko */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/60">
+                  <Link href={`/${group.storeSlug}`} className="flex items-center gap-2 group">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--primary)" }}>
+                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-800 group-hover:underline">{group.tenantName}</span>
+                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
-                  </button>
-                  <div className="flex items-center gap-2 border border-gray-200 rounded-lg overflow-hidden">
-                    <button onClick={() => updateQty(item.id, item.quantity, -1, maxStock)} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-sm font-bold">−</button>
-                    <span className="text-sm font-semibold w-6 text-center">{item.quantity}</span>
-                    <button onClick={() => updateQty(item.id, item.quantity, 1, maxStock)} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-sm font-bold">+</button>
-                  </div>
-                  <p className="text-sm font-bold text-gray-900">{formatRupiah(productPrice * item.quantity)}</p>
+                  </Link>
+                  <span className="text-xs text-gray-400">{group.items.length} produk</span>
+                </div>
+
+                {/* Item dalam Toko */}
+                <div className="divide-y divide-gray-50">
+                  {group.items.map((item) => {
+                    const productPrice = item.variant ? Number(item.variant.price) : Number(item.product?.price || 0);
+                    const maxStock = item.variant ? item.variant.stock : (item.product?.stock || 0);
+                    const imagePath = item.product?.images?.[0]?.image_path;
+                    const imageUrl = getAssetUrl(imagePath);
+
+                    return (
+                      <div key={item.id} className="p-4 flex gap-4 items-start">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden flex items-center justify-center shrink-0 bg-gray-50 border border-gray-100">
+                          {imageUrl ? (
+                            <img src={imageUrl} alt={item.product?.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 mb-0.5 line-clamp-1">{item.product?.name}</p>
+                          {item.variant && (
+                            <span className="inline-block text-[11px] bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded border border-gray-100 mb-1">
+                              Varian: {item.variant.name}
+                            </span>
+                          )}
+                          <p className="text-sm font-bold" style={{ color: "var(--primary)" }}>{formatRupiah(productPrice)}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                          <button onClick={() => remove(item.id)} className="text-gray-300 hover:text-red-400 transition-colors">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                          <div className="flex items-center gap-2 border border-gray-200 rounded-lg overflow-hidden">
+                            <button onClick={() => updateQty(item.id, item.quantity, -1, maxStock)} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-sm font-bold">−</button>
+                            <span className="text-sm font-semibold w-6 text-center">{item.quantity}</span>
+                            <button onClick={() => updateQty(item.id, item.quantity, 1, maxStock)} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-sm font-bold">+</button>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900">{formatRupiah(productPrice * item.quantity)}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Subtotal per Toko */}
+                <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50/60 border-t border-gray-100">
+                  <span className="text-xs text-gray-500">Subtotal {group.tenantName}</span>
+                  <span className="text-sm font-bold text-gray-800">{formatRupiah(groupSubtotal)}</span>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Ringkasan */}
+        {/* Ringkasan Pesanan */}
         <div className="w-full lg:w-72 shrink-0">
           <div className="bg-white rounded-xl border border-gray-100 p-5 sticky top-20">
             <h2 className="font-bold text-gray-900 mb-4">Ringkasan Pesanan</h2>
             <div className="space-y-2 text-sm mb-4">
-              <div className="flex justify-between text-gray-600">
-                <span>Subtotal ({items.reduce((s, i) => s + i.quantity, 0)} item)</span>
-                <span>{formatRupiah(subtotal)}</span>
+              {/* Subtotal per Tenant */}
+              {tenantGroups.map((group) => {
+                const groupSubtotal = group.items.reduce((s, i) => {
+                  const price = i.variant ? Number(i.variant.price) : Number(i.product?.price || 0);
+                  return s + price * i.quantity;
+                }, 0);
+                const groupQty = group.items.reduce((s, i) => s + i.quantity, 0);
+                return (
+                  <div key={group.tenantId ?? 'unknown'} className="flex justify-between text-gray-600">
+                    <span className="truncate max-w-[130px]">{group.tenantName} ({groupQty} item)</span>
+                    <span className="shrink-0 ml-2">{formatRupiah(groupSubtotal)}</span>
+                  </div>
+                );
+              })}
+
+              {/* Ongkir info */}
+              <div className="flex justify-between text-gray-400 text-xs pt-1 border-t border-gray-50">
+                <span>Ongkir</span>
+                <span>Dipilih saat checkout</span>
               </div>
-              <div className="flex justify-between text-gray-600">
-                <span>Estimasi Ongkir</span>
-                <span>{formatRupiah(ongkir)}</span>
-              </div>
+
+              {/* Total Subtotal */}
               <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-gray-900">
-                <span>Total</span>
-                <span style={{ color: "var(--primary)" }}>{formatRupiah(total)}</span>
+                <span>Subtotal ({totalItems} item)</span>
+                <span style={{ color: "var(--primary)" }}>{formatRupiah(subtotal)}</span>
               </div>
             </div>
+
+            {/* Info Tenant */}
+            <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-100">
+              <p className="text-[11px] text-blue-600 leading-relaxed">
+                <span className="font-semibold">ℹ️ Catatan:</span> Ongkir dihitung per toko & dapat dipilih saat checkout.
+              </p>
+            </div>
+
             <Link href="/checkout" className="block w-full text-center py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-all" style={{ background: "var(--primary)" }}>
               Lanjut ke Pembayaran →
             </Link>

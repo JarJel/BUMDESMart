@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api/axios";
+import { useToast } from "@/components/ui/Toast";
 
 /* ─── Types ─── */
 interface Discount {
@@ -67,6 +68,7 @@ function DiscountModal({
 }) {
   const isEdit = !!editing;
   const isLocked = isEdit && editing!.used_count > 0;
+  const toast = useToast();
 
   const [form, setForm] = useState(
     isEdit
@@ -110,8 +112,10 @@ function DiscountModal({
 
       if (isEdit) {
         await api.put(`/seller/discounts/${editing!.id}`, body);
+        toast.success("Diskon berhasil diubah");
       } else {
         await api.post("/seller/discounts", body);
+        toast.success("Diskon berhasil ditambahkan");
       }
       onSaved();
       onClose();
@@ -321,6 +325,8 @@ export default function DiskonPage() {
   const [editing, setEditing] = useState<Discount | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [toggling, setToggling] = useState<number | null>(null);
+  const toast = useToast();
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const fetchDiscounts = async () => {
     setLoading(true);
@@ -352,14 +358,23 @@ export default function DiskonPage() {
     fetchProducts();
   }, []);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Yakin ingin menghapus diskon ini?")) return;
+  const handleDelete = (id: number) => {
+    setDeleteConfirmId(id);
+  };
+
+  const executeDelete = async () => {
+    if (deleteConfirmId === null) return;
+    const id = deleteConfirmId;
     setDeleting(id);
     try {
       await api.delete(`/seller/discounts/${id}`);
+      toast.success("Diskon berhasil dihapus");
       fetchDiscounts();
+    } catch {
+      toast.error("Gagal menghapus diskon");
     } finally {
       setDeleting(null);
+      setDeleteConfirmId(null);
     }
   };
 
@@ -367,7 +382,10 @@ export default function DiskonPage() {
     setToggling(id);
     try {
       await api.patch(`/seller/discounts/${id}/toggle`);
+      toast.success("Status diskon berhasil diubah");
       fetchDiscounts();
+    } catch {
+      toast.error("Gagal mengubah status diskon");
     } finally {
       setToggling(null);
     }
@@ -375,7 +393,7 @@ export default function DiskonPage() {
 
   const openAdd = () => {
     if (products.length === 0) {
-      alert("Anda harus memiliki produk yang aktif terlebih dahulu sebelum membuat diskon.");
+      toast.warning("Anda harus memiliki produk yang aktif terlebih dahulu sebelum membuat diskon.");
       return;
     }
     setEditing(null);
@@ -684,6 +702,62 @@ export default function DiskonPage() {
           )}
         </div>
       </div>
+      {deleteConfirmId !== null && (
+        <ConfirmDeleteModal
+          onClose={() => setDeleteConfirmId(null)}
+          onConfirm={executeDelete}
+          loading={deleting !== null}
+        />
+      )}
     </>
+  );
+}
+
+function ConfirmDeleteModal({
+  onClose,
+  onConfirm,
+  title = "Hapus Diskon",
+  message = "Apakah Anda yakin ingin menghapus diskon ini? Tindakan ini tidak dapat dibatalkan.",
+  loading = false,
+}: {
+  onClose: () => void;
+  onConfirm: () => void;
+  title?: string;
+  message?: string;
+  loading?: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm border border-gray-100 p-6 flex flex-col items-center text-center animate-fade-in">
+        {/* Warning Icon */}
+        <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-4">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        
+        <h3 className="font-bold text-gray-900 text-lg mb-1">{title}</h3>
+        <p className="text-sm text-gray-500 mb-6 leading-relaxed">{message}</p>
+        
+        <div className="flex gap-3 w-full">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 transition-colors"
+          >
+            {loading ? "Menghapus..." : "Ya, Hapus"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -17,7 +17,8 @@ export interface CartItemData {
     weight: number
     umkm_profile?: {
       id: number
-      name_umkm: string
+      shop_name: string
+      name_umkm?: string  // alias lama, untuk kompatibilitas mundur
     }
     images?: {
       id: number

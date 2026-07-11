@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { wishlistApi, WishlistItemData } from "@/lib/api/wishlist";
 import { cartApi } from "@/lib/api/cart";
+import { useToast } from "@/components/ui/Toast";
 
 function formatRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
@@ -30,6 +31,7 @@ export default function WishlistPage() {
   const [items, setItems] = useState<WishlistItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     fetchWishlist();
@@ -61,7 +63,7 @@ export default function WishlistPage() {
       }
     } catch (err: any) {
       console.error(err);
-      alert("Gagal menghapus produk dari wishlist.");
+      toast.error("Gagal menghapus produk dari wishlist.");
     }
   };
 
@@ -69,11 +71,12 @@ export default function WishlistPage() {
     try {
       const response = await cartApi.add(productId, 1);
       if (response.data.success) {
-        alert("Produk berhasil ditambahkan ke keranjang.");
+        toast.success("Produk berhasil ditambahkan ke keranjang.");
+        window.dispatchEvent(new Event("cart-updated"));
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || "Gagal menambahkan produk ke keranjang.");
+      toast.error(err.response?.data?.message || "Gagal menambahkan produk ke keranjang.");
     }
   };
 

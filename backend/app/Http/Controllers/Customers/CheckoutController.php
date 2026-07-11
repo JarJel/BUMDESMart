@@ -61,36 +61,36 @@ class CheckoutController extends Controller
                 $finalPrice     = $basePrice - $discountAmount;
 
                 $items[] = [
-                    'id' => 0,
-                    'cart_id' => 0,
+                    'id'         => 0,
+                    'cart_id'    => 0,
                     'product_id' => $productId,
                     'variant_id' => $variantId,
-                    'quantity' => $quantity,
-                    'product' => [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'slug' => $product->slug,
-                        'price' => $basePrice,
+                    'quantity'   => $quantity,
+                    'product'    => [
+                        'id'              => $product->id,
+                        'name'            => $product->name,
+                        'slug'            => $product->slug,
+                        'price'           => $basePrice,
                         'discount_amount' => $discountAmount,
-                        'final_price' => $finalPrice,
-                        'stock' => $variant ? $variant->stock : $product->stock,
-                        'weight' => $product->weight,
-                        'umkm_profile' => $product->umkmProfile ? [
-                            'id' => $product->umkmProfile->id,
+                        'final_price'     => $finalPrice,
+                        'stock'           => $variant ? $variant->stock : $product->stock,
+                        'weight'          => $product->weight,
+                        'umkm_profile'    => $product->umkmProfile ? [
+                            'id'        => $product->umkmProfile->id,
                             'name_umkm' => $product->umkmProfile->shop_name,
                         ] : null,
                         'images' => $product->images->map(function ($img) {
                             return [
-                                'id' => $img->id,
+                                'id'         => $img->id,
                                 'product_id' => $img->product_id,
                                 'image_path' => $img->file_path,
-                                'file_path' => $img->file_path,
+                                'file_path'  => $img->file_path,
                             ];
                         })
                     ],
                     'variant' => $variant ? [
-                        'id' => $variant->id,
-                        'name' => $variant->name,
+                        'id'    => $variant->id,
+                        'name'  => $variant->name,
                         'stock' => $variant->stock,
                         'price' => $variant->price,
                     ] : null
@@ -113,36 +113,36 @@ class CheckoutController extends Controller
                         $finalPrice     = $basePrice - $discountAmount;
 
                         $items[] = [
-                            'id' => $item->id,
-                            'cart_id' => $item->cart_id,
+                            'id'         => $item->id,
+                            'cart_id'    => $item->cart_id,
                             'product_id' => $item->product_id,
                             'variant_id' => $item->variant_id,
-                            'quantity' => $item->quantity,
-                            'product' => [
-                                'id' => $product->id,
-                                'name' => $product->name,
-                                'slug' => $product->slug,
-                                'price' => $basePrice,
+                            'quantity'   => $item->quantity,
+                            'product'    => [
+                                'id'              => $product->id,
+                                'name'            => $product->name,
+                                'slug'            => $product->slug,
+                                'price'           => $basePrice,
                                 'discount_amount' => $discountAmount,
-                                'final_price' => $finalPrice,
-                                'stock' => $variant ? $variant->stock : $product->stock,
-                                'weight' => $product->weight,
-                                'umkm_profile' => $product->umkmProfile ? [
-                                    'id' => $product->umkmProfile->id,
+                                'final_price'     => $finalPrice,
+                                'stock'           => $variant ? $variant->stock : $product->stock,
+                                'weight'          => $product->weight,
+                                'umkm_profile'    => $product->umkmProfile ? [
+                                    'id'        => $product->umkmProfile->id,
                                     'name_umkm' => $product->umkmProfile->shop_name,
                                 ] : null,
                                 'images' => $product->images->map(function ($img) {
                                     return [
-                                        'id' => $img->id,
+                                        'id'         => $img->id,
                                         'product_id' => $img->product_id,
                                         'image_path' => $img->file_path,
-                                        'file_path' => $img->file_path,
+                                        'file_path'  => $img->file_path,
                                     ];
                                 })
                             ],
                             'variant' => $variant ? [
-                                'id' => $variant->id,
-                                'name' => $variant->name,
+                                'id'    => $variant->id,
+                                'name'  => $variant->name,
                                 'stock' => $variant->stock,
                                 'price' => $variant->price,
                             ] : null
@@ -151,34 +151,58 @@ class CheckoutController extends Controller
                 }
             }
 
-            // 2. Fetch Addresses
+            // 2. Kelompokkan Items per Tenant (1 tenant = 1 pembayaran)
+            $tenants = [];
+            foreach ($items as $item) {
+                $umkmProfile  = $item['product']['umkm_profile'] ?? null;
+                $umkmId       = $umkmProfile['id'] ?? null;
+                $tenantKey    = $umkmId !== null ? (string) $umkmId : 'unknown';
+
+                if (!isset($tenants[$tenantKey])) {
+                    $tenants[$tenantKey] = [
+                        'umkm_profile_id' => $umkmId,
+                        'shop_name'       => $umkmProfile['name_umkm'] ?? 'Toko BUMDES',
+                        'items'           => [],
+                        'sub_total'       => 0,
+                    ];
+                }
+
+                $tenants[$tenantKey]['items'][]   = $item;
+                $tenants[$tenantKey]['sub_total'] += $item['product']['final_price'] * $item['quantity'];
+            }
+
+            // Reset array keys agar menjadi indexed array
+            $tenants = array_values($tenants);
+
+            // 3. Fetch Addresses
             $addresses = Address::where('customer_id', $customerId)
                 ->orderBy('is_default', 'desc')
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            // 3. Shipping Methods
+            // 4. Shipping Methods
             $shippingMethods = [
-                ['id' => 'jne-reg', 'name' => 'JNE Regular', 'estimation' => '2-3 hari', 'price' => 12000],
-                ['id' => 'jnt-reg', 'name' => 'J&T Express', 'estimation' => '2-3 hari', 'price' => 11000],
-                ['id' => 'sicepat', 'name' => 'SiCepat REG', 'estimation' => '1-2 hari', 'price' => 14000],
-                ['id' => 'pickup', 'name' => 'Ambil Sendiri', 'estimation' => 'Hari ini', 'price' => 0],
+                ['id' => 'jne-reg', 'name' => 'JNE Regular',   'estimation' => '2-3 hari', 'price' => 12000],
+                ['id' => 'jnt-reg', 'name' => 'J&T Express',   'estimation' => '2-3 hari', 'price' => 11000],
+                ['id' => 'sicepat', 'name' => 'SiCepat REG',   'estimation' => '1-2 hari', 'price' => 14000],
+                ['id' => 'pickup',  'name' => 'Ambil Sendiri', 'estimation' => 'Hari ini',  'price' => 0],
             ];
 
-            // 4. Payment Methods
+            // 5. Payment Methods
             $paymentMethods = [
-                ['id' => 'qris', 'name' => 'QRIS', 'description' => 'Scan QR dari semua e-wallet & m-banking'],
+                ['id' => 'qris',     'name' => 'QRIS',         'description' => 'Scan QR dari semua e-wallet & m-banking'],
                 ['id' => 'transfer', 'name' => 'Transfer Bank', 'description' => 'BCA, BRI, BNI, Mandiri, BJB'],
-                ['id' => 'ewallet', 'name' => 'E-Wallet', 'description' => 'GoPay, OVO, Dana, ShopeePay'],
+                ['id' => 'ewallet',  'name' => 'E-Wallet',     'description' => 'GoPay, OVO, Dana, ShopeePay'],
             ];
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'items' => $items,
-                    'addresses' => $addresses,
+                'data'    => [
+                    'tenants'          => $tenants,         // items dikelompokkan per tenant
+                    'items'            => $items,           // flat items (kompatibilitas mundur)
+                    'addresses'        => $addresses,
                     'shipping_methods' => $shippingMethods,
-                    'payment_methods' => $paymentMethods,
+                    'payment_methods'  => $paymentMethods,
                 ]
             ]);
         } catch (Exception $e) {

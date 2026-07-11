@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import api from "@/lib/api/axios";
 import { ProductCard } from "@/components/shared/ProductCard";
+import { useToast } from "@/components/ui/Toast";
 
 interface Category { id: number; name: string; }
 
@@ -23,6 +24,7 @@ export default function EditProdukPage() {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMsg, setSuccessMsg] = useState("");
+  const toast = useToast();
 
   const [form, setForm] = useState({
     name: "",
@@ -134,6 +136,7 @@ export default function EditProdukPage() {
       await api.post(`/seller/products/${id}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      toast.success("Produk berhasil diperbarui!");
       setSuccessMsg("Produk berhasil diperbarui!");
       setTimeout(() => router.push("/seller/produk"), 1200);
     } catch (e: any) {
