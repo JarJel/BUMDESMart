@@ -11,10 +11,12 @@ import { DOKUMEN_META } from "@/lib/data/dummy";
 import type { Dokumen } from "@/lib/data/dummy";
 import { productApi } from "@/lib/api/product";
 import { cartApi } from "@/lib/api/cart";
+import { useToast } from "@/components/ui/Toast";
 
 export default function ProdukDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const router = useRouter();
+  const toast = useToast();
   const [produk, setProduk] = useState<any>(null);
   const [toko, setToko] = useState<any>(null);
   const [related, setRelated] = useState<any[]>([]);
@@ -53,17 +55,17 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
     try {
       const res = await cartApi.add(produk.id, qty, selectedVariantId);
       if (res.data && res.data.success) {
-        alert("Produk berhasil ditambahkan ke keranjang!");
+        toast.success("Produk berhasil ditambahkan ke keranjang!");
         window.dispatchEvent(new Event("cart-updated"));
       } else {
-        alert(res.data.message || "Gagal menambahkan ke keranjang.");
+        toast.error(res.data.message || "Gagal menambahkan ke keranjang.");
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
-        alert("Silakan masuk (login) terlebih dahulu.");
+        toast.warning("Silakan masuk (login) terlebih dahulu.");
         router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       } else {
-        alert("Gagal menambahkan ke keranjang.");
+        toast.error(err.response?.data?.message || "Gagal menambahkan ke keranjang.");
       }
     }
   };
@@ -77,10 +79,10 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
-        alert("Silakan masuk (login) terlebih dahulu.");
+        toast.warning("Silakan masuk (login) terlebih dahulu.");
         router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       } else {
-        alert("Gagal menambahkan ke keranjang.");
+        toast.error(err.response?.data?.message || "Gagal menambahkan ke keranjang.");
       }
     }
   };
@@ -108,6 +110,9 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   const price = Number(produk.price || 0);
   const rating = produk.rating || "4.8";
   const soldCount = produk.sold_count ?? 0;
+  const activeDiscount = produk.active_discount ?? null;
+  const finalPrice = activeDiscount ? activeDiscount.discounted_price : price;
+
 
   return (
     <div style={{ background: "#F4F7F5", minHeight: "100vh" }}>
@@ -194,9 +199,33 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
               <span className="text-xs text-gray-400 hidden sm:inline">{soldCount.toLocaleString("id")} terjual</span>
             </div>
 
-            <p className="text-base sm:text-2xl lg:text-3xl font-bold mb-2" style={{ color: "var(--primary)" }}>
-              Rp {price.toLocaleString("id-ID")}
-            </p>
+            {/* Harga */}
+            {activeDiscount ? (
+              <div className="mb-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-base sm:text-2xl lg:text-3xl font-bold" style={{ color: "var(--primary)" }}>
+                    Rp {Number(activeDiscount.discounted_price).toLocaleString("id-ID")}
+                  </span>
+                  <span className="text-xs sm:text-sm font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                    {activeDiscount.type === "percentage"
+                      ? `-${Number(activeDiscount.value).toFixed(0)}%`
+                      : `-Rp ${Number(activeDiscount.value).toLocaleString("id-ID")}`}
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-gray-400 line-through mt-0.5">
+                  Rp {price.toLocaleString("id-ID")}
+                </p>
+                {activeDiscount.end_date && (
+                  <p className="text-xs text-orange-500 mt-0.5">
+                    ⏳ Berakhir {new Date(activeDiscount.end_date).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-base sm:text-2xl lg:text-3xl font-bold mb-2" style={{ color: "var(--primary)" }}>
+                Rp {price.toLocaleString("id-ID")}
+              </p>
+            )}
 
             <p className="hidden sm:block text-xs text-gray-500 leading-relaxed mb-3 line-clamp-2">{produk.description}</p>
 

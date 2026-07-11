@@ -93,6 +93,11 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
   const router = useRouter();
   const [profile, setProfile] = useState<SellerProfileData | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -144,15 +149,37 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
 
   return (
     <SellerProfileContext.Provider value={profile}>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <div className="flex h-screen bg-gray-50 overflow-hidden relative">
+        {/* Backdrop for mobile */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
         {/* Sidebar */}
-        <aside className="w-56 shrink-0 bg-white border-r border-gray-100 flex flex-col">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <div className="flex items-center gap-1.5">
-              <img src="/logo.png" alt="BUMDESmart" className="h-8 w-auto" />
-              <span className="font-bold text-sm" style={{ color: "var(--primary-dark)" }}>BUMDESmart</span>
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 w-56 bg-white border-r border-gray-100 flex flex-col h-full transition-transform duration-300 ease-in-out lg:static lg:h-full lg:translate-x-0 ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <img src="/logo.png" alt="BUMDESMart" className="h-8 w-auto" />
+                <span className="font-bold text-sm" style={{ color: "var(--primary-dark)" }}>BUMDESMart</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Portal Penjual</p>
             </div>
-            <p className="text-xs text-gray-400 mt-1">Portal Penjual</p>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-50 lg:hidden shrink-0"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
 
           {/* Banner belum aktif */}
@@ -165,7 +192,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
             </div>
           )}
 
-          <nav className="flex-1 px-3 py-4 space-y-0.5">
+          <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
             {navItems.map((item) => {
               const active = pathname === item.href || (item.href !== "/seller" && pathname.startsWith(item.href));
               const locked = !isActive && !ALLOWED_WHEN_INACTIVE.some(p => item.href.startsWith(p));
@@ -226,6 +253,15 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
         {/* Main */}
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 bg-white border-b border-gray-100 flex items-center gap-4 px-5 shrink-0">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 -ml-2 rounded-xl text-gray-500 hover:bg-gray-50 lg:hidden shrink-0"
+              aria-label="Toggle Sidebar"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
             <div className="flex-1 relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -14,7 +14,8 @@ function TokoCard({ toko }: { toko: any }) {
   const totalProduk = toko.totalProduk ?? 0;
   const totalPenjualan = toko.totalPenjualan ?? 0;
 
-  const bannerUrl = banner.startsWith('http') || banner.startsWith('/') ? banner : (banner ? `http://localhost:8000${banner}` : 'https://placehold.co/600x300?text=No+Banner');
+  const hasBanner = banner && (banner.startsWith('http') || banner.startsWith('/'));
+  const bannerUrl = hasBanner ? banner : (banner ? `http://localhost:8000${banner}` : '');
 
   return (
     <Link
@@ -23,14 +24,18 @@ function TokoCard({ toko }: { toko: any }) {
     >
       {/* Banner foto toko */}
       <div className="h-44 relative overflow-hidden bg-gray-50 flex items-center justify-center">
-        <img
-          src={bannerUrl}
-          alt={shopName}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-          onError={(e) => {
-            e.currentTarget.src = 'https://placehold.co/600x300?text=No+Banner';
-          }}
-        />
+        {bannerUrl ? (
+          <img
+            src={bannerUrl}
+            alt={shopName}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-tr from-[var(--primary)] via-[var(--primary)] to-[var(--primary-light)] group-hover:scale-105 transition-transform duration-200" />
+        )}
         <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full z-10">
           <StarIcon size="sm" className="text-yellow-400" />
           <span className="text-xs font-semibold text-white">{rating}</span>

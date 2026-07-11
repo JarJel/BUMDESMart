@@ -87,6 +87,15 @@ class CartController extends Controller
 
             $cart = Cart::firstOrCreate(['customer_id' => $user->customer->id]);
 
+            $firstItem = CartItem::with('product')
+                ->where('cart_id', $cart->id)
+                ->first();
+
+            if ($firstItem && $firstItem->product->umkm_profile_id !== $product->umkm_profile_id) {
+                // Hapus semua item dari toko sebelumnya jika berbeda toko
+                CartItem::where('cart_id', $cart->id)->delete();
+            }
+
             $cartItem = CartItem::where('cart_id', $cart->id)
                 ->where('product_id', $productId)
                 ->where('variant_id', $variantId)

@@ -73,31 +73,49 @@ export default function SemuaTokoPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filtered.map((toko) => {
                 const bannerUrl = getBannerUrl(toko.banner);
+                const logoUrl = toko.logo
+                  ? (toko.logo.startsWith("http") || toko.logo.startsWith("/") ? toko.logo : `http://localhost:8000/${toko.logo}`)
+                  : null;
+                const initials = toko.shop_name ? toko.shop_name.slice(0, 2).toUpperCase() : "TK";
+
                 return (
-                  <Link key={toko.id} href={`/${toko.slug}`} className="group bg-white rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border border-gray-100">
-                    <div className="h-48 relative overflow-hidden bg-gray-100 flex items-center justify-center">
+                  <Link key={toko.id} href={`/${toko.slug}`} className="group bg-white rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border border-gray-100 flex flex-col">
+                    {/* Banner Section */}
+                    <div className="h-32 relative overflow-hidden bg-gray-50 flex items-center justify-center shrink-0">
                       {bannerUrl ? (
-                        <img src={bannerUrl} alt={toko.shop_name} className="w-full h-full object-cover" onError={e => { e.currentTarget.src = "https://placehold.co/600x300?text=No+Banner"; }} />
+                        <img src={bannerUrl} alt={toko.shop_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" onError={e => { e.currentTarget.style.display = "none"; }} />
                       ) : (
-                        <div className="w-full h-full" style={{ background: "linear-gradient(135deg, var(--primary-dark), var(--primary-light))" }} />
+                        <div className="w-full h-full bg-gradient-to-tr from-[var(--primary)] via-[var(--primary)] to-[var(--primary-light)] group-hover:scale-105 transition-transform duration-200" />
                       )}
-                      <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full">
+                      
+                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-full">
                         <StarIcon className="w-3 h-3 text-yellow-400" />
-                        <span className="text-xs font-semibold text-white">5.0</span>
+                        <span className="text-[10px] font-semibold text-white">5.0</span>
                       </div>
-                      <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
                     </div>
 
-                    <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 text-sm mb-1 group-hover:text-green-700 transition-colors">{toko.shop_name}</h3>
-                      <p className="text-xs text-gray-500 mb-3 line-clamp-2 leading-relaxed">{toko.description || "Toko UMKM BumdesMart"}</p>
+                    {/* Logo & Content Section */}
+                    <div className="px-4 pb-4 pt-10 relative flex-1 flex flex-col">
+                      {/* Overlapping Logo */}
+                      <div className="absolute -top-8 left-4 w-16 h-16 rounded-2xl border-4 border-white shadow-md overflow-hidden bg-white flex items-center justify-center">
+                        {logoUrl ? (
+                          <img src={logoUrl} alt={toko.shop_name} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = "none"; }} />
+                        ) : (
+                          <div className="w-full h-full bg-green-50 flex items-center justify-center text-green-700 font-bold text-lg">
+                            {initials}
+                          </div>
+                        )}
+                      </div>
 
-                      <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-50">
-                        <div className="flex items-center gap-1">
-                          <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                      <h3 className="font-bold text-gray-900 text-sm mb-1 group-hover:text-green-700 transition-colors truncate">{toko.shop_name}</h3>
+                      <p className="text-xs text-gray-500 mb-4 line-clamp-2 leading-relaxed flex-1">{toko.description || "Toko UMKM BUMDESMart"}</p>
+
+                      <div className="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-50 mt-auto">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <svg className="w-3 h-3 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                           <span className="truncate">{toko.city || "Indonesia"}</span>
                         </div>
-                        <span className="font-medium" style={{ color: "var(--primary)" }}>{toko.owner_name}</span>
+                        <span className="font-semibold truncate shrink-0 max-w-[100px]" style={{ color: "var(--primary)" }}>{toko.owner_name}</span>
                       </div>
                     </div>
                   </Link>
