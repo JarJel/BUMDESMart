@@ -95,6 +95,7 @@ Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
     Route::put('/umkm/{umkm}/reapply', [UmkmVerificationController::class, 'reapply']);
 
     Route::get('/required-documents', [RequiredDocumentController::class, 'index']);
+    Route::post('/required-documents/seed-defaults', [RequiredDocumentController::class, 'seedDefaults']);
     Route::post('/required-documents', [RequiredDocumentController::class, 'store']);
     Route::put('/required-documents/{document}', [RequiredDocumentController::class, 'update']);
     Route::delete('/required-documents/{document}', [RequiredDocumentController::class, 'destroy']);
