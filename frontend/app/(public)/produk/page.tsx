@@ -157,7 +157,12 @@ function ProdukContent() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                 {filtered.map((p) => (
-                  <ProductCard key={p.id} product={p} compact />
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    compact
+                    storeHref={p.umkm_profile?.slug ? `/${p.umkm_profile.slug}?p=${p.slug}` : undefined}
+                  />
                 ))}
               </div>
             )}

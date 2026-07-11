@@ -2,8 +2,8 @@
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { useState, use, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, use, useCallback, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DOKUMEN_META } from "@/lib/data/dummy";
 import type { Dokumen } from "@/lib/data/dummy";
 import { ProductCard } from "@/components/shared/ProductCard";
@@ -57,11 +57,22 @@ export default function TokoProfilePage({ params }: { params: Promise<{ slug: st
 
   if (!toko) return notFound();
 
-  return <TokoContent toko={toko} products={products} />;
+  return (
+    <Suspense fallback={null}>
+      <TokoContent toko={toko} products={products} />
+    </Suspense>
+  );
 }
 
 function TokoContent({ toko, products }: { toko: any; products: any[] }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const highlightSlug = searchParams?.get("p") ?? null;
+
+  const sortedProducts = highlightSlug
+    ? [...products].sort((a, b) => (a.slug === highlightSlug ? -1 : b.slug === highlightSlug ? 1 : 0))
+    : products;
+
   const [openDoc, setOpenDoc] = useState<string | null>(null);
   const [modalDoc, setModalDoc] = useState<Dokumen | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -308,17 +319,27 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
               <span className="text-xs text-gray-400">{products.length} produk</span>
             </div>
 
-            {products.length === 0 ? (
+            {highlightSlug && (
+              <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-green-50 border border-green-100">
+                <svg className="w-3.5 h-3.5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <p className="text-xs text-green-700">Produk yang kamu pilih ditampilkan paling atas</p>
+              </div>
+            )}
+
+            {sortedProducts.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
                 <p className="text-gray-400 text-sm">Belum ada produk terdaftar di toko ini.</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {products.map((p) => (
+                {sortedProducts.map((p) => (
                   <ProductCard
                     key={p.id}
                     product={{ ...p, tokoSlug: toko.slug, tokNama: shopName, tokoPemilik: owner }}
                     compact
+                    highlighted={!!highlightSlug && p.slug === highlightSlug}
                   />
                 ))}
               </div>

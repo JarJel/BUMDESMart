@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { StarIcon } from "@/components/ui/StarIcon";
 
-export function ProductCard({ product, compact = false }: { product: any; compact?: boolean }) {
+export function ProductCard({ product, compact = false, storeHref, highlighted = false }: {
+  product: any;
+  compact?: boolean;
+  storeHref?: string;
+  highlighted?: boolean;
+}) {
   const name = product.name || product.nama || "Nama Produk";
   const price = Number(product.price || product.harga || 0);
   const rating = product.rating || "4.8";
@@ -35,8 +40,12 @@ export function ProductCard({ product, compact = false }: { product: any; compac
 
   return (
     <Link
-      href={`/produk/${product.slug}`}
-      className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 min-w-0"
+      href={storeHref ?? `/produk/${product.slug}`}
+      className={`group bg-white rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 min-w-0 ${
+        highlighted
+          ? "border-2 border-green-400 ring-2 ring-green-300 ring-offset-1 shadow-md"
+          : "border border-gray-100"
+      }`}
     >
       <div className="aspect-square relative overflow-hidden bg-gray-50 flex items-center justify-center">
         <img
