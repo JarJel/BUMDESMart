@@ -20,6 +20,9 @@ frontend/.env.local
 frontend/.env.*.local
 frontend/next-env.d.ts
 
+# ===== TOOLS =====
+.claude/
+
 # ===== OS =====
 .DS_Store
 Thumbs.db
