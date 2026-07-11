@@ -22,6 +22,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
+    Route::post('/profile/shop/logo', [ProfileController::class, 'updateShopLogo']);
+    Route::post('/profile/shop/banner', [ProfileController::class, 'updateShopBanner']);
+    Route::post('/profile/shop/halal-cert', [ProfileController::class, 'updateHalalCert']);
     Route::match(['put', 'post'], '/profile/password', [ProfileController::class, 'changePassword']);
     Route::post('/logout', [AuthController::class, 'logout']);
     

@@ -27,6 +27,8 @@ class UmkmProfile extends Model
         'postal_code',
         'npwp',
         'nib',
+        'halal_cert',
+        'rating',
         'status',
         'verified_by',
         'verified_at',
@@ -38,6 +40,7 @@ class UmkmProfile extends Model
     {
         return [
             'verified_at' => 'datetime',
+            'rating'      => 'float',
         ];
     }
 
@@ -74,5 +77,18 @@ class UmkmProfile extends Model
     public function promotions(): HasMany
     {
         return $this->hasMany(Promotion::class, 'umkm_profile_id');
+    }
+
+    public function recalculateRating(): void
+    {
+        // Called when a product review is added/updated/deleted
+        $avg = $this->products()
+            ->whereHas('reviews')
+            ->with('reviews:id,product_id,rating')
+            ->get()
+            ->flatMap(fn($p) => $p->reviews)
+            ->avg('rating');
+
+        $this->update(['rating' => $avg ? round($avg, 2) : null]);
     }
 }

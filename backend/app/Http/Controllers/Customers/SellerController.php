@@ -57,10 +57,25 @@ class SellerController extends Controller
                 ], 404);
             }
 
+            $data = $seller->only([
+                'id', 'shop_name', 'slug', 'owner_name', 'email', 'phone',
+                'logo', 'banner', 'description', 'address', 'city', 'province',
+                'postal_code', 'rating', 'business_category', 'verified_at',
+            ]);
+
+            // Computed stats
+            $data['total_sold']     = (int) $seller->products()->sum('sold_count');
+            $data['products_count'] = (int) $seller->products()->where('status', 'active')->count();
+
+            // Public trust badges (boolean only — dokumen asli tidak diekspos)
+            $data['has_nib']        = !empty($seller->nib);
+            $data['has_npwp']       = !empty($seller->npwp);
+            $data['has_halal_cert'] = !empty($seller->halal_cert);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Detail toko berhasil diambil.',
-                'data' => $seller
+                'data'    => $data,
             ], 200);
 
         } catch (Exception $e) {

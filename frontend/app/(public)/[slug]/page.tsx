@@ -2,12 +2,9 @@
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { useState, use, useCallback, useEffect, Suspense } from "react";
+import { useState, use, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { DOKUMEN_META } from "@/lib/data/dummy";
-import type { Dokumen } from "@/lib/data/dummy";
 import { ProductCard } from "@/components/shared/ProductCard";
-import { DokumenModal } from "@/components/shared/DokumenModal";
 import { sellerApi } from "@/lib/api/seller";
 import { productApi } from "@/lib/api/product";
 
@@ -73,49 +70,31 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
     ? [...products].sort((a, b) => (a.slug === highlightSlug ? -1 : b.slug === highlightSlug ? 1 : 0))
     : products;
 
-  const [openDoc, setOpenDoc] = useState<string | null>(null);
-  const [modalDoc, setModalDoc] = useState<Dokumen | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginAlert, setShowLoginAlert] = useState(false);
   const starsArr = [1, 2, 3, 4, 5];
 
-  // Cek login dari cookie saat mount (client-side)
-  useEffect(() => {
-    const hasCookie = document.cookie.split(";").some(c => c.trim().startsWith("bumdesmart-role="));
-    setIsLoggedIn(hasCookie);
-  }, []);
-
-  const handleDocClick = useCallback((type: string) => {
-    if (!isLoggedIn) { setShowLoginAlert(true); return; }
-    setOpenDoc(prev => prev === type ? null : type);
-  }, [isLoggedIn]);
-
-  const handleLihatDokumen = useCallback((doc: Dokumen) => {
-    if (!isLoggedIn) { setShowLoginAlert(true); return; }
-    setModalDoc(doc);
-  }, [isLoggedIn]);
-
   const shopName = toko.shop_name || toko.nama || "Nama Toko";
-  const desc = toko.description || toko.deskripsi || "Deskripsi toko";
+  const desc = toko.description || toko.deskripsi || "";
   const owner = toko.owner_name || toko.pemilik || "-";
   const city = toko.city || "";
   const province = toko.province || "";
-  const location = city && province ? `${city}, ${province}` : (toko.lokasi || "Jawa Barat");
+  const location = city && province ? `${city}, ${province}` : (toko.lokasi || "");
   const banner = toko.banner || toko.foto || "";
-  const rating = toko.rating || "4.8";
-  const totalPenjualan = toko.totalPenjualan ?? 120;
-  
+  const rating = toko.rating ?? null;
+  const totalPenjualan = toko.total_sold ?? 0;
+  const productsCount = toko.products_count ?? products.length;
+
+  // Trust badges (boolean dari API, tidak expose dokumen asli)
+  const hasNib        = !!toko.has_nib;
+  const hasNpwp       = !!toko.has_npwp;
+  const hasHalalCert  = !!toko.has_halal_cert;
+  const hasBadges     = hasNib || hasNpwp || hasHalalCert;
+
   const documents: Dokumen[] = [];
-  if (toko.nib) documents.push({ type: 'nib', nomor: toko.nib, tanggalTerbit: '2026-01-01', berlakuHingga: 'Permanen' });
-  if (toko.npwp) documents.push({ type: 'npwp', nomor: toko.npwp, tanggalTerbit: '2026-01-01', berlakuHingga: 'Permanen' });
-  if (documents.length === 0 && toko.dokumen) {
-    documents.push(...toko.dokumen);
-  }
+  if (toko.dokumen) documents.push(...toko.dokumen);
 
   return (
     <div style={{ background: "#F4F7F5", minHeight: "100vh" }}>
-      {modalDoc && <DokumenModal doc={modalDoc} onClose={() => setModalDoc(null)} />}
-
       {/* Alert login */}
       {showLoginAlert && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => setShowLoginAlert(false)}>
@@ -184,14 +163,22 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
             <div className="flex-1 min-w-0">
               <h1 className="text-lg sm:text-xl font-bold text-white leading-tight truncate">{shopName}</h1>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <div className="flex items-center gap-0.5">
-                  {starsArr.map(s => <StarIcon key={s} className={`w-3 h-3 ${s <= Math.round(Number(rating)) ? "text-yellow-400" : "text-white/30"}`} />)}
-                  <span className="text-white/80 text-xs ml-1">{rating}</span>
-                </div>
-                <span className="text-white/40 text-xs">·</span>
-                <span className="text-white/70 text-xs">{totalPenjualan.toLocaleString("id")} terjual</span>
-                <span className="text-white/40 text-xs">·</span>
-                <span className="text-white/70 text-xs">{products.length} produk</span>
+                {rating !== null && (
+                  <>
+                    <div className="flex items-center gap-0.5">
+                      {starsArr.map(s => <StarIcon key={s} className={`w-3 h-3 ${s <= Math.round(Number(rating)) ? "text-yellow-400" : "text-white/30"}`} />)}
+                      <span className="text-white/80 text-xs ml-1">{Number(rating).toFixed(1)}</span>
+                    </div>
+                    <span className="text-white/40 text-xs">·</span>
+                  </>
+                )}
+                {totalPenjualan > 0 && (
+                  <>
+                    <span className="text-white/70 text-xs">{totalPenjualan.toLocaleString("id")} terjual</span>
+                    <span className="text-white/40 text-xs">·</span>
+                  </>
+                )}
+                <span className="text-white/70 text-xs">{productsCount} produk</span>
               </div>
             </div>
           </div>
@@ -208,9 +195,9 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Info Toko</h2>
               {[
                 { icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", label: "Pemilik", val: owner },
-                { icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z", label: "Lokasi", val: location },
-                { icon: "M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z", label: "Kategori", val: toko.kategori || "Makanan & Kerajinan" },
-              ].map((row) => (
+                location ? { icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z", label: "Lokasi", val: location } : null,
+                toko.business_category ? { icon: "M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z", label: "Kategori", val: toko.business_category } : null,
+              ].filter(Boolean).map((row: any) => (
                 <div key={row.label} className="flex gap-2.5">
                   <svg className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={row.icon} />
@@ -223,89 +210,55 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
               ))}
             </div>
 
-            {/* Dokumen Legalitas */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-100">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Legalitas Terverifikasi</h2>
-              {!isLoggedIn && (
-                <div className="flex items-center gap-2 mb-2.5 px-1">
-                  <svg className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                  </svg>
-                  <p className="text-xs text-amber-600">Login untuk melihat detail dokumen</p>
-                </div>
-              )}
-              <div className="space-y-2">
-                {documents.map((doc) => {
-                  const meta = DOKUMEN_META[doc.type];
-                  if (!meta) return null;
-                  const isOpen = openDoc === doc.type;
-                  return (
-                    <div key={doc.type} className={`border rounded-xl overflow-hidden ${!isLoggedIn ? "border-gray-100 opacity-80" : "border-gray-100"}`}>
-                      <button
-                        onClick={() => handleDocClick(doc.type)}
-                        className="w-full flex items-center gap-2.5 p-2.5 hover:bg-gray-50 text-left"
-                      >
-                        <svg className="w-3.5 h-3.5 text-green-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-800">{meta.nama}</p>
-                          <p className="text-xs text-gray-400">{meta.kategori}</p>
-                        </div>
-                        {isLoggedIn ? (
-                          <svg className={`w-3 h-3 text-gray-400 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        ) : (
-                          <svg className="w-3 h-3 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </button>
-                      {isOpen && (
-                        <div className="px-2.5 pb-2.5 space-y-1.5 border-t border-gray-50 pt-2">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-400">No. Dokumen</span>
-                            <span className="font-mono text-gray-700 text-right">{doc.nomor}</span>
-                          </div>
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-400">Terbit</span>
-                            <span className="text-gray-700">{doc.tanggalTerbit}</span>
-                          </div>
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-400">Berlaku</span>
-                            <span className="text-gray-700">{doc.berlakuHingga ?? "Permanen"}</span>
-                          </div>
-                          {doc.cakupan && (
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-400">Cakupan</span>
-                              <span className="text-gray-700 text-right max-w-[130px]">{doc.cakupan}</span>
-                            </div>
-                          )}
-                          <p className="text-xs text-green-700 bg-green-50 rounded-lg px-2 py-1 mt-1">{meta.efek}</p>
-                          <button
-                            onClick={() => handleLihatDokumen(doc)}
-                            className="w-full mt-1 py-1.5 rounded-lg text-xs font-semibold text-white flex items-center justify-center gap-1.5"
-                            style={{ background: "var(--primary)" }}
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-4-8a9.953 9.953 0 014 0M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            Lihat Dokumen
-                          </button>
-                        </div>
-                      )}
+            {/* Trust Badges */}
+            {hasBadges && (
+              <div className="bg-white rounded-2xl p-4 border border-gray-100">
+                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Legalitas Terverifikasi</h2>
+                <div className="space-y-2">
+                  {hasNib && (
+                    <div className="flex items-center gap-2.5 px-3 py-2 bg-green-50 rounded-xl border border-green-100">
+                      <svg className="w-4 h-4 text-green-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-semibold text-green-800">📋 NIB Terdaftar</p>
+                        <p className="text-xs text-green-600">Nomor Induk Berusaha OSS</p>
+                      </div>
                     </div>
-                  );
-                })}
+                  )}
+                  {hasNpwp && (
+                    <div className="flex items-center gap-2.5 px-3 py-2 bg-blue-50 rounded-xl border border-blue-100">
+                      <svg className="w-4 h-4 text-blue-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-semibold text-blue-800">🧾 NPWP Terdaftar</p>
+                        <p className="text-xs text-blue-600">Wajib pajak terdaftar</p>
+                      </div>
+                    </div>
+                  )}
+                  {hasHalalCert && (
+                    <div className="flex items-center gap-2.5 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
+                      <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-semibold text-emerald-800">✅ Halal Certified</p>
+                        <p className="text-xs text-emerald-600">Bersertifikat MUI/BPJPH</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Tentang */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-100">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tentang Toko</h2>
-              <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
-            </div>
+            {desc && (
+              <div className="bg-white rounded-2xl p-4 border border-gray-100">
+                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tentang Toko</h2>
+                <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
+              </div>
+            )}
 
             <button className="w-full py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: "var(--primary)" }}>
               Kirim Pesan ke Toko
