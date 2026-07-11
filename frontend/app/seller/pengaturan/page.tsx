@@ -284,14 +284,14 @@ export default function PengaturanPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <MediaUpload
               label="Logo Toko"
-              hint="Gambar persegi, maks. 3 MB (jpg/png/webp)"
+              hint="Rasio 1:1 (kotak) · Ideal 400×400px · Maks. 3MB · JPG/PNG/WEBP"
               current={umkmStatus.logo}
               endpoint="/profile/shop/logo"
               onDone={(path) => setUmkmStatus(prev => prev ? { ...prev, logo: path } : prev)}
             />
             <MediaUpload
               label="Banner Toko"
-              hint="Gambar landscape 3:1, maks. 3 MB"
+              hint="Rasio 3:1 (landscape) · Ideal 1200×400px · Maks. 3MB · JPG/PNG/WEBP"
               current={umkmStatus.banner}
               endpoint="/profile/shop/banner"
               onDone={(path) => setUmkmStatus(prev => prev ? { ...prev, banner: path } : prev)}

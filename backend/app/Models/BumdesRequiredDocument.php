@@ -14,6 +14,7 @@ class BumdesRequiredDocument extends Model
         'name',
         'description',
         'is_required',
+        'category',
     ];
 
     protected function casts(): array

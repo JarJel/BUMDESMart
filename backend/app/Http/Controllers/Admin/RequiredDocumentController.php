@@ -30,12 +30,14 @@ class RequiredDocumentController extends Controller
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
             'is_required' => 'boolean',
+            'category'    => 'nullable|string|max:100',
         ]);
 
         $doc = $bumdes->requiredDocuments()->create([
             'name'        => $validated['name'],
             'description' => $validated['description'] ?? null,
             'is_required' => $validated['is_required'] ?? true,
+            'category'    => $validated['category'] ?? null,
         ]);
 
         return response()->json(['message' => 'Dokumen berhasil ditambahkan', 'data' => $doc], 201);
@@ -53,6 +55,7 @@ class RequiredDocumentController extends Controller
             'name'        => 'sometimes|string|max:255',
             'description' => 'nullable|string|max:500',
             'is_required' => 'boolean',
+            'category'    => 'nullable|string|max:100',
         ]);
 
         $document->update($validated);

@@ -18,7 +18,15 @@ class SellerDocumentController extends Controller
             return response()->json(['error' => 'Profil UMKM tidak ditemukan.'], 404);
         }
 
+        $sellerCategory = $umkm->business_category;
+
         $requiredDocs = BumdesRequiredDocument::where('bumdes_profile_id', $umkm->bumdes_profile_id)
+            ->where(function ($q) use ($sellerCategory) {
+                $q->whereNull('category');
+                if ($sellerCategory) {
+                    $q->orWhere('category', $sellerCategory);
+                }
+            })
             ->orderBy('is_required', 'desc')
             ->orderBy('name')
             ->get();

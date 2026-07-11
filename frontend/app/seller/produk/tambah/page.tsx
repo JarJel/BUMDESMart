@@ -203,7 +203,7 @@ export default function TambahProdukPage() {
               className="hidden"
               onChange={handleAddPhoto}
             />
-            <p className="text-xs text-gray-400">Format: JPG, PNG, WEBP. Maks. 2MB per foto. Foto pertama = foto utama.</p>
+            <p className="text-xs text-gray-400">Rasio 1:1 (kotak) · Ideal 800×800px · Maks. 2MB per foto · JPG/PNG/WEBP · Foto pertama = foto utama.</p>
           </div>
 
           {/* Harga & Stok */}
