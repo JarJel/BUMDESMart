@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+import api from "@/lib/api/axios";
 
 interface BumdesProfile {
   id: number;
@@ -42,12 +40,10 @@ export default function AdminBumdesPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
   const fetchList = async () => {
     try {
-      const res = await axios.get(`${API}/bumdes`);
-      setList(res.data.data ?? []);
+      const res = await api.get("/super-admin/bumdes");
+      setList(res.data.data?.data ?? res.data.data ?? []);
     } catch {
       setList([]);
     } finally {
@@ -67,9 +63,7 @@ export default function AdminBumdesPage() {
     setSuccess("");
     setSubmitting(true);
     try {
-      await axios.post(`${API}/super-admin/bumdes`, form, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.post("/super-admin/bumdes", form);
       setSuccess("BUMDes berhasil didaftarkan!");
       setForm(emptyForm);
       setShowForm(false);
@@ -84,11 +78,9 @@ export default function AdminBumdesPage() {
 
   const handleToggleStatus = async (bumdes: BumdesProfile) => {
     try {
-      await axios.put(
-        `${API}/super-admin/bumdes/${bumdes.id}`,
-        { status: bumdes.status === "active" ? "inactive" : "active" },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put(`/super-admin/bumdes/${bumdes.id}`, {
+        status: bumdes.status === "active" ? "inactive" : "active",
+      });
       fetchList();
     } catch {}
   };
