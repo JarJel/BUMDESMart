@@ -26,11 +26,13 @@ class ProductController extends Controller
                 $query->where('umkm_profile_id', $request->umkm_id);
             }
 
-            $products = $query->with([
-                'primaryImage',
-                'umkmProfile:id,shop_name,slug',
-                'activeDiscount',
-            ])->paginate(12);
+            $products = $query
+                ->select(['id', 'name', 'slug', 'price', 'stock', 'weight', 'category_id', 'umkm_profile_id', 'sold_count', 'status', 'created_at'])
+                ->with([
+                    'primaryImage:id,product_id,file_path,is_primary',
+                    'umkmProfile:id,shop_name,slug',
+                    'activeDiscount:id,product_id,type,value,end_date,is_active,max_uses,used_count',
+                ])->paginate(12);
 
             $products->getCollection()->transform(function ($product) {
                 if ($product->activeDiscount) {

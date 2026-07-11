@@ -433,14 +433,16 @@ class ProductController extends Controller
                 $deleteIds = $request->delete_image_ids;
                 $imagesToDelete = ProductImage::where('product_id', $product->id)
                     ->whereIn('id', $deleteIds)
-                    ->get();
-                
+                    ->get(['id', 'file_path']);
+
+                // Hapus file dari filesystem dulu
                 foreach ($imagesToDelete as $img) {
                     if (file_exists(public_path($img->file_path))) {
                         @unlink(public_path($img->file_path));
                     }
-                    $img->delete();
                 }
+                // Hapus DB record sekaligus (1 query, bukan N)
+                ProductImage::whereIn('id', $deleteIds)->where('product_id', $product->id)->delete();
             }
 
             if ($request->hasFile('images')) {

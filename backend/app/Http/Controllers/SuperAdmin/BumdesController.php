@@ -12,9 +12,22 @@ use Illuminate\Validation\Rule;
 
 class BumdesController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $bumdes = BumdesProfile::with('user')->latest()->get();
+        // Public route (dropdown registrasi): hanya aktif, kolom minimal, tanpa data user
+        if (!$request->user()) {
+            $bumdes = BumdesProfile::where('status', 'active')
+                ->select(['id', 'name', 'slug', 'village', 'city', 'province'])
+                ->orderBy('name')
+                ->get();
+            return response()->json(['data' => $bumdes]);
+        }
+
+        // Super-admin route: full data dengan pagination
+        $bumdes = BumdesProfile::with('user:id,name,email,role,status')
+            ->select(['id', 'user_id', 'name', 'slug', 'village', 'city', 'province', 'phone', 'email', 'status', 'created_at'])
+            ->latest()
+            ->paginate(20);
 
         return response()->json(['data' => $bumdes]);
     }
