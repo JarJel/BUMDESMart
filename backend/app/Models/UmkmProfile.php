@@ -25,11 +25,16 @@ class UmkmProfile extends Model
         'city',
         'province',
         'postal_code',
+        'latitude',
+        'longitude',
         'npwp',
         'nib',
         'halal_cert',
         'rating',
         'status',
+        'is_open',
+        'open_hours',
+        'closed_until',
         'verified_by',
         'verified_at',
         'rejection_reason',
@@ -39,9 +44,30 @@ class UmkmProfile extends Model
     protected function casts(): array
     {
         return [
-            'verified_at' => 'datetime',
-            'rating'      => 'float',
+            'verified_at'  => 'datetime',
+            'rating'       => 'float',
+            'is_open'      => 'boolean',
+            'open_hours'   => 'array',
+            'closed_until' => 'datetime',
         ];
+    }
+
+    public function getIsCurrentlyOpenAttribute(): bool
+    {
+        if (!$this->is_open) return false;
+
+        if ($this->closed_until && $this->closed_until->isFuture()) return false;
+
+        if (!$this->open_hours) return true;
+
+        $days = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+        $today = $days[now()->dayOfWeek];
+        $hours = $this->open_hours[$today] ?? null;
+
+        if (!$hours || ($hours['closed'] ?? false)) return false;
+
+        $now = now()->format('H:i');
+        return $now >= ($hours['open'] ?? '00:00') && $now <= ($hours['close'] ?? '23:59');
     }
 
     public function bumdesProfile(): BelongsTo
@@ -81,14 +107,17 @@ class UmkmProfile extends Model
 
     public function recalculateRating(): void
     {
-        // Called when a product review is added/updated/deleted
-        $avg = $this->products()
-            ->whereHas('reviews')
-            ->with('reviews:id,product_id,rating')
-            ->get()
-            ->flatMap(fn($p) => $p->reviews)
-            ->avg('rating');
+        try {
+            $avg = $this->products()
+                ->whereHas('reviews')
+                ->with('reviews:id,product_id,rating')
+                ->get()
+                ->flatMap(fn($p) => $p->reviews)
+                ->avg('rating');
 
-        $this->update(['rating' => $avg ? round($avg, 2) : null]);
+            $this->update(['rating' => $avg ? round($avg, 2) : null]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('recalculateRating: ' . $e->getMessage());
+        }
     }
 }

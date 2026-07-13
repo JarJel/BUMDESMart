@@ -70,6 +70,22 @@ class ProfileController extends Controller
             if ($user->role === 'umkm') {
                 $user->load('umkmProfile');
                 if ($user->umkmProfile) {
+                    $isActive = $user->umkmProfile->status === 'active';
+
+                    if ($isActive && $request->has('shop_name')) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Nama toko tidak dapat diubah setelah terverifikasi. Hubungi admin BUMDes untuk mengubah nama toko.',
+                        ], 422);
+                    }
+
+                    if ($isActive && $request->has('business_category') && $request->business_category !== $user->umkmProfile->business_category) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Kategori usaha tidak dapat diubah setelah terverifikasi karena mempengaruhi dokumen izin yang dibutuhkan. Hubungi admin BUMDes.',
+                        ], 422);
+                    }
+
                     $umkmData = array_filter(
                         $request->only([
                             'shop_name', 'owner_name', 'description', 'phone', 'email',
@@ -228,6 +244,41 @@ class ProfileController extends Controller
         } catch (Exception $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
+    }
+
+    public function reapplyRequest(Request $request)
+    {
+        $user = $request->user();
+        $umkm = $user->umkmProfile;
+
+        if (!$umkm) {
+            return response()->json(['message' => 'Profil UMKM tidak ditemukan.'], 404);
+        }
+
+        if ($umkm->status !== 'rejected') {
+            return response()->json(['message' => 'Hanya bisa mengajukan ulang jika pendaftaran ditolak.'], 422);
+        }
+
+        $umkm->update(['status' => 'pending', 'rejection_reason' => null]);
+
+        return response()->json(['message' => 'Berhasil mengajukan ulang. Menunggu verifikasi BUMDes.']);
+    }
+
+    public function sellerBalance(Request $request)
+    {
+        $user = $request->user();
+        if ($user->role !== 'umkm' || !$user->umkmProfile) {
+            return response()->json(['data' => ['pending' => 0, 'available' => 0]]);
+        }
+        $balance = \App\Models\UmkmBalance::where('owner_id', $user->umkmProfile->id)
+            ->where('owner_type', 'umkm')
+            ->first();
+        return response()->json([
+            'data' => [
+                'pending'   => $balance?->pending ?? 0,
+                'available' => $balance?->available ?? 0,
+            ]
+        ]);
     }
 
     public function changePassword(Request $request)

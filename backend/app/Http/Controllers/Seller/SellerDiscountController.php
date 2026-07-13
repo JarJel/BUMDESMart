@@ -11,7 +11,11 @@ class SellerDiscountController extends Controller
 {
     private function umkm(Request $request)
     {
-        return $request->user()->umkmProfile;
+        $umkm = $request->user()->umkmProfile;
+        if ($umkm && $umkm->status !== 'active') {
+            abort(response()->json(['message' => 'Profil UMKM belum aktif.'], 403));
+        }
+        return $umkm;
     }
 
     private function hasActiveDiscount(int $productId, ?int $excludeId = null): bool

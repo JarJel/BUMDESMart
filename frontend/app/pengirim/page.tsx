@@ -1,221 +1,229 @@
-"use client"
-import { useState } from "react"
+"use client";
 
-const RADIUS_OPTIONS = [2, 5, 10, 15, 20]
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import api from "@/lib/api/axios";
+import { useToast } from "@/components/ui/Toast";
 
-const AVAILABLE_ORDERS = [
-  { id: "ORD-001", from: "Toko Keripik Mang Asep", to: "Jl. Melati No.5, RT 03", distance: "1.2 km", weight: "500g", fee: 8000 },
-  { id: "ORD-002", from: "Bakso Bu Eti", to: "Perum Griya Indah Blok B-2", distance: "3.1 km", weight: "1.2 kg", fee: 12000 },
-]
-
-const ACTIVE_SHIPMENTS = [
-  { resi: "JNE-123456789", penerima: "Rina Kartika", tujuan: "Jl. Melati No.5, Desa Sukamaju", estimasi: "Hari ini", status: "in_transit" },
-  { resi: "JNE-112233445", penerima: "Sari Dewi", tujuan: "RT 03 RW 01, Desa Sejahtera", estimasi: "2 hari lagi", status: "pending" },
-]
-
-const STATUS: Record<string, { label: string; color: string; dot: string }> = {
-  pending:    { label: "Siap Diambil",     color: "text-yellow-700 bg-yellow-50", dot: "bg-yellow-400" },
-  picked_up:  { label: "Sudah Diambil",    color: "text-blue-600 bg-blue-50",    dot: "bg-blue-500" },
-  in_transit: { label: "Dalam Perjalanan", color: "text-gray-700 bg-gray-100",   dot: "bg-gray-500" },
-  delivered:  { label: "Terkirim",         color: "text-green-700 bg-green-50",  dot: "bg-green-500" },
+function formatRp(n: number) {
+  return "Rp " + Math.round(n).toLocaleString("id-ID");
 }
 
 export default function PengirimDashboard() {
-  const [autoMode, setAutoMode] = useState(false)
-  const [radius, setRadius] = useState(5)
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const toast = useToast();
+  const [stats, setStats] = useState<any>(null);
+  const [activeOrders, setActiveOrders] = useState<any[]>([]);
+  const [availableOrders, setAvailableOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [togglingAvail, setTogglingAvail] = useState(false);
+  const [acceptingId, setAcceptingId] = useState<number | null>(null);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
+
+  const fetchAll = useCallback(async () => {
+    try {
+      const [statsRes, activeRes, availRes] = await Promise.all([
+        api.get("/driver/stats"),
+        api.get("/driver/orders/active"),
+        api.get("/driver/orders/available"),
+      ]);
+      setStats(statsRes.data.data);
+      setActiveOrders(activeRes.data.data ?? []);
+      setAvailableOrders(availRes.data.data ?? []);
+    } catch {
+      toast.error("Gagal memuat data.");
+    } finally {
+      setLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const toggleAvailability = async () => {
+    setTogglingAvail(true);
+    try {
+      const res = await api.patch("/driver/profile/availability");
+      setStats((prev: any) => ({ ...prev, is_available: res.data.is_available }));
+      toast.success(res.data.message);
+    } catch {
+      toast.error("Gagal mengubah status.");
+    } finally {
+      setTogglingAvail(false);
+    }
+  };
+
+  const acceptOrder = async (id: number) => {
+    setAcceptingId(id);
+    try {
+      await api.post(`/driver/orders/${id}/accept`);
+      toast.success("Pesanan berhasil diambil!");
+      fetchAll();
+    } catch {
+      toast.error("Gagal mengambil pesanan.");
+    } finally {
+      setAcceptingId(null);
+    }
+  };
+
+  const updateStatus = async (id: number, status: "shipped" | "delivered") => {
+    setUpdatingId(id);
+    try {
+      await api.patch(`/driver/orders/${id}/status`, { status });
+      toast.success(status === "shipped" ? "Status: Sedang Dikirim" : "Pengiriman selesai!");
+      fetchAll();
+    } catch {
+      toast.error("Gagal update status.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const STAT_CARDS = [
+    { label: "Hari Ini", value: stats?.today_deliveries ?? 0, icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
+    { label: "Total Selesai", value: stats?.total_deliveries ?? 0, icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" },
+    { label: "Tersedia", value: stats?.available_orders ?? 0, icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-500" />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 sm:p-6 space-y-5 max-w-2xl mx-auto">
-
-      {/* Status bar */}
+    <div className="p-5 space-y-5">
+      {/* Header + Online toggle */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-base font-bold text-gray-900">Dashboard Pengirim</h1>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {autoMode
-              ? `Aktif · mencari order dalam ${radius} km`
-              : "Mode manual · pilih order sendiri"}
-          </p>
+          <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Pengiriman hari ini</p>
         </div>
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-          autoMode ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"
-        }`}>
-          {autoMode ? "Online" : "Offline"}
-        </span>
+        <button
+          onClick={toggleAvailability}
+          disabled={togglingAvail}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+          style={stats?.is_available
+            ? { background: "#ECFDF5", color: "#065F46", border: "1.5px solid #6EE7B7" }
+            : { background: "#F3F4F6", color: "#6B7280", border: "1.5px solid #E5E7EB" }}>
+          <div className={`w-2.5 h-2.5 rounded-full ${stats?.is_available ? "bg-green-500" : "bg-gray-400"}`} />
+          {stats?.is_available ? "Online" : "Offline"}
+        </button>
       </div>
 
-      {/* Auto-mode card */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="p-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-gray-900">Mode Otomatis</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {autoMode
-                ? "Order dalam radius masuk otomatis"
-                : "Pilih order secara manual"}
-            </p>
-          </div>
-          <button
-            onClick={() => setAutoMode(!autoMode)}
-            className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ${
-              autoMode ? "bg-green-600" : "bg-gray-200"
-            }`}
-          >
-            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
-              autoMode ? "translate-x-5" : "translate-x-0"
-            }`} />
-          </button>
-        </div>
-
-        {autoMode && (
-          <div className="border-t border-gray-100 px-4 py-3">
-            <p className="text-xs font-medium text-gray-500 mb-2">Jangkauan pengiriman</p>
-            <div className="flex gap-2 flex-wrap">
-              {RADIUS_OPTIONS.map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRadius(r)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                    radius === r
-                      ? "border-orange-500 bg-orange-50 text-orange-600"
-                      : "border-gray-200 text-gray-500 hover:border-gray-300"
-                  }`}
-                >
-                  {r} km
-                </button>
-              ))}
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        {STAT_CARDS.map(c => (
+          <div key={c.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="w-9 h-9 rounded-xl mb-3 flex items-center justify-center" style={{ background: "#FFF7ED" }}>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                style={{ color: "#EA580C", width: "18px", height: "18px" }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={c.icon} />
+              </svg>
             </div>
+            <p className="text-2xl font-bold text-gray-900">{c.value}</p>
+            <p className="text-xs text-gray-500 mt-0.5 leading-tight">{c.label}</p>
           </div>
-        )}
+        ))}
       </div>
 
-      {/* Order tersedia */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-gray-900">Order Tersedia</p>
-          <span className="text-xs text-gray-400">{AVAILABLE_ORDERS.length} order</span>
+      {/* Active Orders */}
+      {activeOrders.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">
+            Pengiriman Aktif ({activeOrders.length})
+          </h2>
+          <div className="space-y-3">
+            {activeOrders.map(order => (
+              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{order.order_code}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {order.address?.city ?? "-"} · {(order.items ?? []).length} item
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full shrink-0"
+                    style={order.status === "shipped"
+                      ? { background: "#ECFDF5", color: "#065F46" }
+                      : { background: "#EFF6FF", color: "#1D4ED8" }}>
+                    {order.status === "shipped" ? "Dikirim" : "Siap Ambil"}
+                  </span>
+                </div>
+                {order.address && (
+                  <p className="text-xs text-gray-600 mb-3 bg-gray-50 rounded-lg px-3 py-2 leading-relaxed">
+                    {order.address.recipient_name ?? order.address.name} ·{" "}
+                    {order.address.address ?? order.address.address_line}, {order.address.city}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  {order.status !== "shipped" && (
+                    <button onClick={() => updateStatus(order.id, "shipped")}
+                      disabled={updatingId === order.id}
+                      className="flex-1 py-2 rounded-xl text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                      style={{ background: "#EA580C" }}>
+                      {updatingId === order.id ? "..." : "Tandai Dikirim"}
+                    </button>
+                  )}
+                  {order.status === "shipped" && (
+                    <button onClick={() => updateStatus(order.id, "delivered")}
+                      disabled={updatingId === order.id}
+                      className="flex-1 py-2 rounded-xl text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                      style={{ background: "var(--primary)" }}>
+                      {updatingId === order.id ? "..." : "Selesai Diantar"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        {AVAILABLE_ORDERS.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
-            <p className="text-sm text-gray-400">Belum ada order di sekitar kamu</p>
+      )}
+
+      {/* Available Orders preview */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-900">
+            Pesanan Tersedia ({availableOrders.length})
+          </h2>
+          <Link href="/pengirim/pesanan" className="text-xs font-semibold" style={{ color: "#EA580C" }}>
+            Lihat Semua
+          </Link>
+        </div>
+        {availableOrders.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+            <p className="text-sm text-gray-500">Belum ada pesanan tersedia saat ini.</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {AVAILABLE_ORDERS.map((o) => (
-              <div key={o.id} className="bg-white rounded-2xl border border-gray-100 p-4">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-gray-900 truncate">{o.from}</p>
-                    <p className="text-xs text-gray-400 truncate mt-0.5">{o.to}</p>
+          <div className="space-y-3">
+            {availableOrders.slice(0, 5).map(order => (
+              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{order.order_code}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {order.address?.city ?? "-"} · {(order.items ?? []).length} item · {formatRp(Number(order.total))}
+                    </p>
                   </div>
-                  <span className="text-xs text-gray-400 shrink-0">{o.distance}</span>
+                  <button
+                    onClick={() => acceptOrder(order.id)}
+                    disabled={acceptingId === order.id}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white hover:opacity-90 shrink-0 disabled:opacity-50"
+                    style={{ background: "#EA580C" }}>
+                    {acceptingId === order.id ? "..." : "Ambil"}
+                  </button>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-xs text-gray-500">
-                    <span>{o.weight}</span>
-                    <span className="font-semibold text-gray-900">
-                      Rp {o.fee.toLocaleString("id")}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="px-3 py-1.5 text-xs font-semibold border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
-                      Tolak
-                    </button>
-                    <button
-                      className="px-3 py-1.5 text-xs font-semibold text-white rounded-lg"
-                      style={{ background: "#ea580c" }}
-                    >
-                      Ambil
-                    </button>
-                  </div>
-                </div>
+                {order.address && (
+                  <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-1.5 truncate">
+                    {order.address.address ?? order.address.address_line}, {order.address.city}
+                  </p>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
-
-      {/* Pengiriman aktif */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-gray-900">Pengiriman Aktif</p>
-          <span className="text-xs text-gray-400">{ACTIVE_SHIPMENTS.length} paket</span>
-        </div>
-        <div className="space-y-2">
-          {ACTIVE_SHIPMENTS.map((s) => {
-            const st = STATUS[s.status]
-            const open = expanded === s.resi
-            return (
-              <div key={s.resi} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                <button
-                  onClick={() => setExpanded(open ? null : s.resi)}
-                  className="w-full p-4 flex items-center gap-3 text-left hover:bg-gray-50"
-                >
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${st?.dot}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-gray-900">{s.resi}</p>
-                    <p className="text-xs text-gray-400 truncate">{s.penerima}</p>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${st?.color}`}>
-                    {st?.label}
-                  </span>
-                </button>
-
-                {open && (
-                  <div className="px-4 pb-4 border-t border-gray-50">
-                    <div className="pt-3 space-y-2 text-xs text-gray-500 mb-3">
-                      <div className="flex justify-between gap-4">
-                        <span className="text-gray-400 shrink-0">Tujuan</span>
-                        <span className="text-right">{s.tujuan}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Estimasi</span>
-                        <span>{s.estimasi}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {s.status === "pending" && (
-                        <button className="flex-1 py-2 text-xs font-semibold text-white rounded-xl" style={{ background: "#ea580c" }}>
-                          Ambil Paket
-                        </button>
-                      )}
-                      {s.status === "picked_up" && (
-                        <button className="flex-1 py-2 text-xs font-semibold text-white rounded-xl" style={{ background: "#ea580c" }}>
-                          Mulai Antar
-                        </button>
-                      )}
-                      {s.status === "in_transit" && (
-                        <button className="flex-1 py-2 text-xs font-semibold text-white rounded-xl" style={{ background: "#ea580c" }}>
-                          Konfirmasi Terkirim
-                        </button>
-                      )}
-                      <button className="px-4 py-2 text-xs font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
-                        Navigasi
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { label: "Selesai Hari Ini", val: "5" },
-          { label: "Total Km", val: "12.4" },
-          { label: "Pendapatan", val: "60rb" },
-        ].map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl p-3 border border-gray-100 text-center">
-            <p className="text-base font-bold text-gray-900">{s.val}</p>
-            <p className="text-xs text-gray-400 mt-0.5 leading-tight">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
     </div>
-  )
+  );
 }

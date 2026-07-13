@@ -12,7 +12,6 @@ export default function DaftarPage() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -30,15 +29,14 @@ export default function DaftarPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
 
     if (!agreed) {
-      setError("Anda harus menyetujui Syarat dan Ketentuan terlebih dahulu.");
+      toast.error("Anda harus menyetujui Syarat dan Ketentuan terlebih dahulu.");
       return;
     }
 
     if (form.password !== form.password_confirmation) {
-      setError("Konfirmasi kata sandi tidak cocok.");
+      toast.error("Konfirmasi kata sandi tidak cocok.");
       return;
     }
 
@@ -58,7 +56,7 @@ export default function DaftarPage() {
         err.response?.data?.errors?.password?.[0] ||
         err.response?.data?.error ||
         "Terjadi kesalahan. Silakan coba lagi.";
-      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -98,12 +96,6 @@ export default function DaftarPage() {
           <p className="text-sm text-gray-500 text-center mb-7 leading-relaxed">
             Bergabunglah untuk mendukung produk desa dan UMKM Indonesia.
           </p>
-
-          {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

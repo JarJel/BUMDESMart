@@ -4,10 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { clearAuthCookies } from "@/lib/utils/auth";
-import axios from "axios";
+import api from "@/lib/api/axios";
 import { SellerProfileContext, SellerProfileData } from "@/lib/context/sellerProfile";
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
 const navItems = [
   {
@@ -34,6 +32,15 @@ const navItems = [
     icon: (
       <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
+      </svg>
+    ),
+  },
+  {
+    href: "/seller/promosi",
+    label: "Promosi",
+    icon: (
+      <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
       </svg>
     ),
   },
@@ -103,7 +110,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
     const token = localStorage.getItem("token");
     if (!token) { router.push("/login"); return; }
 
-    axios.get(`${API}/profile`, { headers: { Authorization: `Bearer ${token}` } })
+    api.get('/profile')
       .then(res => {
         const user = res.data.data ?? res.data;
         // Profile umkm ada di nested umkm_profile
@@ -121,7 +128,8 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
       .finally(() => setLoadingProfile(false));
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try { await api.post('/logout'); } catch {}
     localStorage.removeItem("token");
     clearAuthCookies();
     router.push("/login");

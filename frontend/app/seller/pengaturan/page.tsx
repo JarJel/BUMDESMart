@@ -1,9 +1,21 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import api from "@/lib/api/axios";
+import { useToast } from "@/components/ui/Toast";
 
-const IMG_BASE = "http://localhost:8000";
+const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
+
+const CATEGORY_OPTIONS = [
+  { value: "makanan_minuman",      label: "Makanan & Minuman" },
+  { value: "kerajinan_tangan",     label: "Kerajinan Tangan" },
+  { value: "tekstil_fashion",      label: "Tekstil & Fashion" },
+  { value: "pertanian_peternakan", label: "Pertanian & Peternakan" },
+  { value: "elektronik",           label: "Elektronik" },
+  { value: "kesehatan_kecantikan", label: "Kesehatan & Kecantikan" },
+  { value: "jasa",                 label: "Jasa" },
+  { value: "lainnya",              label: "Lainnya" },
+];
 
 interface ProfileForm {
   shop_name: string;
@@ -31,6 +43,20 @@ const EMPTY_FORM: ProfileForm = {
   email: "", address: "", city: "", province: "", postal_code: "",
   business_category: "",
 };
+
+const DAYS = [
+  { key: "senin",   label: "Senin" },
+  { key: "selasa",  label: "Selasa" },
+  { key: "rabu",    label: "Rabu" },
+  { key: "kamis",   label: "Kamis" },
+  { key: "jumat",   label: "Jumat" },
+  { key: "sabtu",   label: "Sabtu" },
+  { key: "minggu",  label: "Minggu" },
+];
+
+const DEFAULT_HOURS = Object.fromEntries(
+  DAYS.map(d => [d.key, { open: "08:00", close: "17:00", closed: d.key === "minggu" }])
+);
 
 function MediaUpload({
   label, hint, current, endpoint, onDone,
@@ -103,17 +129,23 @@ function MediaUpload({
 export default function PengaturanPage() {
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [passForm, setPassForm] = useState({ current_password: "", new_password: "", new_password_confirmation: "" });
   const [savingPass, setSavingPass] = useState(false);
-  const [passMsg, setPassMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [umkmStatus, setUmkmStatus] = useState<UmkmStatus | null>(null);
-  const [statusToast, setStatusToast] = useState<string | null>(null);
   const [reapplying, setReapplying] = useState(false);
   const prevStatusRef = useRef<string | null>(null);
 
-  const fetchProfile = async () => {
+  // Shop hours state
+  const [shopIsOpen, setShopIsOpen] = useState(true);
+  const [closedUntil, setClosedUntil] = useState("");
+  const [openHours, setOpenHours] = useState<Record<string, { open: string; close: string; closed: boolean }>>(DEFAULT_HOURS);
+  const [togglingShop, setTogglingShop] = useState(false);
+  const [savingHours, setSavingHours] = useState(false);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fetchProfile = useCallback(async () => {
     const res = await api.get("/profile");
     const user = res.data.data ?? res.data;
     const umkm = user.umkm_profile ?? {};
@@ -129,10 +161,13 @@ export default function PengaturanPage() {
       postal_code: umkm.postal_code ?? "",
       business_category: umkm.business_category ?? "",
     });
+    setShopIsOpen(umkm.is_open ?? true);
+    setClosedUntil(umkm.closed_until ? umkm.closed_until.slice(0, 16) : "");
+    setOpenHours(umkm.open_hours ?? DEFAULT_HOURS);
     if (umkm.id) {
       if (prevStatusRef.current && prevStatusRef.current !== umkm.status) {
-        if (umkm.status === "active") setStatusToast("Selamat! Toko kamu sudah diverifikasi dan aktif.");
-        else if (umkm.status === "rejected") setStatusToast("Pendaftaranmu ditolak. Lihat alasan di bawah.");
+        if (umkm.status === "active") toast.success("Selamat! Toko kamu sudah diverifikasi dan aktif.");
+        else if (umkm.status === "rejected") toast.error("Pendaftaranmu ditolak. Lihat alasan di bawah.");
       }
       prevStatusRef.current = umkm.status;
       setUmkmStatus({
@@ -143,28 +178,28 @@ export default function PengaturanPage() {
         banner: umkm.banner ?? null,
       });
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetchProfile().catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  }, [fetchProfile]);
 
   useEffect(() => {
     if (!umkmStatus || umkmStatus.status !== "pending") return;
     const interval = setInterval(() => fetchProfile().catch(() => {}), 30_000);
     return () => clearInterval(interval);
-  }, [umkmStatus?.status]);
+  }, [umkmStatus?.status, fetchProfile]);
 
   const handleSave = async () => {
     setSaving(true);
-    setMsg(null);
     try {
       await api.put("/profile", form);
-      setMsg({ type: "success", text: "Profil berhasil disimpan!" });
+      toast.success("Profil berhasil disimpan!");
       fetchProfile().catch(() => {});
     } catch (e: any) {
       const err = e.response?.data?.message ?? e.response?.data?.error ?? "Gagal menyimpan profil.";
-      setMsg({ type: "error", text: err });
+      toast.error(err);
     } finally {
       setSaving(false);
     }
@@ -172,18 +207,17 @@ export default function PengaturanPage() {
 
   const handleSavePass = async () => {
     if (passForm.new_password !== passForm.new_password_confirmation) {
-      setPassMsg({ type: "error", text: "Konfirmasi password tidak cocok." });
+      toast.error("Konfirmasi password tidak cocok.");
       return;
     }
     setSavingPass(true);
-    setPassMsg(null);
     try {
       await api.put("/profile/password", passForm);
-      setPassMsg({ type: "success", text: "Password berhasil diubah!" });
+      toast.success("Password berhasil diubah!");
       setPassForm({ current_password: "", new_password: "", new_password_confirmation: "" });
     } catch (e: any) {
       const err = e.response?.data?.message ?? e.response?.data?.errors?.current_password?.[0] ?? "Gagal mengubah password.";
-      setPassMsg({ type: "error", text: err });
+      toast.error(err);
     } finally {
       setSavingPass(false);
     }
@@ -193,7 +227,7 @@ export default function PengaturanPage() {
     if (!umkmStatus) return;
     setReapplying(true);
     try {
-      await api.put(`/admin/umkm/${umkmStatus.id}/reapply`, {});
+      await api.put('/seller/reapply', {});
       setUmkmStatus(prev => prev ? { ...prev, status: "pending", rejection_reason: null } : prev);
       prevStatusRef.current = "pending";
     } catch {}
@@ -204,27 +238,43 @@ export default function PengaturanPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => setForm(prev => ({ ...prev, [field]: e.target.value }));
 
+  const handleToggleShop = async () => {
+    setTogglingShop(true);
+    try {
+      const res = await api.patch("/seller/shop/toggle");
+      setShopIsOpen(res.data.is_open);
+      if (res.data.is_open) setClosedUntil("");
+      toast.success(res.data.message);
+    } catch {
+      toast.error("Gagal mengubah status toko.");
+    } finally {
+      setTogglingShop(false);
+    }
+  };
+
+  const handleSaveHours = async () => {
+    setSavingHours(true);
+    try {
+      await api.put("/seller/shop/hours", {
+        open_hours:   openHours,
+        closed_until: closedUntil || null,
+      });
+      toast.success("Jam toko berhasil disimpan.");
+      if (closedUntil) setShopIsOpen(false);
+    } catch {
+      toast.error("Gagal menyimpan jam toko.");
+    } finally {
+      setSavingHours(false);
+    }
+  };
+
+  const setHour = (day: string, field: "open" | "close" | "closed", val: string | boolean) =>
+    setOpenHours(prev => ({ ...prev, [day]: { ...prev[day], [field]: val } }));
+
   if (loading) return <div className="p-6 text-sm text-gray-400">Memuat data profil...</div>;
 
   return (
     <div className="p-6 space-y-6 max-w-3xl">
-      {/* Toast */}
-      {statusToast && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-3 bg-white border border-green-200 shadow-lg rounded-2xl px-4 py-3 max-w-xs">
-          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <p className="text-sm text-gray-800 flex-1">{statusToast}</p>
-          <button onClick={() => setStatusToast(null)} className="text-gray-400 hover:text-gray-600 shrink-0">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
-
       <div>
         <h1 className="text-xl font-bold text-gray-900">Pengaturan Toko</h1>
         <p className="text-sm text-gray-500 mt-0.5">Lengkapi profil agar pembeli lebih percaya</p>
@@ -300,45 +350,148 @@ export default function PengaturanPage() {
         </div>
       )}
 
+      {/* Status & Jam Toko */}
+      {umkmStatus?.status === "active" && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+          <h2 className="text-sm font-semibold text-gray-900 border-b border-gray-50 pb-3">Status &amp; Jam Toko</h2>
+
+          {/* Toggle buka/tutup */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-800">Status Toko</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {shopIsOpen ? "Toko sedang buka, pembeli bisa pesan." : "Toko sedang tutup, pesanan baru ditahan."}
+              </p>
+            </div>
+            <button
+              onClick={handleToggleShop}
+              disabled={togglingShop}
+              className={`relative w-12 h-6 rounded-full transition-colors disabled:opacity-50 ${shopIsOpen ? "bg-green-500" : "bg-gray-200"}`}
+            >
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${shopIsOpen ? "right-1" : "left-1"}`} />
+            </button>
+          </div>
+
+          {/* Tutup sementara */}
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1.5 block">Tutup Sementara Sampai</label>
+            <p className="text-xs text-gray-400 mb-2">Kosongkan jika tidak ada rencana tutup sementara.</p>
+            <input
+              type="datetime-local"
+              value={closedUntil}
+              onChange={e => setClosedUntil(e.target.value)}
+              className="w-full sm:w-64 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400"
+            />
+          </div>
+
+          {/* Jam operasional per hari */}
+          <div>
+            <p className="text-xs font-medium text-gray-700 mb-3">Jam Operasional</p>
+            <div className="space-y-2">
+              {DAYS.map(d => {
+                const h = openHours[d.key] ?? { open: "08:00", close: "17:00", closed: false };
+                return (
+                  <div key={d.key} className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 w-24">
+                      <button
+                        type="button"
+                        onClick={() => setHour(d.key, "closed", !h.closed)}
+                        className={`relative w-8 h-4 rounded-full transition-colors ${!h.closed ? "bg-green-500" : "bg-gray-200"}`}
+                      >
+                        <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${!h.closed ? "right-0.5" : "left-0.5"}`} />
+                      </button>
+                      <span className={`text-xs font-medium ${h.closed ? "text-gray-400" : "text-gray-700"}`}>{d.label}</span>
+                    </div>
+                    {!h.closed ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="time"
+                          value={h.open}
+                          onChange={e => setHour(d.key, "open", e.target.value)}
+                          className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-green-400"
+                        />
+                        <span className="text-xs text-gray-400">–</span>
+                        <input
+                          type="time"
+                          value={h.close}
+                          onChange={e => setHour(d.key, "close", e.target.value)}
+                          className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-green-400"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">Tutup</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <button onClick={handleSaveHours} disabled={savingHours}
+            className="px-5 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 disabled:opacity-50"
+            style={{ background: "var(--primary)" }}>
+            {savingHours ? "Menyimpan..." : "Simpan Jam Toko"}
+          </button>
+        </div>
+      )}
+
       {/* Informasi Toko */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
         <h2 className="text-sm font-semibold text-gray-900 border-b border-gray-50 pb-3">Informasi Toko</h2>
 
-        {msg && (
-          <div className={`px-4 py-3 rounded-xl text-sm ${msg.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
-            {msg.text}
-          </div>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Nama Toko — terkunci setelah aktif */}
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1.5 block">
+              Nama Toko <span className="text-red-400">*</span>
+            </label>
+            {umkmStatus?.status === "active" ? (
+              <div>
+                <input value={form.shop_name} readOnly
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-gray-500 cursor-not-allowed" />
+                <p className="text-[11px] text-amber-600 mt-1">Nama toko terkunci setelah verifikasi. Hubungi admin BUMDes untuk mengubahnya.</p>
+              </div>
+            ) : (
+              <input value={form.shop_name} onChange={set("shop_name")} placeholder="Nama toko kamu"
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400" />
+            )}
+          </div>
+
           {[
-            { label: "Nama Toko", field: "shop_name" as const, required: true, placeholder: "Nama toko kamu" },
             { label: "Nama Pemilik", field: "owner_name" as const, placeholder: "Nama lengkap pemilik" },
             { label: "Nomor HP", field: "phone" as const, placeholder: "08xxxxxxxxxx" },
             { label: "Email Toko", field: "email" as const, placeholder: "email@toko.com" },
             { label: "Kota / Kabupaten", field: "city" as const, placeholder: "Bandung" },
             { label: "Provinsi", field: "province" as const, placeholder: "Jawa Barat" },
             { label: "Kode Pos", field: "postal_code" as const, placeholder: "40123" },
-          ].map(({ label, field, required, placeholder }) => (
+          ].map(({ label, field, placeholder }) => (
             <div key={field}>
-              <label className="text-xs font-medium text-gray-700 mb-1.5 block">
-                {label} {required && <span className="text-red-400">*</span>}
-              </label>
+              <label className="text-xs font-medium text-gray-700 mb-1.5 block">{label}</label>
               <input value={form[field]} onChange={set(field)} placeholder={placeholder}
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400" />
             </div>
           ))}
 
+          {/* Kategori Usaha — terkunci setelah aktif */}
           <div>
             <label className="text-xs font-medium text-gray-700 mb-1.5 block">Kategori Usaha</label>
-            <select value={form.business_category} onChange={set("business_category")}
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400 bg-white">
-              <option value="">Pilih kategori</option>
-              {["Makanan & Minuman", "Kerajinan Tangan", "Tekstil & Fashion", "Pertanian & Peternakan",
-                "Elektronik", "Kesehatan & Kecantikan", "Jasa", "Lainnya"].map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            {umkmStatus?.status === "active" ? (
+              <div>
+                <input
+                  value={CATEGORY_OPTIONS.find(c => c.value === form.business_category)?.label ?? form.business_category}
+                  readOnly
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-gray-500 cursor-not-allowed" />
+                <p className="text-[11px] text-amber-600 mt-1">Kategori terkunci setelah verifikasi karena mempengaruhi dokumen izin. Hubungi admin BUMDes.</p>
+              </div>
+            ) : (
+              <select value={form.business_category} onChange={set("business_category")}
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400 bg-white">
+                <option value="">Pilih kategori</option>
+                {CATEGORY_OPTIONS.map(c => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="md:col-span-2">
@@ -384,11 +537,6 @@ export default function PengaturanPage() {
       {/* Ubah Password */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
         <h2 className="text-sm font-semibold text-gray-900 border-b border-gray-50 pb-3">Ubah Password</h2>
-        {passMsg && (
-          <div className={`px-4 py-3 rounded-xl text-sm ${passMsg.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
-            {passMsg.text}
-          </div>
-        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { label: "Password Lama", field: "current_password" },

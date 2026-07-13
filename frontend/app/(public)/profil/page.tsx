@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api/auth";
 import { useAuth } from "@/hooks/useAuth";
 import { addressApi, AddressData } from "@/lib/api/address";
+import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const tabs = ["Profil Saya", "Alamat", "Keamanan"];
 
@@ -13,9 +15,9 @@ export default function ProfilPage() {
   const router = useRouter();
   const { user, loading: authLoading, logout, refetch } = useAuth();
   const [tab, setTab] = useState("Profil Saya");
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -30,7 +32,8 @@ export default function ProfilPage() {
   const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<AddressData | null>(null);
   const [addressSaving, setAddressSaving] = useState(false);
-  const [addressMessage, setAddressMessage] = useState("");
+  const [deleteAddrId, setDeleteAddrId] = useState<number | undefined>(undefined);
+  const [deletingAddr, setDeletingAddr] = useState(false);
 
   const [addressForm, setAddressForm] = useState<AddressData>({
     label: "Rumah",
@@ -107,16 +110,15 @@ export default function ProfilPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    setMessage("");
     try {
       await authApi.updateProfile({
         name: form.name,
         phone: form.phone,
         date_of_birth: form.date_of_birth || undefined,
       });
-      setMessage("Profil berhasil diperbarui.");
+      toast.success("Profil berhasil diperbarui.");
     } catch {
-      setMessage("Gagal memperbarui profil.");
+      toast.error("Gagal memperbarui profil.");
     } finally {
       setSaving(false);
     }
@@ -145,7 +147,6 @@ export default function ProfilPage() {
   // Open modal for Adding Alamat
   const handleOpenAddModal = () => {
     setEditingAddress(null);
-    setAddressMessage("");
     setAddressForm({
       label: "Rumah",
       recipient_name: "",
@@ -162,7 +163,6 @@ export default function ProfilPage() {
   // Open modal for Editing Alamat
   const handleOpenEditModal = (addr: AddressData) => {
     setEditingAddress(addr);
-    setAddressMessage("");
     setAddressForm({
       label: addr.label || "Rumah",
       recipient_name: addr.recipient_name,
@@ -180,23 +180,18 @@ export default function ProfilPage() {
   const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddressSaving(true);
-    setAddressMessage("");
     try {
       if (editingAddress?.id) {
         await addressApi.update(editingAddress.id, addressForm);
-        setAddressMessage("Alamat berhasil diperbarui.");
+        toast.success("Alamat berhasil diperbarui.");
       } else {
         await addressApi.store(addressForm);
-        setAddressMessage("Alamat berhasil ditambahkan.");
+        toast.success("Alamat berhasil ditambahkan.");
       }
-      // Re-fetch addresses list
       await fetchAddresses();
-      // Delay closing modal slightly so the user sees the success message
-      setTimeout(() => {
-        setAddressModalOpen(false);
-      }, 1000);
+      setAddressModalOpen(false);
     } catch {
-      setAddressMessage("Gagal menyimpan alamat. Periksa kembali form Anda.");
+      toast.error("Gagal menyimpan alamat. Periksa kembali form Anda.");
     } finally {
       setAddressSaving(false);
     }
@@ -214,14 +209,22 @@ export default function ProfilPage() {
   };
 
   // Delete Address
-  const handleDeleteAddress = async (id?: number) => {
+  const handleDeleteAddress = (id?: number) => {
     if (!id) return;
-    if (!confirm("Apakah Anda yakin ingin menghapus alamat ini?")) return;
+    setDeleteAddrId(id);
+  };
+
+  const executeDeleteAddr = async () => {
+    if (!deleteAddrId) return;
+    setDeletingAddr(true);
     try {
-      await addressApi.destroy(id);
+      await addressApi.destroy(deleteAddrId);
       await fetchAddresses();
     } catch {
-      console.error("Gagal menghapus alamat.");
+      toast.error("Gagal menghapus alamat.");
+    } finally {
+      setDeletingAddr(false);
+      setDeleteAddrId(undefined);
     }
   };
 
@@ -367,12 +370,6 @@ export default function ProfilPage() {
                       style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                     />
                   </div>
-
-                  {message && (
-                    <p className={`text-sm ${message.includes("berhasil") ? "text-green-600" : "text-red-500"}`}>
-                      {message}
-                    </p>
-                  )}
 
                   <button
                     onClick={handleSave}
@@ -582,12 +579,6 @@ export default function ProfilPage() {
                     </label>
                   </div>
 
-                  {addressMessage && (
-                    <p className={`text-xs ${addressMessage.includes("berhasil") ? "text-green-600" : "text-red-500"}`}>
-                      {addressMessage}
-                    </p>
-                  )}
-
                   <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">
                     <button
                       type="button"
@@ -628,6 +619,16 @@ export default function ProfilPage() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteAddrId !== undefined}
+        title="Hapus Alamat?"
+        description="Alamat yang dihapus tidak dapat dikembalikan."
+        confirmLabel="Ya, Hapus"
+        loading={deletingAddr}
+        onConfirm={executeDeleteAddr}
+        onClose={() => setDeleteAddrId(undefined)}
+      />
     </div>
   );
 }

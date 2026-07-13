@@ -49,4 +49,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(OrderHistory::class, 'user_id');
     }
+
+    public function driverProfile()
+    {
+        return $this->hasOne(DriverProfile::class, 'user_id');
+    }
 }

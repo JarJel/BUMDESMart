@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { authApi } from "@/lib/api/auth";
 import { setAuthCookies, getRoleHome } from "@/lib/utils/auth";
+import { useToast } from "@/components/ui/Toast";
 
 declare global {
   interface Window {
@@ -17,10 +18,10 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams?.get('redirect') || null;
   const registered = searchParams?.get('registered') || null;
+  const toast = useToast();
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [error, setError] = useState("");
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState({
@@ -34,10 +35,9 @@ function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
 
     if (!form.email || !form.password) {
-      setError("Email dan password wajib diisi.");
+      toast.error("Email dan password wajib diisi.");
       return;
     }
 
@@ -59,7 +59,7 @@ function LoginForm() {
         err.response?.data?.errors?.email?.[0] ||
         err.response?.data?.error ||
         "Email atau password salah.";
-      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -67,7 +67,6 @@ function LoginForm() {
 
   const handleGoogleCredential = async (credential: string) => {
     setGoogleLoading(true);
-    setError("");
     try {
       const res = await authApi.loginWithGoogle(credential);
       const { token, user } = res.data;
@@ -80,7 +79,7 @@ function LoginForm() {
       const msg =
         err.response?.data?.error ||
         "Gagal login dengan Google. Silakan coba lagi.";
-      setError(msg);
+      toast.error(msg);
     } finally {
       setGoogleLoading(false);
     }
@@ -142,12 +141,6 @@ function LoginForm() {
             </div>
           )}
 
-          {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
-              {error}
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Email atau No. HP</label>
@@ -202,12 +195,8 @@ function LoginForm() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 accent-green-600" />
-                <span className="text-sm text-gray-600">Ingat Saya</span>
-              </label>
-              <Link href="#" className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Lupa Password?</Link>
+            <div className="flex items-center justify-end">
+              <Link href="/lupa-password" className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Lupa Password?</Link>
             </div>
 
             <button

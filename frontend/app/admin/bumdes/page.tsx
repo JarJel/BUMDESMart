@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api/axios";
+import { useToast } from "@/components/ui/Toast";
 
 interface BumdesProfile {
   id: number;
@@ -32,13 +33,12 @@ const emptyForm = {
 };
 
 export default function AdminBumdesPage() {
+  const toast = useToast();
   const [list, setList] = useState<BumdesProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const fetchList = async () => {
     try {
@@ -59,18 +59,16 @@ export default function AdminBumdesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
     setSubmitting(true);
     try {
       await api.post("/super-admin/bumdes", form);
-      setSuccess("BUMDes berhasil didaftarkan!");
+      toast.success("BUMDes berhasil didaftarkan!");
       setForm(emptyForm);
       setShowForm(false);
       fetchList();
     } catch (err: any) {
       const msg = err.response?.data?.message || "Gagal mendaftarkan BUMDes.";
-      setError(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -82,7 +80,9 @@ export default function AdminBumdesPage() {
         status: bumdes.status === "active" ? "inactive" : "active",
       });
       fetchList();
-    } catch {}
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Gagal mengubah status BUMDes.");
+    }
   };
 
   return (
@@ -94,7 +94,7 @@ export default function AdminBumdesPage() {
           <p className="text-sm text-gray-500 mt-0.5">Daftarkan dan kelola BUMDes yang tergabung di platform</p>
         </div>
         <button
-          onClick={() => { setShowForm(!showForm); setError(""); setSuccess(""); }}
+          onClick={() => setShowForm(!showForm)}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
           style={{ background: "#6366f1" }}
         >
@@ -105,18 +105,10 @@ export default function AdminBumdesPage() {
         </button>
       </div>
 
-      {/* Success */}
-      {success && (
-        <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700">{success}</div>
-      )}
-
       {/* Form Tambah */}
       {showForm && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <h2 className="text-base font-bold text-gray-900 mb-5">Form Pendaftaran BUMDes</h2>
-          {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">{error}</div>
-          )}
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Info BUMDes */}
             <div>

@@ -41,14 +41,6 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        if (!$this->isGoogleEmail($request->email)) {
-            return response()->json([
-                'errors' => [
-                    'email' => ['Email harus berupa akun Google (Gmail atau Google Workspace).']
-                ]
-            ], 422);
-        }
-
         try {
             $user = $this->authService->registerCustomer($request->all());
             return response()->json([
@@ -79,19 +71,43 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        if (!$this->isGoogleEmail($request->email)) {
-            return response()->json([
-                'errors' => [
-                    'email' => ['Email harus berupa akun Google (Gmail atau Google Workspace).']
-                ]
-            ], 422);
-        }
-
         try {
             $user = $this->authService->registerUmkm($request->all());
             return response()->json([
                 'message' => 'UMKM registered successfully. Verification is pending BUMDes approval.',
                 'user' => $user
+            ], 201);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * API Register Pengirim/Driver.
+     */
+    public function registerDriver(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name'          => 'required|string|max:255',
+            'email'         => 'required|string|email|unique:users,email',
+            'password'      => 'required|string|min:8|confirmed',
+            'phone'         => 'required|string|max:20',
+            'vehicle_type'  => 'required|in:motor,mobil,pickup,sepeda',
+            'vehicle_brand' => 'required|string|max:100',
+            'vehicle_plate' => 'required|string|max:20',
+            'vehicle_year'  => 'nullable|integer|min:1990|max:2030',
+            'sim_type'      => 'required|in:A,B,C,A1,B1',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        try {
+            $user = $this->authService->registerDriver($request->all());
+            return response()->json([
+                'message' => 'Pendaftaran pengirim berhasil.',
+                'user'    => $user,
             ], 201);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

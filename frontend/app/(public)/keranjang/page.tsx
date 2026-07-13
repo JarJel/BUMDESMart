@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cartApi, CartItemData } from "@/lib/api/cart";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 function formatRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
@@ -53,6 +54,7 @@ export default function KeranjangPage() {
   const [items, setItems] = useState<CartItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [removeItemId, setRemoveItemId] = useState<number | null>(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -92,16 +94,22 @@ export default function KeranjangPage() {
     }
   };
 
-  const remove = async (cartItemId: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus produk ini dari keranjang?")) return;
+  const remove = (cartItemId: number) => {
+    setRemoveItemId(cartItemId);
+  };
+
+  const executeRemove = async () => {
+    if (removeItemId === null) return;
     try {
-      const response = await cartApi.remove(cartItemId);
+      const response = await cartApi.remove(removeItemId);
       if (response.data.success && response.data.data) {
         setItems(response.data.data.items || []);
       }
     } catch (err: any) {
       console.error(err);
       toast.error("Gagal menghapus item dari keranjang.");
+    } finally {
+      setRemoveItemId(null);
     }
   };
 
@@ -271,8 +279,9 @@ export default function KeranjangPage() {
 
             {/* Info Tenant */}
             <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-100">
-              <p className="text-[11px] text-blue-600 leading-relaxed">
-                <span className="font-semibold">ℹ️ Catatan:</span> Ongkir dihitung per toko & dapat dipilih saat checkout.
+              <p className="text-[11px] text-blue-600 leading-relaxed flex items-start gap-1">
+                <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span><span className="font-semibold">Catatan:</span> Ongkir dihitung per toko & dapat dipilih saat checkout.</span>
               </p>
             </div>
 
@@ -285,6 +294,15 @@ export default function KeranjangPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={removeItemId !== null}
+        title="Hapus dari Keranjang?"
+        description="Produk ini akan dihapus dari keranjang belanja kamu."
+        confirmLabel="Ya, Hapus"
+        onConfirm={executeRemove}
+        onClose={() => setRemoveItemId(null)}
+      />
     </div>
   );
 }

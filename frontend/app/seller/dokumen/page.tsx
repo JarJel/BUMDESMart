@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api/axios";
+import { useToast } from "@/components/ui/Toast";
 
 interface UploadedDoc {
   id: number;
@@ -30,7 +31,7 @@ export default function DokumenPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<Record<number, boolean>>({});
   const [error, setError] = useState("");
-  const [toast, setToast] = useState("");
+  const toast = useToast();
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const fetchDocs = async () => {
@@ -46,14 +47,9 @@ export default function DokumenPage() {
 
   useEffect(() => { fetchDocs(); }, []);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 3000);
-  };
-
   const handleUpload = async (docId: number, file: File) => {
     if (file.size > 5 * 1024 * 1024) {
-      showToast("File terlalu besar. Maks 5MB.");
+      toast.warning("File terlalu besar. Maks 5MB.");
       return;
     }
 
@@ -65,11 +61,11 @@ export default function DokumenPage() {
       await api.post(`/seller/documents/${docId}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      showToast("Dokumen berhasil diupload!");
+      toast.success("Dokumen berhasil diupload!");
       await fetchDocs();
     } catch (err: any) {
       const msg = err.response?.data?.errors?.file?.[0] ?? err.response?.data?.message ?? "Upload gagal.";
-      showToast(msg);
+      toast.error(msg);
     } finally {
       setUploading(prev => ({ ...prev, [docId]: false }));
     }
@@ -90,12 +86,6 @@ export default function DokumenPage() {
 
   return (
     <div className="p-6 max-w-2xl">
-      {toast && (
-        <div className="fixed top-5 right-5 z-50 px-4 py-3 rounded-xl bg-gray-900 text-white text-sm shadow-lg animate-fade-in">
-          {toast}
-        </div>
-      )}
-
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">Dokumen Usaha</h1>
         <p className="text-sm text-gray-500 mt-1">

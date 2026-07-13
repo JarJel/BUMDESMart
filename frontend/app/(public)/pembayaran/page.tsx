@@ -1,33 +1,162 @@
 "use client";
 
 import Link from "next/link";
-import { QRCodeSVG } from "qrcode.react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { checkoutApi } from "@/lib/api/checkout";
 
-function formatRupiah(n: number) { return "Rp " + n.toLocaleString("id-ID"); }
+function formatRupiah(n: number) {
+  return "Rp " + n.toLocaleString("id-ID");
+}
 
-export default function PembayaranPage() {
-  const [detik, setDetik] = useState(900); // 15 menit
-  const [status, setStatus] = useState<"pending" | "success">("pending");
+function PembayaranContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get("order_id");
+
+  const [step, setStep] = useState<"loading" | "redirect" | "polling" | "success" | "expired" | "error">("loading");
+  const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
+  const [orderCode, setOrderCode] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string>("");
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
+  const startPolling = (id: number) => {
+    const poll = async () => {
+      try {
+        const res = await checkoutApi.checkPaymentStatus(id);
+        const data = res.data;
+        const payStatus = data?.status;
+
+        if (payStatus === "paid") {
+          stopPolling();
+          setStep("success");
+        } else if (payStatus === "expired" || payStatus === "failed") {
+          stopPolling();
+          setStep("expired");
+        }
+      } catch {
+        // Tetap polling jika ada error sementara
+      }
+    };
+
+    poll(); // Langsung cek sekali
+    pollIntervalRef.current = setInterval(poll, 3000);
+  };
 
   useEffect(() => {
-    if (status !== "pending") return;
-    const t = setInterval(() => setDetik((d) => Math.max(0, d - 1)), 1000);
-    return () => clearInterval(t);
-  }, [status]);
+    if (!orderId) {
+      setErrorMsg("ID pesanan tidak ditemukan.");
+      setStep("error");
+      return;
+    }
 
-  const menit = Math.floor(detik / 60).toString().padStart(2, "0");
-  const detikStr = (detik % 60).toString().padStart(2, "0");
+    const init = async () => {
+      try {
+        const res = await checkoutApi.createPayment(Number(orderId));
+        const data = res.data;
 
-  if (status === "success") {
+        if (data.status === "paid") {
+          setStep("success");
+          return;
+        }
+
+        const url = data.invoice_url;
+        setInvoiceUrl(url);
+
+        // Extract order code dari URL atau pakai orderId
+        const code = url?.split("/").at(-1) || `ORD-${orderId}`;
+        setOrderCode(code);
+
+        setStep("redirect");
+
+        // Buka Xendit invoice di tab yang sama
+        if (url) {
+          window.open(url, "_blank");
+        }
+
+        // Mulai polling setelah membuka invoice
+        startPolling(Number(orderId));
+      } catch (err: any) {
+        const msg = err.response?.data?.message || "Gagal membuat invoice pembayaran.";
+        setErrorMsg(msg);
+        setStep("error");
+      }
+    };
+
+    init();
+
+    return () => stopPolling();
+  }, [orderId]);
+
+  // ---- STATE: Loading ----
+  if (step === "loading") {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600" />
+        <p className="text-sm text-gray-500">Menyiapkan pembayaran...</p>
+      </div>
+    );
+  }
+
+  // ---- STATE: Error ----
+  if (step === "error") {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">Pembayaran Gagal</h2>
+          <p className="text-sm text-gray-500 mb-6">{errorMsg}</p>
+          <Link href="/pesanan" className="inline-block px-6 py-2.5 rounded-xl text-white font-semibold text-sm" style={{ background: "var(--primary)" }}>
+            Lihat Pesanan
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- STATE: Expired ----
+  if (step === "expired") {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">Waktu Pembayaran Habis</h2>
+          <p className="text-sm text-gray-500 mb-6">Invoice kamu sudah kadaluarsa. Silakan buat pesanan baru.</p>
+          <Link href="/produk" className="inline-block px-6 py-2.5 rounded-xl text-white font-semibold text-sm" style={{ background: "var(--primary)" }}>
+            Belanja Lagi
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- STATE: Success ----
+  if (step === "success") {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "var(--primary-muted)" }}>
-            <svg className="w-10 h-10" style={{ color: "var(--primary)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <svg className="w-10 h-10" style={{ color: "var(--primary)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Pembayaran Berhasil!</h2>
-          <p className="text-sm text-gray-500 mb-1">No. Pesanan: <strong>ORD-20240622-005</strong></p>
+          <p className="text-sm text-gray-500 mb-1">No. Pesanan: <strong>{orderCode}</strong></p>
           <p className="text-sm text-gray-500 mb-6">Pesanan kamu sedang diproses oleh penjual.</p>
           <div className="flex flex-col gap-2">
             <Link href="/pesanan" className="py-2.5 rounded-xl text-sm font-semibold text-white text-center" style={{ background: "var(--primary)" }}>
@@ -42,75 +171,81 @@ export default function PembayaranPage() {
     );
   }
 
+  // ---- STATE: Redirect + Polling ----
   return (
     <div className="max-w-lg mx-auto px-4 py-10">
-      <h1 className="text-xl font-bold text-gray-900 mb-6 text-center">Selesaikan Pembayaran</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-2 text-center">Selesaikan Pembayaran</h1>
+      <p className="text-sm text-gray-500 text-center mb-6">Halaman Xendit sudah dibuka di tab baru. Bayar di sana, halaman ini otomatis update.</p>
 
       <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-4">
-        {/* Timer */}
-        <div className="text-center mb-6">
-          <p className="text-xs text-gray-500 mb-1">Bayar sebelum waktu habis</p>
-          <div className="text-3xl font-black tabular-nums" style={{ color: detik < 60 ? "#DC2626" : "var(--primary)" }}>
-            {menit}:{detikStr}
+        {/* Indikator polling */}
+        <div className="flex items-center justify-center gap-2 mb-6 py-4 bg-blue-50 rounded-xl">
+          <div className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
           </div>
-          <div className="w-full h-1.5 rounded-full bg-gray-100 mt-2 overflow-hidden">
-            <div className="h-full rounded-full transition-all" style={{ width: `${(detik / 900) * 100}%`, background: detik < 60 ? "#DC2626" : "var(--primary)" }} />
-          </div>
+          <span className="text-sm text-blue-700 font-medium">Menunggu konfirmasi pembayaran...</span>
         </div>
 
-        {/* Ringkasan order */}
-        <div className="p-3 rounded-xl mb-5" style={{ background: "var(--surface)" }}>
-          <div className="flex justify-between text-xs text-gray-600 mb-1">
-            <span>No. Pesanan</span>
-            <span className="font-medium">ORD-20240622-005</span>
-          </div>
-          <div className="flex justify-between text-xs text-gray-600 mb-1">
-            <span>Keripik Singkong Original ×2</span>
-            <span>Rp 24.000</span>
-          </div>
-          <div className="flex justify-between text-xs text-gray-600 mb-1">
-            <span>Manisan Cangkaleng 250gr ×1</span>
-            <span>Rp 25.000</span>
-          </div>
-          <div className="flex justify-between text-xs text-gray-600">
-            <span>Ongkir JNE Regular</span>
-            <span>Rp 12.000</span>
-          </div>
-          <div className="flex justify-between font-bold text-sm text-gray-900 border-t border-gray-200 mt-2 pt-2">
-            <span>Total Bayar</span>
-            <span style={{ color: "var(--primary)" }}>Rp 61.000</span>
-          </div>
-        </div>
-
-        {/* QRIS */}
-        <div className="text-center">
-          <p className="text-sm font-semibold text-gray-700 mb-3">Scan QRIS untuk Membayar</p>
-          <div className="flex justify-center mb-3">
-            <div className="p-3 rounded-xl border-2 border-gray-100 inline-block">
-              <QRCodeSVG
-                value="https://payment.bumdesmart.id/pay/ORD-20240622-005"
-                size={180}
-                bgColor="#ffffff"
-                fgColor="#1B4332"
-                level="H"
-                includeMargin={false}
-              />
+        <div className="space-y-3">
+          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+            <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
+              <span className="text-xs font-bold text-green-700">1</span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Tab Xendit sudah terbuka</p>
+              <p className="text-xs text-gray-500">Selesaikan pembayaran di tab tersebut</p>
             </div>
           </div>
-          <p className="text-xs text-gray-500 mb-1">Dapat dibayar melalui semua aplikasi e-wallet</p>
-          <p className="text-xs text-gray-400">GoPay · OVO · Dana · ShopeePay · m-Banking</p>
+
+          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+              <span className="text-xs font-bold text-blue-700">2</span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Pilih metode & bayar</p>
+              <p className="text-xs text-gray-500">QRIS, Transfer Bank, E-Wallet, dll</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+            <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5">
+              <span className="text-xs font-bold text-gray-500">3</span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-500">Halaman ini otomatis update</p>
+              <p className="text-xs text-gray-400">Tidak perlu reload manual</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Simulasi tombol (untuk demo) */}
-      <button
-        onClick={() => setStatus("success")}
-        className="w-full py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-all"
-        style={{ background: "var(--primary)" }}
-      >
-        Simulasi Pembayaran Berhasil ✓
-      </button>
-      <p className="text-xs text-center text-gray-400 mt-2">Tombol ini hanya untuk demo</p>
+      {/* Tombol buka ulang jika tab tertutup */}
+      {invoiceUrl && (
+        <button
+          onClick={() => window.open(invoiceUrl, "_blank")}
+          className="w-full py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 mb-3"
+          style={{ background: "var(--primary)" }}
+        >
+          Buka Ulang Halaman Pembayaran
+        </button>
+      )}
+
+      <Link href="/pesanan" className="block w-full py-3 rounded-xl text-sm font-medium text-gray-600 text-center border border-gray-200 hover:bg-gray-50">
+        Bayar Nanti — Lihat Pesanan
+      </Link>
     </div>
+  );
+}
+
+export default function PembayaranPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-600" />
+      </div>
+    }>
+      <PembayaranContent />
+    </Suspense>
   );
 }

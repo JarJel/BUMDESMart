@@ -62,7 +62,9 @@ class SellerController extends Controller
                 'id', 'shop_name', 'slug', 'owner_name', 'email', 'phone',
                 'logo', 'banner', 'description', 'address', 'city', 'province',
                 'postal_code', 'rating', 'business_category', 'verified_at',
+                'is_open', 'open_hours', 'closed_until',
             ]);
+            $data['is_currently_open'] = $seller->is_currently_open;
 
             // Computed stats
             $data['total_sold']     = (int) $seller->products()->sum('sold_count');

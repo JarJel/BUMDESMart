@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customers;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class ProductController extends Controller
@@ -34,7 +35,21 @@ class ProductController extends Controller
                     'activeDiscount:id,product_id,type,value,end_date,is_active,max_uses,used_count',
                 ])->paginate(12);
 
-            $products->getCollection()->transform(function ($product) {
+            // Halal cert status per UMKM — satu query untuk semua produk
+            $umkmIds = $products->pluck('umkm_profile_id')->unique()->values();
+            $halalSet = DB::table('umkm_documents')
+                ->join('bumdes_required_documents', 'umkm_documents.required_document_id', '=', 'bumdes_required_documents.id')
+                ->whereIn('umkm_documents.umkm_profile_id', $umkmIds)
+                ->where('umkm_documents.status', 'approved')
+                ->whereRaw("LOWER(bumdes_required_documents.name) LIKE '%halal%'")
+                ->pluck('umkm_documents.umkm_profile_id')
+                ->mapWithKeys(fn($id) => [$id => true])
+                ->all();
+
+            $products->getCollection()->transform(function ($product) use ($halalSet) {
+                if ($product->umkmProfile) {
+                    $product->umkmProfile->has_halal_cert = isset($halalSet[$product->umkm_profile_id]);
+                }
                 if ($product->activeDiscount) {
                     $product->activeDiscount->discounted_price =
                         $product->activeDiscount->calculateDiscountedPrice((float) $product->price);
@@ -73,16 +88,26 @@ class ProductController extends Controller
                 ])
                 ->first();
 
-            if ($product && $product->activeDiscount) {
-                $product->activeDiscount->discounted_price =
-                    $product->activeDiscount->calculateDiscountedPrice((float) $product->price);
-            }
-
             if (!$product) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Produk tidak ditemukan atau tidak aktif.'
                 ], 404);
+            }
+
+            if ($product->activeDiscount) {
+                $product->activeDiscount->discounted_price =
+                    $product->activeDiscount->calculateDiscountedPrice((float) $product->price);
+            }
+
+            // Halal cert untuk seller di detail produk
+            if ($product->umkmProfile) {
+                $product->umkmProfile->has_halal_cert = DB::table('umkm_documents')
+                    ->join('bumdes_required_documents', 'umkm_documents.required_document_id', '=', 'bumdes_required_documents.id')
+                    ->where('umkm_documents.umkm_profile_id', $product->umkm_profile_id)
+                    ->where('umkm_documents.status', 'approved')
+                    ->whereRaw("LOWER(bumdes_required_documents.name) LIKE '%halal%'")
+                    ->exists();
             }
 
             return response()->json([

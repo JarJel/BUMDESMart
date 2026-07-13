@@ -97,11 +97,12 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
 
   if (error || !produk) return notFound();
 
+  const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
   const mainImageUrl = produk.primary_image?.file_path
-    ? `http://localhost:8000${produk.primary_image.file_path}`
+    ? `${IMG_BASE}${produk.primary_image.file_path}`
     : produk.images?.[0]?.file_path
-      ? `http://localhost:8000${produk.images[0].file_path}`
-      : 'https://placehold.co/600x600?text=No+Image';
+      ? `${IMG_BASE}${produk.images[0].file_path}`
+      : '/placeholder-product.jpg';
 
   const documents: Dokumen[] = [];
   if (toko?.nib) documents.push({ type: 'nib', nomor: toko.nib, tanggalTerbit: '2026-01-01', berlakuHingga: 'Permanen' });
@@ -160,7 +161,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
                     key={img.id}
                     className={`w-11 h-11 rounded-lg overflow-hidden cursor-pointer border-2 transition-colors shrink-0 ${i === 0 ? "border-green-500" : "border-transparent hover:border-green-300"}`}
                     style={{
-                      backgroundImage: `url('http://localhost:8000${img.file_path}')`,
+                      backgroundImage: `url('${IMG_BASE}${img.file_path}')`,
                       backgroundSize: "cover",
                       backgroundPosition: "center",
                     }}
@@ -241,16 +242,21 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
               className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl shrink-0"
               style={{
                 backgroundImage: toko.logo
-                  ? `url('http://localhost:8000${toko.logo}')`
+                  ? `url('${IMG_BASE}${toko.logo}')`
                   : toko.banner
-                    ? `url('http://localhost:8000${toko.banner}')`
+                    ? `url('${IMG_BASE}${toko.banner}')`
                     : `linear-gradient(135deg, var(--primary-dark), var(--primary))`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }}
             />
             <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">{toko.shop_name}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">{toko.shop_name}</p>
+                {toko.has_halal_cert && (
+                  <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 leading-none">HALAL</span>
+                )}
+              </div>
               <p className="text-xs text-gray-400">{toko.owner_name || "-"} · {toko.city || "Sukamaju"}</p>
             </div>
             <div className="flex gap-2 shrink-0">

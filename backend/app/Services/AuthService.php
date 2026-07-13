@@ -68,6 +68,34 @@ class AuthService
     }
 
     /**
+     * Registrasi Pengirim/Driver baru.
+     */
+    public function registerDriver(array $data)
+    {
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'password' => $data['password'],
+            'role'     => 'pengirim',
+            'phone'    => $data['phone'] ?? '',
+            'status'   => 'active',
+        ]);
+
+        \App\Models\DriverProfile::create([
+            'user_id'       => $user->id,
+            'vehicle_type'  => $data['vehicle_type'],
+            'vehicle_brand' => $data['vehicle_brand'] ?? null,
+            'vehicle_plate' => $data['vehicle_plate'],
+            'vehicle_year'  => $data['vehicle_year'] ?? null,
+            'sim_type'      => $data['sim_type'] ?? null,
+            'is_available'  => true,
+            'is_verified'   => false,
+        ]);
+
+        return $user->fresh();
+    }
+
+    /**
      * Logika Login Multi-Role.
      */
     public function login(array $credentials)

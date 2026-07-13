@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { useToast } from "@/components/ui/Toast";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -37,7 +38,7 @@ function StepIndicator({ current }: { current: number }) {
               }`}
               style={i <= current ? { background: "var(--primary)" } : {}}
             >
-              {i < current ? "✓" : i + 1}
+              {i < current ? <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg> : i + 1}
             </div>
             <span className={`text-xs mt-1 hidden sm:block ${i === current ? "font-semibold text-green-700" : "text-gray-400"}`}>
               {s}
@@ -57,11 +58,11 @@ function StepIndicator({ current }: { current: number }) {
 
 export default function DaftarMerchantPage() {
   const router = useRouter();
+  const toast = useToast();
   const [step, setStep] = useState(0);
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
   const [registered, setRegistered] = useState(false);
 
   const [bumdesList, setBumdesList] = useState<BumdesProfile[]>([]);
@@ -87,12 +88,25 @@ export default function DaftarMerchantPage() {
     setStep(1);
   };
 
+  const handleStep1Next = () => {
+    if (!form.name.trim()) { toast.error("Nama lengkap wajib diisi."); return; }
+    if (!form.email.trim()) { toast.error("Email wajib diisi."); return; }
+    if (form.password.length < 8) { toast.error("Kata sandi minimal 8 karakter."); return; }
+    if (form.password !== form.password_confirmation) { toast.error("Konfirmasi kata sandi tidak cocok."); return; }
+    setStep(2);
+  };
+
+  const handleStep2Next = () => {
+    if (!form.shop_name.trim()) { toast.error("Nama toko wajib diisi."); return; }
+    if (!form.business_category) { toast.error("Pilih kategori usaha terlebih dahulu."); return; }
+    setStep(3);
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async () => {
-    setError("");
     setSubmitting(true);
     try {
       await axios.post(`${API}/register/umkm`, {
@@ -103,9 +117,9 @@ export default function DaftarMerchantPage() {
     } catch (err: any) {
       const errs = err.response?.data?.errors;
       if (errs) {
-        setError(Object.values(errs).flat().join(", "));
+        toast.error(Object.values(errs).flat().join(", "));
       } else {
-        setError(err.response?.data?.message ?? "Pendaftaran gagal. Coba lagi.");
+        toast.error(err.response?.data?.message ?? "Pendaftaran gagal. Coba lagi.");
       }
       setStep(1);
     } finally {
@@ -182,12 +196,6 @@ export default function DaftarMerchantPage() {
           </div>
 
           <StepIndicator current={step} />
-
-          {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
-              {error}
-            </div>
-          )}
 
           {/* Step 0: Pilih BUMDes */}
           {step === 0 && (
@@ -266,7 +274,7 @@ export default function DaftarMerchantPage() {
                 <button onClick={() => setStep(0)} className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50">
                   ← Kembali
                 </button>
-                <button onClick={() => setStep(2)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90" style={{ background: "var(--primary)" }}>
+                <button onClick={handleStep1Next} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90" style={{ background: "var(--primary)" }}>
                   Lanjutkan →
                 </button>
               </div>
@@ -325,7 +333,7 @@ export default function DaftarMerchantPage() {
                 <button onClick={() => setStep(1)} className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50">
                   ← Kembali
                 </button>
-                <button onClick={() => setStep(3)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90" style={{ background: "var(--primary)" }}>
+                <button onClick={handleStep2Next} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90" style={{ background: "var(--primary)" }}>
                   Lanjutkan →
                 </button>
               </div>
@@ -376,7 +384,7 @@ export default function DaftarMerchantPage() {
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
                   style={{ background: "var(--primary)" }}
                 >
-                  {submitting ? "Mengirim..." : "Kirim Pendaftaran ✓"}
+                  {submitting ? "Mengirim..." : <span className="inline-flex items-center gap-1.5">Kirim Pendaftaran <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg></span>}
                 </button>
               </div>
             </div>

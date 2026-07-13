@@ -72,7 +72,12 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
       </div>
 
       <div className={`min-w-0 ${compact ? "p-2" : "p-3"}`}>
-        <p className="text-xs text-gray-400 truncate mb-0.5 leading-none">{shopName}</p>
+        <div className="flex items-center gap-1 mb-0.5">
+          <p className="text-xs text-gray-400 truncate leading-none flex-1">{shopName}</p>
+          {product.umkm_profile?.has_halal_cert && (
+            <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 leading-none">HALAL</span>
+          )}
+        </div>
         <h3 className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1 group-hover:text-green-700 transition-colors leading-snug">
           {name}
         </h3>

@@ -259,6 +259,75 @@ export default function BerandaPage() {
         </div>
       </section>
 
+      {/* ===== JADI PENGIRIM ===== */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center gap-12">
+            {/* Ilustrasi kiri */}
+            <div className="w-full md:w-[420px] shrink-0">
+              <div className="relative w-full h-72 rounded-2xl overflow-hidden flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, #EA580C 0%, #F97316 50%, #FED7AA 100%)" }}>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <svg className="w-32 h-32 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={0.8}
+                      d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1" />
+                  </svg>
+                </div>
+                <div className="relative z-10 text-center text-white px-6">
+                  <p className="text-5xl font-bold mb-2">🛵</p>
+                  <p className="text-lg font-bold">Antar. Cepat. Cuan.</p>
+                  <p className="text-sm text-orange-100 mt-1">Bergabung bersama pengirim BUMDESMart</p>
+                </div>
+                <div className="absolute top-4 left-4 w-16 h-16 rounded-full bg-white/10" />
+                <div className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white/10" />
+              </div>
+            </div>
+
+            {/* Teks kanan */}
+            <div className="flex-1">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#EA580C" }}>
+                Peluang Penghasilan
+              </p>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                Jadi Pengirim<br />BUMDESMart
+              </h2>
+              <p className="text-sm text-gray-500 leading-relaxed mb-6 max-w-md">
+                Bantu produk UMKM desa sampai ke tangan pembeli. Jadwal fleksibel, penghasilan kompetitif — mulai dari kendaraan yang kamu punya sekarang.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                {[
+                  { icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z", label: "Penghasilan Harian", desc: "Bayaran per pengiriman langsung masuk" },
+                  { icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z", label: "Jam Kerja Bebas", desc: "Aktif sesuai kesiapanmu, kapan saja" },
+                  { icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z", label: "Mitra Resmi", desc: "Terdaftar & dipercaya BUMDes" },
+                ].map(b => (
+                  <div key={b.label} className="flex gap-3 items-start p-3 rounded-xl" style={{ background: "#FFF7ED" }}>
+                    <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center" style={{ background: "#EA580C" }}>
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={b.icon} />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-900">{b.label}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{b.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Link href="/daftar/kurir"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white hover:opacity-90 transition-all"
+                style={{ background: "#EA580C" }}>
+                Daftar Jadi Pengirim
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ===== JADI MITRA CTA ===== */}
       <section
         className="py-20 px-4 relative overflow-hidden"

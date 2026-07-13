@@ -35,7 +35,9 @@ export default function QRCodeCard({ slug, namaToko }: { slug: string; namaToko:
         className="w-full text-xs font-semibold py-2 rounded-lg border transition-colors"
         style={{ borderColor: "var(--primary)", color: copied ? "white" : "var(--primary)", background: copied ? "var(--primary)" : "transparent" }}
       >
-        {copied ? "✓ Link Disalin!" : "Salin Link Toko"}
+        {copied
+          ? <span className="inline-flex items-center gap-1.5"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg> Link Disalin!</span>
+          : "Salin Link Toko"}
       </button>
     </div>
   );

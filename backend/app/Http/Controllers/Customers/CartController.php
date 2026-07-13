@@ -92,8 +92,15 @@ class CartController extends Controller
                 ->first();
 
             if ($firstItem && $firstItem->product->umkm_profile_id !== $product->umkm_profile_id) {
-                // Hapus semua item dari toko sebelumnya jika berbeda toko
-                CartItem::where('cart_id', $cart->id)->delete();
+                return response()->json([
+                    'success'      => false,
+                    'message'      => 'Keranjang kamu sudah berisi produk dari toko lain.',
+                    'error_code'   => 'DIFFERENT_SHOP',
+                    'current_shop' => [
+                        'id'        => $firstItem->product->umkm_profile_id,
+                        'shop_name' => $firstItem->product->umkmProfile->shop_name ?? 'Toko Sebelumnya',
+                    ],
+                ], 409);
             }
 
             $cartItem = CartItem::where('cart_id', $cart->id)
@@ -296,5 +303,19 @@ class CartController extends Controller
             ], 500);
         }
     }
-   
+
+    public function clear(Request $request)
+    {
+        $user = $request->user();
+        if ($user->role !== 'customer' || !$user->customer) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        $cart = Cart::where('customer_id', $user->customer->id)->first();
+        if ($cart) {
+            CartItem::where('cart_id', $cart->id)->delete();
+        }
+
+        return response()->json(['success' => true, 'message' => 'Keranjang berhasil dikosongkan.']);
+    }
 }

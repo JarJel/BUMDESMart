@@ -10,11 +10,10 @@ interface Category { id: number; name: string; }
 
 export default function TambahProdukPage() {
   const router = useRouter();
+  const toast = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [successMsg, setSuccessMsg] = useState("");
-  const toast = useToast();
 
   // Form state
   const [form, setForm] = useState({
@@ -91,7 +90,6 @@ export default function TambahProdukPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Produk berhasil ditambahkan!");
-      setSuccessMsg("Produk berhasil disimpan!");
       setTimeout(() => router.push("/seller/produk"), 1200);
     } catch (e: any) {
       const apiErrors = e.response?.data?.errors ?? {};
@@ -100,7 +98,7 @@ export default function TambahProdukPage() {
       if (Object.keys(mapped).length > 0) {
         setErrors(mapped);
       } else {
-        setErrors({ _global: e.response?.data?.error ?? "Gagal menyimpan produk." });
+        toast.error(e.response?.data?.error ?? "Gagal menyimpan produk.");
       }
     } finally {
       setSaving(false);
@@ -119,13 +117,6 @@ export default function TambahProdukPage() {
           <p className="text-sm text-gray-500 mt-0.5">Lengkapi informasi produk kamu</p>
         </div>
       </div>
-
-      {errors._global && (
-        <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">{errors._global}</div>
-      )}
-      {successMsg && (
-        <div className="px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700">{successMsg}</div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left */}

@@ -23,6 +23,8 @@ class Order extends Model
         'total',
         'status',
         'notes',
+        'delivery_type',
+        'driver_id',
     ];
 
     public function customer(): BelongsTo
@@ -63,5 +65,10 @@ class Order extends Model
     public function shipment(): HasOne
     {
         return $this->hasOne(Shipment::class, 'order_id');
+    }
+
+    public function driver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'driver_id');
     }
 }

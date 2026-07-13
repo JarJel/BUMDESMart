@@ -9,6 +9,8 @@ export interface AddressData {
   city: string
   province: string
   postal_code: string
+  latitude?: number | null
+  longitude?: number | null
   is_default?: boolean
 }
 

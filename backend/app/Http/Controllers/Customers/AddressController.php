@@ -50,7 +50,9 @@ class AddressController extends Controller
             'city' => 'required|string|max:255',
             'province' => 'required|string|max:255',
             'postal_code' => 'required|string|max:10',
-            'is_default' => 'nullable|boolean',
+            'latitude'    => 'nullable|numeric|between:-90,90',
+            'longitude'   => 'nullable|numeric|between:-180,180',
+            'is_default'  => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -72,15 +74,17 @@ class AddressController extends Controller
             }
 
             $address = Address::create([
-                'customer_id' => $customerId,
-                'label' => $request->label ?? 'Utama',
+                'customer_id'    => $customerId,
+                'label'          => $request->label ?? 'Utama',
                 'recipient_name' => $request->recipient_name,
-                'phone' => $request->phone,
-                'address' => $request->address,
-                'city' => $request->city,
-                'province' => $request->province,
-                'postal_code' => $request->postal_code,
-                'is_default' => $isDefault,
+                'phone'          => $request->phone,
+                'address'        => $request->address,
+                'city'           => $request->city,
+                'province'       => $request->province,
+                'postal_code'    => $request->postal_code,
+                'latitude'       => $request->latitude,
+                'longitude'      => $request->longitude,
+                'is_default'     => $isDefault,
             ]);
 
             return response()->json([
@@ -125,7 +129,9 @@ class AddressController extends Controller
             'city' => 'required|string|max:255',
             'province' => 'required|string|max:255',
             'postal_code' => 'required|string|max:10',
-            'is_default' => 'nullable|boolean',
+            'latitude'    => 'nullable|numeric|between:-90,90',
+            'longitude'   => 'nullable|numeric|between:-180,180',
+            'is_default'  => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -140,14 +146,16 @@ class AddressController extends Controller
             }
 
             $address->update([
-                'label' => $request->label ?? $address->label,
+                'label'          => $request->label ?? $address->label,
                 'recipient_name' => $request->recipient_name,
-                'phone' => $request->phone,
-                'address' => $request->address,
-                'city' => $request->city,
-                'province' => $request->province,
-                'postal_code' => $request->postal_code,
-                'is_default' => $isDefault,
+                'phone'          => $request->phone,
+                'address'        => $request->address,
+                'city'           => $request->city,
+                'province'       => $request->province,
+                'postal_code'    => $request->postal_code,
+                'latitude'       => $request->latitude,
+                'longitude'      => $request->longitude,
+                'is_default'     => $isDefault,
             ]);
 
             return response()->json([

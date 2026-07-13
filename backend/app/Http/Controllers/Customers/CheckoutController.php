@@ -3,12 +3,18 @@
 namespace App\Http\Controllers\Customers;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\HaversineHelper;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\OrderHistory;
 use App\Models\Product;
 use App\Models\ProductDiscount;
 use App\Models\ProductVariant;
+use App\Models\UmkmProfile;
 use App\Models\Address;
 use Exception;
 
@@ -180,13 +186,65 @@ class CheckoutController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            // 4. Shipping Methods
-            $shippingMethods = [
-                ['id' => 'jne-reg', 'name' => 'JNE Regular',   'estimation' => '2-3 hari', 'price' => 12000],
-                ['id' => 'jnt-reg', 'name' => 'J&T Express',   'estimation' => '2-3 hari', 'price' => 11000],
-                ['id' => 'sicepat', 'name' => 'SiCepat REG',   'estimation' => '1-2 hari', 'price' => 14000],
-                ['id' => 'pickup',  'name' => 'Ambil Sendiri', 'estimation' => 'Hari ini',  'price' => 0],
-            ];
+            // 4. Shipping Methods — hitung via Haversine jika address_id dikirim
+            $selectedAddress = null;
+            if ($request->filled('address_id')) {
+                $selectedAddress = Address::where('id', $request->address_id)
+                    ->where('customer_id', $customerId)
+                    ->first();
+            }
+
+            $umkmIds = collect($items)->pluck('product.umkm_profile.id')->unique()->filter()->values();
+            $umkmProfiles = UmkmProfile::whereIn('id', $umkmIds)->get()->keyBy('id');
+
+            $shippingMethods = [];
+            foreach ($umkmIds as $umkmId) {
+                $umkm          = $umkmProfiles[$umkmId] ?? null;
+                $distanceKm    = null;
+                $dynamicCost   = 0;
+
+                if ($selectedAddress && $umkm && $umkm->latitude && $umkm->longitude
+                    && $selectedAddress->latitude && $selectedAddress->longitude) {
+                    $distanceKm  = HaversineHelper::distanceKm(
+                        (float) $selectedAddress->latitude,
+                        (float) $selectedAddress->longitude,
+                        (float) $umkm->latitude,
+                        (float) $umkm->longitude,
+                    );
+                    $dynamicCost = HaversineHelper::shippingCost($distanceKm);
+                }
+
+                $shippingMethods[] = [
+                    'umkm_profile_id' => $umkmId,
+                    'options' => [
+                        [
+                            'id'          => 'kurir-lokal',
+                            'name'        => 'Kurir Lokal',
+                            'estimation'  => 'Hari ini - 1 hari',
+                            'price'       => $dynamicCost,
+                            'distance_km' => $distanceKm ? round($distanceKm, 2) : null,
+                        ],
+                        [
+                            'id'          => 'pickup',
+                            'name'        => 'Ambil Sendiri',
+                            'estimation'  => 'Sesuai jadwal',
+                            'price'       => 0,
+                            'distance_km' => null,
+                        ],
+                    ],
+                ];
+            }
+
+            // Fallback flat list jika tidak ada address
+            if (empty($shippingMethods)) {
+                $shippingMethods = [[
+                    'umkm_profile_id' => null,
+                    'options' => [
+                        ['id' => 'kurir-lokal', 'name' => 'Kurir Lokal',   'estimation' => 'Hari ini - 1 hari', 'price' => null],
+                        ['id' => 'pickup',      'name' => 'Ambil Sendiri', 'estimation' => 'Sesuai jadwal',     'price' => 0],
+                    ],
+                ]];
+            }
 
             // 5. Payment Methods
             $paymentMethods = [
@@ -210,6 +268,208 @@ class CheckoutController extends Controller
                 'success' => false,
                 'message' => 'Gagal mengambil data preview checkout: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function confirm(Request $request)
+    {
+        $user = $request->user();
+        if ($user->role !== 'customer' || !$user->customer) {
+            return response()->json(['success' => false, 'message' => 'Hanya customer yang dapat melakukan checkout.'], 403);
+        }
+
+        $validated = $request->validate([
+            'address_id'    => 'required|integer|exists:addresses,id',
+            'delivery_type' => 'required|in:delivered,pickup',
+            'notes'         => 'nullable|string|max:500',
+            'product_id'    => 'nullable|integer|exists:products,id',
+            'quantity'      => 'nullable|integer|min:1',
+            'variant_id'    => 'nullable|integer',
+        ]);
+
+        $deliveryType = $validated['delivery_type'];
+
+        $customerId = $user->customer->id;
+        $isBuyNow   = $request->filled('product_id');
+
+        $address = Address::where('id', $validated['address_id'])
+            ->where('customer_id', $customerId)
+            ->first();
+        if (!$address) {
+            return response()->json(['success' => false, 'message' => 'Alamat tidak valid.'], 422);
+        }
+
+        // Build raw item list
+        $rawItems = [];
+
+        if ($isBuyNow) {
+            $product = Product::with(['umkmProfile', 'activeDiscount'])->find($validated['product_id']);
+            if (!$product || $product->status !== 'active') {
+                return response()->json(['success' => false, 'message' => 'Produk tidak tersedia.'], 422);
+            }
+            $qty            = $validated['quantity'] ?? 1;
+            $basePrice      = (float) $product->price;
+            $disc           = $product->activeDiscount;
+            $discountAmount = $disc ? ($basePrice - $disc->calculateDiscountedPrice($basePrice)) : 0;
+
+            if ($product->stock < $qty) {
+                return response()->json(['success' => false, 'message' => "Stok {$product->name} tidak mencukupi."], 422);
+            }
+
+            $rawItems[] = [
+                'product'           => $product,
+                'product_name'      => $product->name,
+                'product_price'     => $basePrice,
+                'discount_amount'   => $discountAmount,
+                'quantity'          => $qty,
+                'variant_option_id' => $validated['variant_id'] ?? null,
+                'umkm_profile_id'   => $product->umkm_profile_id,
+                'cart_item_id'      => null,
+            ];
+        } else {
+            $cart = Cart::where('customer_id', $customerId)->first();
+            if (!$cart) {
+                return response()->json(['success' => false, 'message' => 'Keranjang belanja kosong.'], 422);
+            }
+
+            $cartItems = CartItem::where('cart_id', $cart->id)
+                ->with(['product.activeDiscount', 'product.umkmProfile', 'variant'])
+                ->get();
+
+            if ($cartItems->isEmpty()) {
+                return response()->json(['success' => false, 'message' => 'Keranjang belanja kosong.'], 422);
+            }
+
+            foreach ($cartItems as $ci) {
+                $product = $ci->product;
+                if (!$product) continue;
+
+                $basePrice      = (float) ($ci->variant ? $ci->variant->price : $product->price);
+                $disc           = $product->activeDiscount;
+                $discountAmount = $disc ? ($basePrice - $disc->calculateDiscountedPrice($basePrice)) : 0;
+
+                if ($product->stock < $ci->quantity) {
+                    return response()->json(['success' => false, 'message' => "Stok {$product->name} tidak mencukupi."], 422);
+                }
+
+                $rawItems[] = [
+                    'product'           => $product,
+                    'product_name'      => $product->name,
+                    'product_price'     => $basePrice,
+                    'discount_amount'   => $discountAmount,
+                    'quantity'          => $ci->quantity,
+                    'variant_option_id' => $ci->variant_id,
+                    'umkm_profile_id'   => $product->umkm_profile_id,
+                    'cart_item_id'      => $ci->id,
+                ];
+            }
+        }
+
+        if (empty($rawItems)) {
+            return response()->json(['success' => false, 'message' => 'Tidak ada item untuk diorder.'], 422);
+        }
+
+        // Group per seller — 1 order per UMKM
+        $grouped = [];
+        foreach ($rawItems as $item) {
+            $grouped[$item['umkm_profile_id']][] = $item;
+        }
+
+        DB::beginTransaction();
+        try {
+            $createdOrders = [];
+
+            foreach ($grouped as $umkmId => $items) {
+                $subTotal      = 0;
+                $totalDiscount = 0;
+
+                foreach ($items as $item) {
+                    $subTotal      += $item['product_price'] * $item['quantity'];
+                    $totalDiscount += $item['discount_amount'] * $item['quantity'];
+                }
+
+                // Hitung ongkir: pickup = 0, delivered = Haversine
+                $shippingCost = 0;
+                if ($deliveryType === 'delivered') {
+                    $umkm = UmkmProfile::find($umkmId);
+                    if ($umkm && $umkm->latitude && $umkm->longitude
+                        && $address->latitude && $address->longitude) {
+                        $km           = HaversineHelper::distanceKm(
+                            (float) $address->latitude, (float) $address->longitude,
+                            (float) $umkm->latitude,    (float) $umkm->longitude,
+                        );
+                        $shippingCost = HaversineHelper::shippingCost($km);
+                    } else {
+                        // Fallback flat jika koordinat belum diisi
+                        $shippingCost = (int) \App\Models\PlatformSetting::getValue('shipping_base_cost', 2000);
+                    }
+                }
+
+                $total = $subTotal - $totalDiscount + $shippingCost;
+                $orderCode    = 'ORD-' . strtoupper(base_convert((string) time(), 10, 36)) . '-' . strtoupper(substr(uniqid(), -5));
+
+                $order = Order::create([
+                    'customer_id'     => $customerId,
+                    'umkm_profile_id' => $umkmId,
+                    'address_id'      => $validated['address_id'],
+                    'order_code'      => $orderCode,
+                    'sub_total'       => $subTotal,
+                    'shipping_cost'   => $shippingCost,
+                    'discount'        => $totalDiscount,
+                    'total'           => $total,
+                    'status'          => 'pending',
+                    'notes'           => $validated['notes'] ?? null,
+                    'delivery_type'   => $deliveryType,
+                ]);
+
+                foreach ($items as $item) {
+                    OrderItem::create([
+                        'order_id'          => $order->id,
+                        'product_id'        => $item['product']->id,
+                        'variant_option_id' => $item['variant_option_id'],
+                        'product_name'      => $item['product_name'],
+                        'product_price'     => $item['product_price'],
+                        'discount_amount'   => $item['discount_amount'],
+                        'quantity'          => $item['quantity'],
+                        'sub_total'         => ($item['product_price'] - $item['discount_amount']) * $item['quantity'],
+                    ]);
+
+                    $item['product']->decrement('stock', $item['quantity']);
+                }
+
+                OrderHistory::create([
+                    'order_id'    => $order->id,
+                    'user_id'     => $user->id,
+                    'status'      => 'pending',
+                    'description' => 'Pesanan dibuat.',
+                ]);
+
+                $createdOrders[] = [
+                    'order_id'   => $order->id,
+                    'order_code' => $order->order_code,
+                    'total'      => $order->total,
+                ];
+            }
+
+            // Hapus cart items (bukan buy-now)
+            if (!$isBuyNow) {
+                $cartItemIds = collect($rawItems)->pluck('cart_item_id')->filter()->values();
+                CartItem::whereIn('id', $cartItemIds)->delete();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pesanan berhasil dibuat!',
+                'data'    => [
+                    'orders'       => $createdOrders,
+                    'total_orders' => count($createdOrders),
+                ],
+            ]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Gagal membuat pesanan: ' . $e->getMessage()], 500);
         }
     }
 }

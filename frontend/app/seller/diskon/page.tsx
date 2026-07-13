@@ -125,7 +125,7 @@ function DiscountModal({
         setError(Object.values(errs).flat().join(", "));
       } else {
         setError(
-          err.response?.data?.message ?? "Terjadi kesalahan. Coba lagi."
+          err.response?.data?.message ?? err.response?.data?.error ?? "Terjadi kesalahan. Coba lagi."
         );
       }
     } finally {

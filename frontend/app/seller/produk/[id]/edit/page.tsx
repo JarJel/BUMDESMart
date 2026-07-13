@@ -19,12 +19,11 @@ export default function EditProdukPage() {
   const params = useParams();
   const id = params.id as string;
 
+  const toast = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [successMsg, setSuccessMsg] = useState("");
-  const toast = useToast();
 
   const [form, setForm] = useState({
     name: "",
@@ -72,7 +71,7 @@ export default function EditProdukPage() {
       imgs.sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
       setExistingImages(imgs);
     }).catch(() => {
-      setErrors({ _global: "Gagal memuat data produk." });
+      toast.error("Gagal memuat data produk.");
     }).finally(() => setLoading(false));
   }, [id]);
 
@@ -137,7 +136,6 @@ export default function EditProdukPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Produk berhasil diperbarui!");
-      setSuccessMsg("Produk berhasil diperbarui!");
       setTimeout(() => router.push("/seller/produk"), 1200);
     } catch (e: any) {
       const apiErrors = e.response?.data?.errors ?? {};
@@ -146,7 +144,7 @@ export default function EditProdukPage() {
       if (Object.keys(mapped).length > 0) {
         setErrors(mapped);
       } else {
-        setErrors({ _global: e.response?.data?.error ?? e.response?.data?.message ?? "Gagal menyimpan produk." });
+        toast.error(e.response?.data?.error ?? e.response?.data?.message ?? "Gagal menyimpan produk.");
       }
     } finally {
       setSaving(false);
@@ -178,13 +176,6 @@ export default function EditProdukPage() {
           <p className="text-sm text-gray-500 mt-0.5">Perbarui informasi produk kamu</p>
         </div>
       </div>
-
-      {errors._global && (
-        <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">{errors._global}</div>
-      )}
-      {successMsg && (
-        <div className="px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700">{successMsg}</div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left */}

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api/axios";
+import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const CATEGORIES = [
   "Makanan & Minuman",
@@ -33,7 +35,9 @@ export default function BumdesDokumenPage() {
   const [submitting, setSubmitting] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [error, setError] = useState("");
-  const [toast, setToast] = useState("");
+  const [confirmSeed, setConfirmSeed] = useState(false);
+  const [deleteDocId, setDeleteDocId] = useState<number | null>(null);
+  const toast = useToast();
 
   const fetchDocs = async () => {
     try {
@@ -48,23 +52,22 @@ export default function BumdesDokumenPage() {
 
   useEffect(() => { fetchDocs(); }, []);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 3000);
-  };
-
-  const handleSeedDefaults = async () => {
-    if (!confirm("Muat 13 dokumen regulasi standar pemerintah? Dokumen yang sudah ada tidak akan duplikat.")) return;
+  const executeSeedDefaults = async () => {
     setSeeding(true);
+    setConfirmSeed(false);
     try {
       const res = await api.post("/admin/required-documents/seed-defaults");
-      showToast(res.data.message);
+      toast.success(res.data.message);
       fetchDocs();
     } catch (err: any) {
-      showToast(err.response?.data?.message ?? "Gagal memuat dokumen regulasi.");
+      toast.error(err.response?.data?.message ?? "Gagal memuat dokumen regulasi.");
     } finally {
       setSeeding(false);
     }
+  };
+
+  const handleSeedDefaults = () => {
+    setConfirmSeed(true);
   };
 
   const openAdd = () => {
@@ -89,10 +92,10 @@ export default function BumdesDokumenPage() {
     try {
       if (editingId) {
         await api.put(`/admin/required-documents/${editingId}`, payload);
-        showToast("Dokumen berhasil diperbarui.");
+        toast.success("Dokumen berhasil diperbarui.");
       } else {
         await api.post("/admin/required-documents", payload);
-        showToast("Dokumen berhasil ditambahkan.");
+        toast.success("Dokumen berhasil ditambahkan.");
       }
       setShowForm(false);
       fetchDocs();
@@ -110,13 +113,21 @@ export default function BumdesDokumenPage() {
     } catch {}
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Hapus dokumen ini? Mitra yang sudah upload akan tetap tersimpan.")) return;
+  const handleDelete = (id: number) => {
+    setDeleteDocId(id);
+  };
+
+  const executeDeleteDoc = async () => {
+    if (!deleteDocId) return;
     try {
-      await api.delete(`/admin/required-documents/${id}`);
-      showToast("Dokumen dihapus.");
+      await api.delete(`/admin/required-documents/${deleteDocId}`);
+      toast.success("Dokumen dihapus.");
       fetchDocs();
-    } catch {}
+    } catch {
+      toast.error("Gagal menghapus dokumen.");
+    } finally {
+      setDeleteDocId(null);
+    }
   };
 
   // Group: null category = semua, lainnya per kategori
@@ -128,12 +139,6 @@ export default function BumdesDokumenPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-3xl">
-      {toast && (
-        <div className="fixed top-5 right-5 z-50 px-4 py-3 rounded-xl bg-gray-900 text-white text-sm shadow-lg">
-          {toast}
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -298,6 +303,26 @@ export default function BumdesDokumenPage() {
           <span>{docs.filter(d => !d.category).length} berlaku semua kategori</span>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmSeed}
+        variant="warning"
+        title="Muat Dokumen Regulasi Standar?"
+        description="Akan memuat 13 dokumen regulasi standar pemerintah. Dokumen yang sudah ada tidak akan diduplikat."
+        confirmLabel="Ya, Muat Sekarang"
+        loading={seeding}
+        onConfirm={executeSeedDefaults}
+        onClose={() => setConfirmSeed(false)}
+      />
+
+      <ConfirmDialog
+        open={deleteDocId !== null}
+        title="Hapus Dokumen?"
+        description="Mitra yang sudah upload dokumen ini tetap tersimpan, hanya konfigurasi dokumen yang dihapus."
+        confirmLabel="Ya, Hapus"
+        onConfirm={executeDeleteDoc}
+        onClose={() => setDeleteDocId(null)}
+      />
     </div>
   );
 }
