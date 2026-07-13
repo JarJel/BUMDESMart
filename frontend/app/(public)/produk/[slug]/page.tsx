@@ -13,6 +13,73 @@ import { productApi } from "@/lib/api/product";
 import { cartApi } from "@/lib/api/cart";
 import { useToast } from "@/components/ui/Toast";
 
+function formatRupiah(n: number) {
+  return "Rp " + n.toLocaleString("id-ID");
+}
+
+// ─── Tipe CartItem lokal untuk toko ini ───────────────────────────────────────
+interface LocalCartItem {
+  cartItemId: number;
+  productId: number;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+// ─── Sticky Bar GoFood ────────────────────────────────────────────────────────
+function StickyCartBar({ items, shopName, onViewCart }: {
+  items: LocalCartItem[];
+  shopName: string;
+  onViewCart: () => void;
+}) {
+  const totalQty = items.reduce((s, i) => s + i.quantity, 0);
+  const totalPrice = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 50);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div
+      className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-500 ease-out ${
+        visible ? "translate-y-0" : "translate-y-full"
+      }`}
+    >
+      <div className="mx-auto max-w-2xl px-4 pb-4 sm:pb-6">
+        <div
+          className="flex items-center gap-3 rounded-2xl px-4 py-3 shadow-2xl border border-white/20"
+          style={{ background: "var(--primary)" }}
+        >
+          {/* Badge qty */}
+          <div className="flex-shrink-0 w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+            <span className="text-white font-bold text-sm">{totalQty}</span>
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-semibold text-sm leading-none truncate">{shopName}</p>
+            <p className="text-white/70 text-xs mt-0.5">{formatRupiah(totalPrice)}</p>
+          </div>
+
+          {/* Tombol */}
+          <button
+            onClick={onViewCart}
+            className="flex-shrink-0 flex items-center gap-1.5 bg-white text-sm font-bold px-4 py-2 rounded-xl cursor-pointer border-0 transition-all hover:opacity-90 active:scale-95"
+            style={{ color: "var(--primary)" }}
+          >
+            Lihat Pesanan
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProdukDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const router = useRouter();
@@ -23,6 +90,31 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
+  
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
+  const [showConflictAlert, setShowConflictAlert] = useState(false);
+  const [pendingQty, setPendingQty] = useState<number>(1);
+  const [cartItems, setCartItems] = useState<LocalCartItem[]>([]);
+
+  const syncCart = async (umkmId: number) => {
+    try {
+      const res = await cartApi.get();
+      if (res.data?.success && res.data?.data?.items) {
+        const tokoItems: LocalCartItem[] = res.data.data.items
+          .filter((i: any) => i.product?.umkm_profile?.id === umkmId)
+          .map((i: any) => ({
+            cartItemId: i.id,
+            productId: i.product_id,
+            name: i.product?.name || "",
+            price: i.variant ? Number(i.variant.price) : Number(i.product?.price || 0),
+            quantity: i.quantity,
+          }));
+        setCartItems(tokoItems);
+      }
+    } catch {
+      // Belum login
+    }
+  };
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -32,6 +124,10 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
           const prod = res.data.data;
           setProduk(prod);
           setToko(prod.umkm_profile);
+          
+          if (prod.umkm_profile?.id) {
+            syncCart(prod.umkm_profile.id);
+          }
 
           // Ambil produk serupa
           const relRes = await productApi.list({ category_id: prod.category_id });
@@ -57,13 +153,21 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
       if (res.data && res.data.success) {
         toast.success("Produk berhasil ditambahkan ke keranjang!");
         window.dispatchEvent(new Event("cart-updated"));
+        if (toko?.id) {
+          syncCart(toko.id);
+        }
       } else {
         toast.error(res.data.message || "Gagal menambahkan ke keranjang.");
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
-        toast.warning("Silakan masuk (login) terlebih dahulu.");
-        router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+        setShowLoginAlert(true);
+      } else if (
+        err.response?.data?.message?.toLowerCase().includes("toko lain") ||
+        err.response?.data?.message?.toLowerCase().includes("beda toko")
+      ) {
+        setPendingQty(qty);
+        setShowConflictAlert(true);
       } else {
         toast.error(err.response?.data?.message || "Gagal menambahkan ke keranjang.");
       }
@@ -79,11 +183,34 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
-        toast.warning("Silakan masuk (login) terlebih dahulu.");
-        router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+        setShowLoginAlert(true);
+      } else if (
+        err.response?.data?.message?.toLowerCase().includes("toko lain") ||
+        err.response?.data?.message?.toLowerCase().includes("beda toko")
+      ) {
+        setPendingQty(qty);
+        setShowConflictAlert(true);
       } else {
         toast.error(err.response?.data?.message || "Gagal menambahkan ke keranjang.");
       }
+    }
+  };
+
+  const handleReplaceCart = async () => {
+    try {
+      await cartApi.clear();
+      const res = await cartApi.add(produk.id, pendingQty, selectedVariantId);
+      if (res.data && res.data.success) {
+        toast.success("Produk ditambahkan ke keranjang baru!");
+        window.dispatchEvent(new Event("cart-updated"));
+        if (toko?.id) {
+          syncCart(toko.id);
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Gagal mengganti keranjang.");
+    } finally {
+      setShowConflictAlert(false);
     }
   };
 
@@ -113,10 +240,71 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   const soldCount = produk.sold_count ?? 0;
   const activeDiscount = produk.active_discount ?? null;
   const finalPrice = activeDiscount ? activeDiscount.discounted_price : price;
-
+  const totalCartQty = cartItems.reduce((s, i) => s + i.quantity, 0);
 
   return (
-    <div style={{ background: "#F4F7F5", minHeight: "100vh" }}>
+    <div style={{ background: "#F4F7F5", minHeight: "100vh", paddingBottom: totalCartQty > 0 ? "96px" : "0" }}>
+      {/* Alert Konflik Beda Toko */}
+      {showConflictAlert && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => setShowConflictAlert(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center mb-4">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+                <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-1">Ganti Keranjang?</h3>
+            <p className="text-sm text-gray-500 text-center mb-5 leading-relaxed">
+              Keranjangmu berisi produk dari toko lain. Ingin menghapus keranjang lama dan mulai belanja di toko ini?
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowConflictAlert(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50">
+                Batal
+              </button>
+              <button
+                onClick={handleReplaceCart}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700"
+              >
+                Hapus & Ganti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alert login */}
+      {showLoginAlert && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => setShowLoginAlert(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center mb-4">
+              <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center">
+                <svg className="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-1">Login Dulu, Yuk!</h3>
+            <p className="text-sm text-gray-500 text-center mb-5 leading-relaxed">
+              Kamu perlu login untuk menambahkan produk ke keranjang.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowLoginAlert(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50">
+                Nanti Saja
+              </button>
+              <button
+                onClick={() => { setShowLoginAlert(false); router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`); }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                style={{ background: "var(--primary)" }}
+              >
+                Masuk Sekarang
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Breadcrumb */}
       <div className="bg-white border-b border-gray-100 py-3">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -293,9 +481,15 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
                 </button>
               ))}
             </div>
+
+            {/* Konten Tab */}
             <div className="p-4 sm:p-6">
-              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-4">{produk.description}</p>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed whitespace-pre-line mb-6">
+                {produk.description}
+              </p>
+
+              <h3 className="text-xs sm:text-sm font-bold text-gray-900 mb-3">Spesifikasi Produk</h3>
+              <div className="grid grid-cols-2 gap-3">
                 {[
                   { label: "Asal Produk", val: toko?.city || "Desa Lengkong" },
                   { label: "Min. Pembelian", val: "1 pcs" },
@@ -368,6 +562,15 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
           </div>
         )}
       </div>
+
+      {/* Sticky Bar GoFood-style */}
+      {totalCartQty > 0 && toko && (
+        <StickyCartBar
+          items={cartItems}
+          shopName={toko.shop_name || toko.nama || "Nama Toko"}
+          onViewCart={() => router.push("/checkout")}
+        />
+      )}
     </div>
   );
 }
