@@ -59,5 +59,4 @@ class Customer extends Model
     public function notifications(): HasMany {
         return $this->hasMany(Notification::class, 'customer_id');
     }
-}
-
+};
