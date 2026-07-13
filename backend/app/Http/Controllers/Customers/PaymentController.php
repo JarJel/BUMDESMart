@@ -83,11 +83,8 @@ class PaymentController extends Controller
             'xendit_data'       => $data,
         ]);
 
-        // Tandai pending balance ke UMKM
-        $umkmBalance = UmkmBalance::findOrCreateFor($order->umkm_profile_id, 'umkm');
-        $commission  = $this->calculateCommission($order->total);
-        $umkmAmount  = $order->sub_total - $commission;
-        $umkmBalance->increment('pending', $umkmAmount);
+        // Balance UMKM dan BUMDes dikreditkan di webhook saat payment confirmed (paid)
+        // Tidak diincrement di sini agar tidak salah jika invoice expired/failed
 
         return response()->json([
             'invoice_url' => $data['invoice_url'],

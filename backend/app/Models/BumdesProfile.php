@@ -24,7 +24,21 @@ class BumdesProfile extends Model
         'logo',
         'description',
         'status',
+        'fee_type',
+        'fee_value',
     ];
+
+    public function calculateFee(float $netAmount): int
+    {
+        if (!$this->fee_type || $this->fee_value <= 0) return 0;
+
+        if ($this->fee_type === 'percent') {
+            $rate = min((float) $this->fee_value, 2.0);
+            return (int) round($netAmount * $rate / 100);
+        }
+
+        return (int) min((float) $this->fee_value, 1000);
+    }
 
     public function user(): BelongsTo
     {

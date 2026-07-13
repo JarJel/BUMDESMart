@@ -31,6 +31,8 @@ use App\Http\Controllers\SuperAdmin\ReportController as SuperAdminReportControll
 use App\Http\Controllers\SuperAdmin\SettingController as SuperAdminSettingController;
 use App\Http\Controllers\Admin\RequiredDocumentController;
 use App\Http\Controllers\Admin\UmkmVerificationController;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Driver\DriverController;
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -149,6 +151,18 @@ Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('ad
     Route::put('/umkm/{umkm}/reapply', [UmkmVerificationController::class, 'reapply']);
 
     Route::get('/reports/mitra', [MitraPerformanceController::class, 'index']);
+
+    // Admin BUMDes - own profile & balance
+    Route::get('/profile', [AdminProfileController::class, 'show']);
+    Route::put('/profile', [AdminProfileController::class, 'update']);
+    Route::get('/balance', [AdminProfileController::class, 'balance']);
+
+    // Admin BUMDes - category management
+    Route::get('/categories', [AdminCategoryController::class, 'index']);
+    Route::post('/categories/seed-defaults', [AdminCategoryController::class, 'seedDefaults']);
+    Route::post('/categories', [AdminCategoryController::class, 'store']);
+    Route::put('/categories/{category}', [AdminCategoryController::class, 'update']);
+    Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy']);
 
     Route::get('/required-documents', [RequiredDocumentController::class, 'index']);
     Route::post('/required-documents/seed-defaults', [RequiredDocumentController::class, 'seedDefaults']);

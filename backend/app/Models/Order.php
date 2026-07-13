@@ -20,6 +20,7 @@ class Order extends Model
         'sub_total',
         'shipping_cost',
         'discount',
+        'bumdes_fee',
         'total',
         'status',
         'notes',

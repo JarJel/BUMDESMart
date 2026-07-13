@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\ProductDiscount;
 use App\Models\ProductVariant;
 use App\Models\UmkmProfile;
+use App\Models\BumdesProfile;
 use App\Models\Address;
 use Exception;
 
@@ -236,11 +237,15 @@ class CheckoutController extends Controller
             $umkmIds = collect($items)->pluck('product.umkm_profile.id')->unique()->filter()->values();
             $umkmProfiles = UmkmProfile::whereIn('id', $umkmIds)->get()->keyBy('id');
 
+            $vehicleType = in_array($request->input('vehicle_type'), ['motor', 'mobil'])
+                ? $request->input('vehicle_type')
+                : 'motor';
+
             $shippingMethods = [];
             foreach ($umkmIds as $umkmId) {
                 $umkm          = $umkmProfiles[$umkmId] ?? null;
                 $distanceKm    = null;
-                $dynamicCost   = 0;
+                $dynamicCost   = null; // null = belum bisa dihitung
 
                 if ($selectedAddress && $umkm && $umkm->latitude && $umkm->longitude
                     && $selectedAddress->latitude && $selectedAddress->longitude) {
@@ -250,7 +255,9 @@ class CheckoutController extends Controller
                         (float) $umkm->latitude,
                         (float) $umkm->longitude,
                     );
-                    $dynamicCost = HaversineHelper::shippingCost($distanceKm);
+                    $dynamicCost = HaversineHelper::shippingCost($distanceKm, $vehicleType);
+                } elseif ($selectedAddress) {
+                    $dynamicCost = HaversineHelper::shippingCost(0, $vehicleType); // fallback ≤1km = Rp 5.000
                 }
 
                 $shippingMethods[] = [
@@ -320,6 +327,7 @@ class CheckoutController extends Controller
         $validated = $request->validate([
             'address_id'    => 'required|integer|exists:addresses,id',
             'delivery_type' => 'required|in:delivered,pickup',
+            'vehicle_type'  => 'nullable|in:motor,mobil',
             'notes'         => 'nullable|string|max:500',
             'product_id'    => 'nullable|integer|exists:products,id',
             'quantity'      => 'nullable|integer|min:1',
@@ -327,6 +335,7 @@ class CheckoutController extends Controller
         ]);
 
         $deliveryType = $validated['delivery_type'];
+        $vehicleType  = $validated['vehicle_type'] ?? 'motor';
 
         $customerId = $user->customer->id;
         $isBuyNow   = $request->filled('product_id');
@@ -471,14 +480,23 @@ class CheckoutController extends Controller
                             (float) $address->latitude, (float) $address->longitude,
                             (float) $umkm->latitude,    (float) $umkm->longitude,
                         );
-                        $shippingCost = HaversineHelper::shippingCost($km);
+                        $shippingCost = HaversineHelper::shippingCost($km, $vehicleType);
                     } else {
                         // Fallback flat jika koordinat belum diisi
-                        $shippingCost = (int) \App\Models\PlatformSetting::getValue('shipping_base_cost', 2000);
+                        $shippingCost = HaversineHelper::shippingCost(0, $vehicleType);
                     }
                 }
 
-                $total = max(0, $subTotal - $orderDiscount) + $shippingCost;
+                $netAmount = max(0, $subTotal - $orderDiscount);
+
+                // Hitung fee BUMDes dari net amount (setelah diskon, sebelum ongkir)
+                $bumdesFee = 0;
+                $umkmForFee = UmkmProfile::with('bumdesProfile')->find($umkmId);
+                if ($umkmForFee?->bumdesProfile) {
+                    $bumdesFee = $umkmForFee->bumdesProfile->calculateFee((float) $netAmount);
+                }
+
+                $total = $netAmount + $shippingCost;
                 $orderCode    = 'ORD-' . strtoupper(base_convert((string) time(), 10, 36)) . '-' . strtoupper(substr(uniqid(), -5));
 
                 $order = Order::create([
@@ -489,6 +507,7 @@ class CheckoutController extends Controller
                     'sub_total'       => $subTotal,
                     'shipping_cost'   => $shippingCost,
                     'discount'        => $orderDiscount,
+                    'bumdes_fee'      => $bumdesFee,
                     'total'           => $total,
                     'status'          => 'pending',
                     'notes'           => $validated['notes'] ?? null,

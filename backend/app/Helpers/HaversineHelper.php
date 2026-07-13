@@ -19,11 +19,13 @@ class HaversineHelper
         return $earthRadius * $c;
     }
 
-    public static function shippingCost(float $distanceKm): int
+    public static function shippingCost(float $distanceKm, string $vehicleType = 'motor'): int
     {
-        $baseCost    = (int) \App\Models\PlatformSetting::getValue('shipping_base_cost', 2000);
-        $costPerKm   = (int) \App\Models\PlatformSetting::getValue('shipping_cost_per_km', 1500);
-
-        return $baseCost + (int) round($distanceKm * $costPerKm);
+        $baseCost = 5000; // flat untuk ≤ 1 km
+        if ($distanceKm <= 1) {
+            return $baseCost;
+        }
+        $perKm = $vehicleType === 'mobil' ? 3000 : 2000;
+        return $baseCost + (int) round(($distanceKm - 1) * $perKm);
     }
 }

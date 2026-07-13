@@ -41,7 +41,6 @@ interface CartItem {
       id: number;
       type: 'percentage' | 'fixed';
       value: string | number;
-      discounted_price: number | string;
     } | null;
   };
   variant?: { id: number; name: string; price: number | string; stock: number } | null;
@@ -85,11 +84,16 @@ const getProductPrice = (item: CartItem) => {
   if (item.variant) {
     return Number(item.variant.price);
   }
+  const basePrice = Number(item.product?.price || 0);
   const discount = item.product?.active_discount;
   if (discount) {
-    return Number(discount.discounted_price);
+    const val = Number(discount.value);
+    if (discount.type === 'percentage') {
+      return Math.round(basePrice * (1 - val / 100));
+    }
+    return Math.max(0, basePrice - val);
   }
-  return Number(item.product?.price || 0);
+  return basePrice;
 };
 
 export default function CheckoutPage() {
@@ -100,6 +104,7 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState<AddressData[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [deliveryType, setDeliveryType] = useState<"delivered" | "pickup">("delivered");
+  const [vehicleType, setVehicleType] = useState<"motor" | "mobil">("motor");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -171,13 +176,14 @@ export default function CheckoutPage() {
   const [promoErrors, setPromoErrors] = useState<Record<number, string>>({});
   const [loadingPreview, setLoadingPreview] = useState(false);
 
-  const loadCheckoutPreview = useCallback(async (addressId: number | null, delType: string, codes: Record<number, string>) => {
+  const loadCheckoutPreview = useCallback(async (addressId: number | null, delType: string, codes: Record<number, string>, vType: string = 'motor') => {
     if (!addressId) return;
     setLoadingPreview(true);
     try {
       const params: any = {
         address_id: addressId,
         delivery_type: delType,
+        vehicle_type: vType,
       };
 
       // Map promotion codes untuk query params: promotion_codes[umkm_id]=CODE
@@ -220,9 +226,9 @@ export default function CheckoutPage() {
   // Pemicu preview saat data alamat atau metode pengiriman berubah
   useEffect(() => {
     if (selectedAddressId) {
-      loadCheckoutPreview(selectedAddressId, deliveryType, promotionCodes);
+      loadCheckoutPreview(selectedAddressId, deliveryType, promotionCodes, vehicleType);
     }
-  }, [selectedAddressId, deliveryType, loadCheckoutPreview]);
+  }, [selectedAddressId, deliveryType, vehicleType, loadCheckoutPreview]);
 
   const handleOpenAdd = () => {
     setEditingAddress(null);
@@ -312,6 +318,7 @@ export default function CheckoutPage() {
       const payload: any = {
         address_id: selectedAddressId,
         delivery_type: deliveryType,
+        vehicle_type: deliveryType === 'delivered' ? vehicleType : undefined,
         notes: notes || undefined,
       };
       if (Object.keys(codesPayload).length > 0) {
@@ -551,7 +558,7 @@ export default function CheckoutPage() {
                         className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-600 uppercase font-semibold text-gray-800"
                       />
                       <button
-                        onClick={() => loadCheckoutPreview(selectedAddressId, deliveryType, promotionCodes)}
+                        onClick={() => loadCheckoutPreview(selectedAddressId, deliveryType, promotionCodes, vehicleType)}
                         className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-semibold hover:bg-green-100 transition-colors border-0 cursor-pointer"
                       >
                         Terapkan
@@ -618,18 +625,47 @@ export default function CheckoutPage() {
               ))}
             </div>
 
+            {/* Pilih kendaraan — hanya muncul saat dikirim */}
+            {deliveryType === "delivered" && (
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {([
+                  { id: "motor" as const, label: "Motor", desc: "Rp 2.000/km setelah 1 km", icon: "🛵" },
+                  { id: "mobil" as const, label: "Mobil",  desc: "Rp 3.000/km setelah 1 km", icon: "🚗" },
+                ] as const).map((v) => (
+                  <label
+                    key={v.id}
+                    className={`flex items-center gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition-all ${vehicleType === v.id ? "border-green-600 bg-green-50/40" : "border-gray-100 hover:border-gray-200"}`}
+                  >
+                    <input
+                      type="radio"
+                      name="vehicle_type"
+                      value={v.id}
+                      checked={vehicleType === v.id}
+                      onChange={() => setVehicleType(v.id)}
+                      className="accent-green-700"
+                    />
+                    <span className="text-lg">{v.icon}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{v.label}</p>
+                      <p className="text-[10px] text-gray-400">{v.desc}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+
             {/* Estimasi ongkir */}
             {deliveryType === "delivered" && (
               <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-blue-700 font-medium">
-                    {activeAddress?.latitude ? "Ongkir estimasi (berdasarkan jarak)" : "Ongkir estimasi"}
+                    {activeAddress?.latitude ? "Ongkir estimasi (berdasarkan jarak)" : "Ongkir estimasi (flat)"}
                   </span>
                   <span className="text-sm font-bold text-blue-900">
-                    {loadingShipping ? "Menghitung..." : shippingCost !== null ? formatRupiah(shippingCost) : "Pilih alamat dulu"}
+                    {loadingPreview ? "Menghitung..." : shippingCost !== null ? formatRupiah(shippingCost) : "Pilih alamat dulu"}
                   </span>
                 </div>
-                {!activeAddress?.latitude && (
+                {activeAddress && !activeAddress?.latitude && (
                   <p className="text-[10px] text-blue-500 mt-1">
                     Tambahkan pin lokasi di alamat untuk ongkir lebih akurat.
                   </p>

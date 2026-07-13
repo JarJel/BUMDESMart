@@ -49,9 +49,24 @@ class WebhookController extends Controller
 
         if ($newStatus === 'paid' && $order) {
             $order->update(['status' => 'confirmed']);
-            $order->load('items');
+            $order->load('items', 'umkmProfile.bumdesProfile');
+
             foreach ($order->items as $item) {
                 \App\Models\ProductDiscount::applyUsage($item->product_id);
+            }
+
+            // Kredit pending balance UMKM: sub_total - komisi platform - fee BUMDes
+            $commission = $this->calculateCommission((float) $order->sub_total);
+            $bumdesFee  = (float) ($order->bumdes_fee ?? 0);
+            $umkmAmount = max(0, (float) $order->sub_total - $commission - $bumdesFee);
+
+            $umkmBalance = UmkmBalance::findOrCreateFor($order->umkm_profile_id, 'umkm');
+            $umkmBalance->increment('pending', $umkmAmount);
+
+            // Kredit pending balance BUMDes
+            if ($bumdesFee > 0 && $order->umkmProfile?->bumdesProfile) {
+                $bumdesBalance = UmkmBalance::findOrCreateFor($order->umkmProfile->bumdesProfile->id, 'bumdes');
+                $bumdesBalance->increment('pending', $bumdesFee);
             }
         }
 
@@ -66,11 +81,15 @@ class WebhookController extends Controller
             return;
         }
 
-        $commission = $this->calculateCommission((float) $order->total);
-        $umkmNet    = (float) $order->sub_total - $commission;
+        $order->load('umkmProfile.bumdesProfile');
+
+        // Komisi dihitung dari sub_total (tidak termasuk ongkir)
+        $commission  = $this->calculateCommission((float) $order->sub_total);
+        $bumdesFee   = (float) ($order->bumdes_fee ?? 0);
+        $umkmNet     = max(0, (float) $order->sub_total - $commission - $bumdesFee);
         $shippingNet = (float) $order->shipping_cost;
 
-        // Pindahkan pending -> available untuk UMKM
+        // Pindahkan pending → available untuk UMKM
         $umkmBalance = UmkmBalance::findOrCreateFor($order->umkm_profile_id, 'umkm');
         $umkmBalance->decrement('pending', $umkmNet);
         $umkmBalance->increment('available', $umkmNet);
@@ -83,6 +102,24 @@ class WebhookController extends Controller
 
         if ($umkmAccount) {
             $this->createXenditDisbursement($order, $umkmAccount, $umkmNet, 'umkm');
+        }
+
+        // Pindahkan pending → available untuk BUMDes
+        if ($bumdesFee > 0 && $order->umkmProfile?->bumdesProfile) {
+            $bumdesProfile = $order->umkmProfile->bumdesProfile;
+            $bumdesBalance = UmkmBalance::findOrCreateFor($bumdesProfile->id, 'bumdes');
+            $bumdesBalance->decrement('pending', $bumdesFee);
+            $bumdesBalance->increment('available', $bumdesFee);
+
+            // Disbursement BUMDes jika ada rekening bank terdaftar
+            $bumdesAccount = UmkmBankAccount::where('owner_id', $bumdesProfile->id)
+                ->where('owner_type', 'bumdes')
+                ->where('is_active', true)
+                ->first();
+
+            if ($bumdesAccount) {
+                $this->createXenditDisbursement($order, $bumdesAccount, $bumdesFee, 'bumdes');
+            }
         }
 
         // Jika ada driver, distribusikan ongkir ke driver
