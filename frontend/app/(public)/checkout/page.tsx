@@ -33,11 +33,12 @@ interface CartItem {
   product?: {
     id: number;
     name: string;
-    price: number;
+    price: number | string;
+    stock?: number;
     images?: { image_path: string }[];
     umkm_profile?: { id: number; shop_name?: string; name_umkm?: string };
   };
-  variant?: { id: number; name: string; price: number };
+  variant?: { id: number; name: string; price: number | string; stock: number } | null;
   quantity: number;
 }
 

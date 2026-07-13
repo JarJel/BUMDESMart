@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { sellerApi } from "@/lib/api/seller";
 import { productApi } from "@/lib/api/product";
+import { Dokumen } from "@/lib/data/dummy";
 
 function StarIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
