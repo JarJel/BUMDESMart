@@ -7,6 +7,8 @@ export interface CheckoutConfirmPayload {
   product_id?: number
   quantity?: number
   variant_id?: number
+  promotion_code?: string
+  promotion_codes?: Record<number, string>
 }
 
 export interface CreatedOrder {
@@ -16,7 +18,14 @@ export interface CreatedOrder {
 }
 
 export const checkoutApi = {
-  preview: (params?: { address_id?: number; product_id?: number; quantity?: number; variant_id?: number }) =>
+  preview: (params?: { 
+    address_id?: number; 
+    product_id?: number; 
+    quantity?: number; 
+    variant_id?: number;
+    promotion_code?: string;
+    promotion_codes?: Record<number, string>;
+  }) =>
     api.get('/checkout/preview', { params }),
 
   confirm: (payload: CheckoutConfirmPayload) =>
