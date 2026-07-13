@@ -30,7 +30,7 @@ class PromotionController extends Controller
             'code'               => 'required|string|max:50|unique:promotions,code',
             'name'               => 'required|string|max:255',
             'description'        => 'nullable|string|max:1000',
-            'type'               => 'required|in:percentage,fixed',
+            'type'               => 'required|in:percentage,fixed,fixed_amount',
             'value'              => 'required|numeric|min:0',
             'min_order_amount'   => 'nullable|numeric|min:0',
             'max_discount_amount'=> 'nullable|numeric|min:0',
@@ -43,8 +43,13 @@ class PromotionController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $validated = $validator->validated();
+        if ($validated['type'] === 'fixed') {
+            $validated['type'] = 'fixed_amount';
+        }
+
         $promo = Promotion::create([
-            ...$validator->validated(),
+            ...$validated,
             'umkm_profile_id' => $this->getUmkm($request)->id,
             'usage_count'     => 0,
             'status'          => 'active',
@@ -61,7 +66,7 @@ class PromotionController extends Controller
             'code'               => 'sometimes|string|max:50|unique:promotions,code,' . $id,
             'name'               => 'sometimes|string|max:255',
             'description'        => 'nullable|string|max:1000',
-            'type'               => 'sometimes|in:percentage,fixed',
+            'type'               => 'sometimes|in:percentage,fixed,fixed_amount',
             'value'              => 'sometimes|numeric|min:0',
             'min_order_amount'   => 'nullable|numeric|min:0',
             'max_discount_amount'=> 'nullable|numeric|min:0',
@@ -74,7 +79,12 @@ class PromotionController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $promo->update($validator->validated());
+        $validated = $validator->validated();
+        if (isset($validated['type']) && $validated['type'] === 'fixed') {
+            $validated['type'] = 'fixed_amount';
+        }
+
+        $promo->update($validated);
 
         return response()->json(['message' => 'Promosi berhasil diperbarui.', 'data' => $promo->fresh()]);
     }

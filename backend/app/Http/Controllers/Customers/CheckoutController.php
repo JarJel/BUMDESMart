@@ -177,6 +177,45 @@ class CheckoutController extends Controller
                 $tenants[$tenantKey]['sub_total'] += $item['product']['final_price'] * $item['quantity'];
             }
 
+            // Parse promotions
+            $promotionCodes = $request->input('promotion_codes', []);
+            $singlePromoCode = $request->input('promotion_code');
+            if ($singlePromoCode && !is_array($singlePromoCode)) {
+                $promo = \App\Models\Promotion::where('code', strtoupper($singlePromoCode))
+                    ->where('status', 'active')
+                    ->first();
+                if ($promo) {
+                    $promotionCodes[$promo->umkm_profile_id] = $promo->code;
+                }
+            }
+
+            // Apply promotions per tenant
+            foreach ($tenants as $tenantKey => &$tenant) {
+                $umkmId = $tenant['umkm_profile_id'];
+                $tenant['promotion_id'] = null;
+                $tenant['promotion_code'] = null;
+                $tenant['promotion_name'] = null;
+                $tenant['discount'] = 0;
+                $tenant['promotion_error'] = null;
+                $tenant['total'] = $tenant['sub_total'];
+
+                if ($umkmId && isset($promotionCodes[$umkmId])) {
+                    $code = $promotionCodes[$umkmId];
+                    $promoResult = $this->validatePromotion($code, $umkmId, $tenant['sub_total']);
+                    if ($promoResult['valid']) {
+                        $promo = $promoResult['promotion'];
+                        $tenant['promotion_id'] = $promo->id;
+                        $tenant['promotion_code'] = $promo->code;
+                        $tenant['promotion_name'] = $promo->name;
+                        $tenant['discount'] = $promoResult['discount'];
+                        $tenant['total'] = max(0, $tenant['sub_total'] - $promoResult['discount']);
+                    } else {
+                        $tenant['promotion_error'] = $promoResult['message'];
+                    }
+                }
+            }
+            unset($tenant);
+
             // Reset array keys agar menjadi indexed array
             $tenants = array_values($tenants);
 
@@ -375,6 +414,18 @@ class CheckoutController extends Controller
             $grouped[$item['umkm_profile_id']][] = $item;
         }
 
+        // Parse promotions
+        $promotionCodes = $request->input('promotion_codes', []);
+        $singlePromoCode = $request->input('promotion_code');
+        if ($singlePromoCode && !is_array($singlePromoCode)) {
+            $promo = \App\Models\Promotion::where('code', strtoupper($singlePromoCode))
+                ->where('status', 'active')
+                ->first();
+            if ($promo) {
+                $promotionCodes[$promo->umkm_profile_id] = $promo->code;
+            }
+        }
+
         DB::beginTransaction();
         try {
             $createdOrders = [];
@@ -386,6 +437,28 @@ class CheckoutController extends Controller
                 foreach ($items as $item) {
                     $subTotal      += $item['product_price'] * $item['quantity'];
                     $totalDiscount += $item['discount_amount'] * $item['quantity'];
+                }
+
+                $orderPromotionId = null;
+                $orderDiscount    = $totalDiscount;
+
+                if (isset($promotionCodes[$umkmId])) {
+                    $code = $promotionCodes[$umkmId];
+                    $subTotalAfterProductDiscount = $subTotal - $totalDiscount;
+                    $promoResult = $this->validatePromotion($code, $umkmId, $subTotalAfterProductDiscount);
+                    
+                    if (!$promoResult['valid']) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Kode promo '{$code}' tidak valid: " . $promoResult['message']
+                        ], 422);
+                    }
+
+                    $promo = $promoResult['promotion'];
+                    $orderPromotionId = $promo->id;
+                    $orderDiscount += $promoResult['discount'];
+                    $promo->increment('usage_count');
                 }
 
                 // Hitung ongkir: pickup = 0, delivered = Haversine
@@ -405,7 +478,7 @@ class CheckoutController extends Controller
                     }
                 }
 
-                $total = $subTotal - $totalDiscount + $shippingCost;
+                $total = max(0, $subTotal - $orderDiscount) + $shippingCost;
                 $orderCode    = 'ORD-' . strtoupper(base_convert((string) time(), 10, 36)) . '-' . strtoupper(substr(uniqid(), -5));
 
                 $order = Order::create([
@@ -415,11 +488,12 @@ class CheckoutController extends Controller
                     'order_code'      => $orderCode,
                     'sub_total'       => $subTotal,
                     'shipping_cost'   => $shippingCost,
-                    'discount'        => $totalDiscount,
+                    'discount'        => $orderDiscount,
                     'total'           => $total,
                     'status'          => 'pending',
                     'notes'           => $validated['notes'] ?? null,
                     'delivery_type'   => $deliveryType,
+                    'promotion_id'    => $orderPromotionId,
                 ]);
 
                 foreach ($items as $item) {
@@ -471,5 +545,54 @@ class CheckoutController extends Controller
             DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Gagal membuat pesanan: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Validate promotion and calculate discount.
+     *
+     * @param string $code
+     * @param int $umkmProfileId
+     * @param float $subTotal
+     * @return array
+     */
+    private function validatePromotion(string $code, int $umkmProfileId, float $subTotal): array
+    {
+        $promo = \App\Models\Promotion::where('code', strtoupper($code))
+            ->where('umkm_profile_id', $umkmProfileId)
+            ->where('status', 'active')
+            ->where(fn($q) => $q->whereNull('start_date')->orWhere('start_date', '<=', now()))
+            ->where(fn($q) => $q->whereNull('end_date')->orWhere('end_date', '>', now()))
+            ->where(fn($q) => $q->whereNull('usage_limit')->orWhereColumn('usage_count', '<', 'usage_limit'))
+            ->first();
+
+        if (!$promo) {
+            return [
+                'valid' => false,
+                'message' => 'Kode promo tidak valid atau sudah kadaluarsa.'
+            ];
+        }
+
+        if ($promo->min_order_amount && $subTotal < $promo->min_order_amount) {
+            return [
+                'valid' => false,
+                'message' => 'Minimum pembelian Rp ' . number_format($promo->min_order_amount, 0, ',', '.')
+            ];
+        }
+
+        $discount = ($promo->type === 'percentage')
+            ? ($subTotal * $promo->value / 100)
+            : $promo->value;
+
+        if ($promo->max_discount_amount) {
+            $discount = min($discount, $promo->max_discount_amount);
+        }
+
+        $discount = min($discount, $subTotal);
+
+        return [
+            'valid' => true,
+            'promotion' => $promo,
+            'discount' => round($discount)
+        ];
     }
 }
