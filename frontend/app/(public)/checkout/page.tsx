@@ -37,6 +37,12 @@ interface CartItem {
     stock?: number;
     images?: { image_path: string }[];
     umkm_profile?: { id: number; shop_name?: string; name_umkm?: string };
+    active_discount?: {
+      id: number;
+      type: 'percentage' | 'fixed';
+      value: string | number;
+      discounted_price: number | string;
+    } | null;
   };
   variant?: { id: number; name: string; price: number | string; stock: number } | null;
   quantity: number;
@@ -73,6 +79,17 @@ const EMPTY_FORM = {
   latitude: null as number | null,
   longitude: null as number | null,
   is_default: false,
+};
+
+const getProductPrice = (item: CartItem) => {
+  if (item.variant) {
+    return Number(item.variant.price);
+  }
+  const discount = item.product?.active_discount;
+  if (discount) {
+    return Number(discount.discounted_price);
+  }
+  return Number(item.product?.price || 0);
 };
 
 export default function CheckoutPage() {
@@ -148,25 +165,64 @@ export default function CheckoutPage() {
     }
   };
 
-  // Ambil estimasi ongkir dari BE saat address atau delivery_type berubah
-  useEffect(() => {
-    if (!selectedAddressId || deliveryType === "pickup") {
-      setShippingCost(deliveryType === "pickup" ? 0 : null);
-      return;
-    }
-    setLoadingShipping(true);
-    checkoutApi
-      .preview({ address_id: selectedAddressId })
-      .then((res) => {
-        const methods = res.data?.data?.shipping_methods;
+  // State Voucher per Toko
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [promotionCodes, setPromotionCodes] = useState<Record<number, string>>({});
+  const [promoErrors, setPromoErrors] = useState<Record<number, string>>({});
+  const [loadingPreview, setLoadingPreview] = useState(false);
+
+  const loadCheckoutPreview = useCallback(async (addressId: number | null, delType: string, codes: Record<number, string>) => {
+    if (!addressId) return;
+    setLoadingPreview(true);
+    try {
+      const params: any = {
+        address_id: addressId,
+        delivery_type: delType,
+      };
+
+      // Map promotion codes untuk query params: promotion_codes[umkm_id]=CODE
+      Object.entries(codes).forEach(([umkmId, code]) => {
+        if (code) {
+          params[`promotion_codes[${umkmId}]`] = code;
+        }
+      });
+
+      const res = await checkoutApi.preview(params);
+      if (res.data?.success) {
+        setPreviewData(res.data.data);
+
+        // Jika kurir lokal, set shipping cost ke state
+        const methods = res.data.data.shipping_methods;
         if (methods?.length) {
           const opt = methods[0]?.options?.find((o: any) => o.id === "kurir-lokal");
           setShippingCost(opt?.price ?? null);
+        } else {
+          setShippingCost(null);
         }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingShipping(false));
-  }, [selectedAddressId, deliveryType]);
+
+        // Cek promotion_error dari backend
+        const errors: Record<number, string> = {};
+        const details = res.data.data.tenants || [];
+        details.forEach((det: any) => {
+          if (det.promotion_error) {
+            errors[det.umkm_profile_id] = det.promotion_error;
+          }
+        });
+        setPromoErrors(errors);
+      }
+    } catch (err) {
+      console.error("Gagal memuat preview checkout:", err);
+    } finally {
+      setLoadingPreview(false);
+    }
+  }, []);
+
+  // Pemicu preview saat data alamat atau metode pengiriman berubah
+  useEffect(() => {
+    if (selectedAddressId) {
+      loadCheckoutPreview(selectedAddressId, deliveryType, promotionCodes);
+    }
+  }, [selectedAddressId, deliveryType, loadCheckoutPreview]);
 
   const handleOpenAdd = () => {
     setEditingAddress(null);
@@ -245,13 +301,24 @@ export default function CheckoutPage() {
     if (!selectedAddressId) { toast.warning("Pilih alamat pengiriman terlebih dahulu."); return; }
     if (cartItems.length === 0) { toast.warning("Keranjang kosong."); return; }
 
+    // Petakan voucher codes untuk payload post confirm
+    const codesPayload: Record<number, string> = {};
+    Object.entries(promotionCodes).forEach(([umkmId, code]) => {
+      if (code) codesPayload[Number(umkmId)] = code;
+    });
+
     setSubmitting(true);
     try {
-      const res = await checkoutApi.confirm({
+      const payload: any = {
         address_id: selectedAddressId,
         delivery_type: deliveryType,
         notes: notes || undefined,
-      });
+      };
+      if (Object.keys(codesPayload).length > 0) {
+        payload.promotion_codes = codesPayload;
+      }
+
+      const res = await checkoutApi.confirm(payload);
 
       if (res.data?.success) {
         const orders: { order_id: number; order_code: string; total: number }[] = res.data.data.orders;
@@ -301,12 +368,20 @@ export default function CheckoutPage() {
   const activeAddress = addresses.find((a) => a.id === selectedAddressId);
 
   const subtotal = cartItems.reduce((s, item) => {
-    const price = item.variant ? Number(item.variant.price) : Number(item.product?.price || 0);
-    return s + price * item.quantity;
+    return s + getProductPrice(item) * item.quantity;
   }, 0);
 
   const shippingDisplay = deliveryType === "pickup" ? 0 : (shippingCost ?? 0);
-  const grandTotal = subtotal + shippingDisplay;
+  
+  // Hitung values berdasarkan data dari API preview (tenants)
+  const apiTenants = previewData?.tenants || [];
+  const apiSubtotal = apiTenants.reduce((s: number, t: any) => s + (Number(t.sub_total) || 0), 0);
+  const apiDiscount = apiTenants.reduce((s: number, t: any) => s + (Number(t.discount) || 0), 0);
+  const apiTotal = apiTenants.reduce((s: number, t: any) => s + (Number(t.total) || 0), 0);
+
+  const finalSubtotal = apiTenants.length > 0 ? apiSubtotal : subtotal;
+  const finalDiscount = apiTenants.length > 0 ? apiDiscount : 0;
+  const grandTotal = (apiTenants.length > 0 ? apiTotal : subtotal) + shippingDisplay;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -395,7 +470,9 @@ export default function CheckoutPage() {
                   <div className="space-y-3">
                     {group.items.map((item) => {
                       const imgUrl = getAssetUrl(item.product?.images?.[0]?.image_path);
-                      const price = item.variant ? Number(item.variant.price) : Number(item.product?.price || 0);
+                      const price = getProductPrice(item);
+                      const originalPrice = item.variant ? Number(item.variant.price) : Number(item.product?.price || 0);
+                      const hasDiscount = !item.variant && !!item.product?.active_discount;
                       const stock = item.variant ? item.variant.stock : (item.product?.stock || 999);
                       return (
                         <div key={item.id} className="flex items-center justify-between gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
@@ -412,7 +489,12 @@ export default function CheckoutPage() {
                             <div className="min-w-0">
                               <p className="text-xs font-semibold text-gray-800 truncate">{item.product?.name}</p>
                               {item.variant && <p className="text-[10px] text-gray-400 mt-0.5">Varian: {item.variant.name}</p>}
-                              <p className="text-xs font-bold text-green-600 mt-1">{formatRupiah(price)}</p>
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                <p className="text-xs font-bold text-green-600">{formatRupiah(price)}</p>
+                                {hasDiscount && (
+                                  <p className="text-[10px] text-gray-400 line-through">{formatRupiah(originalPrice)}</p>
+                                )}
+                              </div>
                             </div>
                           </div>
 
@@ -450,6 +532,44 @@ export default function CheckoutPage() {
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* Input Kode Promo per Toko */}
+                  <div className="mt-4 pt-3 border-t border-dashed border-gray-100">
+                    <p className="text-[11px] font-semibold text-gray-500 mb-1.5 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                      </svg>
+                      Gunakan Kode Promo Toko ({group.tenantName})
+                    </p>
+                    <div className="flex gap-2 max-w-sm">
+                      <input
+                        type="text"
+                        placeholder="KODEPROMO"
+                        value={promotionCodes[group.tenantId!] || ""}
+                        onChange={(e) => setPromotionCodes({ ...promotionCodes, [group.tenantId!]: e.target.value })}
+                        className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-600 uppercase font-semibold text-gray-800"
+                      />
+                      <button
+                        onClick={() => loadCheckoutPreview(selectedAddressId, deliveryType, promotionCodes)}
+                        className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-semibold hover:bg-green-100 transition-colors border-0 cursor-pointer"
+                      >
+                        Terapkan
+                      </button>
+                    </div>
+
+                    {promoErrors[group.tenantId!] && (
+                      <p className="text-[10px] text-red-500 font-medium mt-1">
+                        ⚠️ {promoErrors[group.tenantId!]}
+                      </p>
+                    )}
+
+                    {/* Info Diskon Terpasang */}
+                    {previewData?.tenants?.find((d: any) => d.umkm_profile_id === group.tenantId)?.discount > 0 && (
+                      <p className="text-[10px] text-green-600 font-semibold mt-1">
+                        ✓ Diskon Terpasang: -{formatRupiah(previewData.tenants.find((d: any) => d.umkm_profile_id === group.tenantId).discount)}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -544,7 +664,7 @@ export default function CheckoutPage() {
               {cartItems.map((item) => (
                 <div key={item.id} className="flex justify-between">
                   <span className="line-clamp-1 flex-1 mr-1">{item.product?.name} ×{item.quantity}</span>
-                  <span className="shrink-0">{formatRupiah((item.variant ? Number(item.variant.price) : Number(item.product?.price || 0)) * item.quantity)}</span>
+                  <span className="shrink-0">{formatRupiah(getProductPrice(item) * item.quantity)}</span>
                 </div>
               ))}
             </div>
@@ -552,20 +672,45 @@ export default function CheckoutPage() {
             <div className="border-t border-gray-100 pt-3 space-y-1.5 text-sm">
               <div className="flex justify-between text-gray-500">
                 <span>Subtotal</span>
-                <span>{formatRupiah(subtotal)}</span>
+                <span>{formatRupiah(finalSubtotal)}</span>
               </div>
+              
+              {/* Render Diskon Voucher dari API jika ada */}
+              {finalDiscount > 0 && (
+                <div className="flex justify-between text-green-600 font-medium">
+                  <span>Diskon Promo</span>
+                  <span>-{formatRupiah(finalDiscount)}</span>
+                </div>
+              )}
+
               <div className="flex justify-between text-gray-500">
                 <span>Ongkir</span>
                 <span>
                   {deliveryType === "pickup" ? "Gratis (Ambil sendiri)" :
-                    loadingShipping ? "Menghitung..." :
+                    loadingPreview ? "Menghitung..." :
                     shippingCost !== null ? formatRupiah(shippingCost) : "-"}
                 </span>
               </div>
               <div className="flex justify-between font-bold text-gray-900 pt-1 border-t border-gray-100">
                 <span>Total</span>
-                <span style={{ color: "var(--primary)" }}>{formatRupiah(grandTotal)}</span>
+                <span style={{ color: "var(--primary)" }}>
+                  {formatRupiah(grandTotal)}
+                </span>
               </div>
+
+              {/* Detail Voucher Terpasang yang Informatif */}
+              {previewData?.tenants?.filter((t: any) => t.promotion_code && t.discount > 0).map((t: any) => (
+                <div key={t.umkm_profile_id} className="bg-green-50 text-[10px] text-green-800 p-2.5 rounded-xl border border-green-100 mt-3 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold flex items-center gap-1 text-green-700 uppercase">
+                      🎫 {t.promotion_code}
+                    </span>
+                    <span className="font-extrabold text-green-700">-{formatRupiah(t.discount)}</span>
+                  </div>
+                  <p className="text-[9px] text-green-600/90 font-medium leading-none mt-1">Nama: {t.promotion_name || "Promo Spesial"}</p>
+                  <p className="text-[9px] text-green-600/90 font-medium leading-none">Toko: {t.shop_name}</p>
+                </div>
+              ))}
             </div>
 
             <button

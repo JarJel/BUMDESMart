@@ -29,6 +29,7 @@ class CartController extends Controller
             $cart->load([
                 'items.product.images',
                 'items.product.umkmProfile',
+                'items.product.activeDiscount',
                 'items.variant'
             ]);
 
@@ -133,6 +134,7 @@ class CartController extends Controller
             $cart->load([
                 'items.product.images',
                 'items.product.umkmProfile',
+                'items.product.activeDiscount',
                 'items.variant'
             ]);
 
@@ -220,6 +222,7 @@ class CartController extends Controller
             $cart->load([
                 'items.product.images',
                 'items.product.umkmProfile',
+                'items.product.activeDiscount',
                 'items.variant'
             ]);
 
@@ -288,6 +291,7 @@ class CartController extends Controller
             $cart->load([
                 'items.product.images',
                 'items.product.umkmProfile',
+                'items.product.activeDiscount',
                 'items.variant'
             ]);
 
