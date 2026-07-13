@@ -4,6 +4,59 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { sellerApi, SellerData } from "@/lib/api/seller";
 import { StarIcon } from "@/components/ui/StarIcon";
+import { useRouter } from "next/navigation";
+import { cartApi } from "@/lib/api/cart";
+
+// ─── Sticky Bar GoFood Component ─────────────────────────────────────────────
+function StickyCartBar({ items, shopName, onViewCart }: {
+  items: any[];
+  shopName: string;
+  onViewCart: () => void;
+}) {
+  const totalQty = items.reduce((s, i) => s + i.quantity, 0);
+  const totalPrice = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 50);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div
+      className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-500 ease-out ${
+        visible ? "translate-y-0" : "translate-y-full"
+      }`}
+    >
+      <div className="mx-auto max-w-2xl px-4 pb-4 sm:pb-6">
+        <div
+          className="flex items-center gap-3 rounded-2xl px-4 py-3 shadow-2xl border border-white/20"
+          style={{ background: "var(--primary)" }}
+        >
+          <div className="flex-shrink-0 w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+            <span className="text-white font-bold text-sm">{totalQty}</span>
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-semibold text-sm leading-none truncate">{shopName}</p>
+            <p className="text-white/70 text-xs mt-0.5">Rp {totalPrice.toLocaleString("id-ID")}</p>
+          </div>
+
+          <button
+            onClick={onViewCart}
+            className="flex-shrink-0 flex items-center gap-1.5 bg-white text-sm font-bold px-4 py-2 rounded-xl cursor-pointer border-0 transition-all hover:opacity-90 active:scale-95"
+            style={{ color: "var(--primary)" }}
+          >
+            Lihat Pesanan
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function TokoCard({ toko }: { toko: any }) {
   const shopName = toko.shop_name || toko.nama || "Nama Toko";
@@ -75,8 +128,46 @@ function TokoCard({ toko }: { toko: any }) {
 }
 
 export default function BerandaPage() {
+  const router = useRouter();
   const [tokoUnggulan, setTokoUnggulan] = useState<SellerData[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // State untuk sticky bar keranjang
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [cartShopName, setCartShopName] = useState<string>("");
+
+  const loadCartData = async () => {
+    try {
+      const res = await cartApi.get();
+      if (res.data?.success && res.data?.data?.items) {
+        const items = res.data.data.items;
+        setCartItems(items);
+        if (items.length > 0) {
+          const firstItemShop = items[0].product?.umkm_profile?.shop_name || "Nama Toko";
+          setCartShopName(firstItemShop);
+        } else {
+          setCartShopName("");
+        }
+      }
+    } catch {
+      // Belum login
+    }
+  };
+
+  useEffect(() => {
+    loadCartData();
+  }, []);
+
+  // Listen event update keranjang jika ada perubahan di page lain
+  useEffect(() => {
+    const handleCartUpdated = () => {
+      loadCartData();
+    };
+    window.addEventListener("cart-updated", handleCartUpdated);
+    return () => {
+      window.removeEventListener("cart-updated", handleCartUpdated);
+    };
+  }, []);
 
   useEffect(() => {
     sellerApi.list({ limit: 4 })
@@ -94,7 +185,7 @@ export default function BerandaPage() {
   }, []);
 
   return (
-    <>
+    <div style={{ paddingBottom: cartItems.length > 0 ? "96px" : "0" }}>
       {/* ===== HERO ===== */}
       <section
         className="relative overflow-hidden flex items-center"
@@ -359,6 +450,21 @@ export default function BerandaPage() {
         <div className="absolute -right-24 -top-24 w-64 h-64 rounded-full bg-white/5" />
         <div className="absolute -left-16 -bottom-16 w-48 h-48 rounded-full bg-white/5" />
       </section>
-    </>
+
+      {/* Sticky Bar GoFood-style */}
+      {cartItems.length > 0 && cartShopName && (
+        <StickyCartBar
+          items={cartItems.map(i => ({
+            cartItemId: i.id,
+            productId: i.product_id,
+            name: i.product?.name || "",
+            price: i.variant ? Number(i.variant.price) : Number(i.product?.price || 0),
+            quantity: i.quantity,
+          }))}
+          shopName={cartShopName}
+          onViewCart={() => router.push("/checkout")}
+        />
+      )}
+    </div>
   );
 }
