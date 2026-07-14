@@ -1,8 +1,11 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
+
+const MapPicker = dynamic(() => import("@/components/shared/MapPicker"), { ssr: false });
 
 const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
 
@@ -28,6 +31,8 @@ interface ProfileForm {
   province: string;
   postal_code: string;
   business_category: string;
+  latitude: string;
+  longitude: string;
 }
 
 interface UmkmStatus {
@@ -41,7 +46,7 @@ interface UmkmStatus {
 const EMPTY_FORM: ProfileForm = {
   shop_name: "", owner_name: "", description: "", phone: "",
   email: "", address: "", city: "", province: "", postal_code: "",
-  business_category: "",
+  business_category: "", latitude: "", longitude: "",
 };
 
 const DAYS = [
@@ -160,6 +165,8 @@ export default function PengaturanPage() {
       province: umkm.province ?? "",
       postal_code: umkm.postal_code ?? "",
       business_category: umkm.business_category ?? "",
+      latitude: umkm.latitude ? String(umkm.latitude) : "",
+      longitude: umkm.longitude ? String(umkm.longitude) : "",
     });
     setShopIsOpen(umkm.is_open ?? true);
     setClosedUntil(umkm.closed_until ? umkm.closed_until.slice(0, 16) : "");
@@ -194,7 +201,12 @@ export default function PengaturanPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put("/profile", form);
+      const payload: Partial<ProfileForm> = { ...form };
+      if (umkmStatus?.status === "active") {
+        delete payload.shop_name;
+        delete payload.business_category;
+      }
+      await api.put("/profile", payload);
       toast.success("Profil berhasil disimpan!");
       fetchProfile().catch(() => {});
     } catch (e: any) {
@@ -498,6 +510,21 @@ export default function PengaturanPage() {
             <label className="text-xs font-medium text-gray-700 mb-1.5 block">Alamat Lengkap</label>
             <input value={form.address} onChange={set("address")} placeholder="Jl. ..."
               className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400" />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="text-xs font-medium text-gray-700 mb-1.5 block">Lokasi Toko</label>
+            <p className="text-xs text-gray-400 mb-2">Tandai titik lokasi toko untuk perhitungan ongkos kirim</p>
+            <MapPicker
+              defaultLat={form.latitude ? Number(form.latitude) : null}
+              defaultLng={form.longitude ? Number(form.longitude) : null}
+              onChange={(lat, lng) => setForm(prev => ({ ...prev, latitude: String(lat), longitude: String(lng) }))}
+            />
+            {form.latitude && form.longitude && (
+              <p className="text-[11px] text-gray-400 mt-1">
+                Koordinat: {Number(form.latitude).toFixed(6)}, {Number(form.longitude).toFixed(6)}
+              </p>
+            )}
           </div>
 
           <div className="md:col-span-2">

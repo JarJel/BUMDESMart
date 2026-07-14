@@ -3,9 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
+import { MessageCircle, Package, Navigation, RefreshCw } from "lucide-react";
 
 function formatRp(n: number) {
   return "Rp " + Math.round(n).toLocaleString("id-ID");
+}
+
+function openWA(phone: string | undefined, msg: string) {
+  if (!phone) return;
+  const clean = phone.replace(/[^0-9]/g, "").replace(/^0/, "62");
+  window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
 export default function PengirimPesananPage() {
@@ -14,6 +21,7 @@ export default function PengirimPesananPage() {
   const [available, setAvailable] = useState<any[]>([]);
   const [active, setActive] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notVerified, setNotVerified] = useState(false);
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
@@ -26,8 +34,13 @@ export default function PengirimPesananPage() {
       ]);
       setAvailable(avRes.data.data ?? []);
       setActive(acRes.data.data ?? []);
-    } catch {
-      toast.error("Gagal memuat pesanan.");
+      setNotVerified(false);
+    } catch (err: any) {
+      if (err?.response?.status === 403 && err?.response?.data?.is_verified === false) {
+        setNotVerified(true);
+      } else {
+        toast.error("Gagal memuat pesanan.");
+      }
     } finally {
       setLoading(false);
     }
@@ -40,10 +53,11 @@ export default function PengirimPesananPage() {
     setAcceptingId(id);
     try {
       await api.post(`/driver/orders/${id}/accept`);
-      toast.success("Pesanan berhasil diambil!");
+      toast.success("Pesanan diambil! Segera menuju toko.");
       fetchOrders();
-    } catch {
-      toast.error("Gagal mengambil pesanan.");
+      setTab("active");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Gagal mengambil pesanan.");
     } finally {
       setAcceptingId(null);
     }
@@ -53,7 +67,7 @@ export default function PengirimPesananPage() {
     setUpdatingId(id);
     try {
       await api.patch(`/driver/orders/${id}/status`, { status });
-      toast.success(status === "shipped" ? "Ditandai: Sedang Dikirim" : "Pengiriman selesai!");
+      toast.success(status === "shipped" ? "Status: Sedang Diantar ke Pembeli" : "Pengiriman selesai!");
       fetchOrders();
     } catch {
       toast.error("Gagal update status.");
@@ -62,18 +76,37 @@ export default function PengirimPesananPage() {
     }
   };
 
+  if (notVerified) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 px-6 text-center gap-4">
+        <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center">
+          <svg fill="none" stroke="#F97316" strokeWidth={1.5} viewBox="0 0 24 24" className="w-8 h-8">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">Akun Belum Diverifikasi</h2>
+          <p className="text-sm text-gray-500 mt-1">Tunggu verifikasi dari admin BUMDes terlebih dahulu.</p>
+        </div>
+      </div>
+    );
+  }
+
   const TABS = [
     { key: "available", label: "Tersedia", count: available.length },
     { key: "active",    label: "Aktif",    count: active.length },
   ] as const;
 
-  const orders = tab === "available" ? available : active;
-
   return (
     <div className="p-5 space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Pesanan</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Pilih dan kelola pesanan pengirimanmu</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Pesanan</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Pilih dan kelola pesanan pengirimanmu</p>
+        </div>
+        <button onClick={fetchOrders} className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50">
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Tabs */}
@@ -93,89 +126,154 @@ export default function PengirimPesananPage() {
         <div className="flex items-center justify-center py-16">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-500" />
         </div>
-      ) : orders.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
-            <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-            </svg>
-          </div>
-          <p className="text-sm text-gray-500">
-            {tab === "available" ? "Belum ada pesanan tersedia." : "Kamu tidak punya pengiriman aktif."}
-          </p>
+      ) : tab === "available" ? (
+        /* ── AVAILABLE ORDERS ── */
+        <div className="space-y-3">
+          {available.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center text-sm text-gray-400">
+              Belum ada pesanan tersedia saat ini.
+            </div>
+          ) : (
+            available.map(order => (
+              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">{order.order_code}</span>
+                  <span className="text-lg font-bold text-orange-500">{formatRp(order.earning ?? 0)}</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-gray-50 rounded-xl py-2">
+                    <p className="text-xs font-bold text-gray-900">{order.total_weight_kg ?? 0} kg</p>
+                    <p className="text-xs text-gray-500">Berat</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl py-2">
+                    <p className="text-xs font-bold text-gray-900">{order.distance_km != null ? `${order.distance_km} km` : "—"}</p>
+                    <p className="text-xs text-gray-500">Jarak</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl py-2">
+                    <p className="text-xs font-bold text-gray-900">{order.items?.length ?? 0}</p>
+                    <p className="text-xs text-gray-500">Item</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                    <p className="text-xs text-gray-700 flex-1 truncate">
+                      <span className="font-semibold">{order.pickup_from?.name}</span>
+                      {order.pickup_from?.address ? ` · ${order.pickup_from.address}` : ""}
+                    </p>
+                  </div>
+                  <div className="ml-1 border-l border-dashed border-gray-300 h-3" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                    <p className="text-xs text-gray-700 flex-1 truncate">
+                      <span className="font-semibold">{order.deliver_to?.recipient_name}</span>
+                      {order.deliver_to?.city ? ` · ${order.deliver_to.city}` : ""}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => accept(order.id)}
+                  disabled={acceptingId === order.id || active.length >= 1}
+                  className="w-full py-3 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {acceptingId === order.id ? "Mengambil..." :
+                   active.length >= 1 ? "Selesaikan pesanan aktif dulu" :
+                   "Ambil Pesanan Ini"}
+                </button>
+              </div>
+            ))
+          )}
         </div>
       ) : (
+        /* ── ACTIVE ORDERS ── */
         <div className="space-y-3">
-          {orders.map(order => (
-            <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
-              {/* Header */}
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-sm font-bold text-gray-900">{order.order_code}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {new Date(order.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
-                  </p>
+          {active.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center text-sm text-gray-400">
+              Tidak ada pengiriman aktif.
+            </div>
+          ) : (
+            active.map(order => (
+              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-gray-900">{order.order_code}</p>
+                    <span className={`mt-1 inline-block text-xs px-2 py-0.5 rounded-full font-semibold ${
+                      order.status === "picking_up" ? "bg-orange-50 text-orange-600" :
+                      order.status === "shipped"    ? "bg-purple-50 text-purple-600" : "bg-green-50 text-green-700"
+                    }`}>
+                      {order.status === "picking_up" ? "Menuju Toko" :
+                       order.status === "shipped"    ? "Sedang Diantar" : "Selesai"}
+                    </span>
+                  </div>
+                  <span className="text-base font-bold text-orange-500">{formatRp(order.earning ?? order.shipping_cost ?? 0)}</span>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-bold" style={{ color: "#EA580C" }}>{formatRp(Number(order.total))}</p>
-                  <p className="text-xs text-gray-400">{(order.items ?? []).length} item</p>
-                </div>
-              </div>
 
-              {/* Produk */}
-              <div className="space-y-1">
-                {(order.items ?? []).slice(0, 2).map((item: any) => (
-                  <p key={item.id} className="text-xs text-gray-600">
-                    • {item.product_name} ({item.quantity}×)
-                  </p>
-                ))}
-                {(order.items ?? []).length > 2 && (
-                  <p className="text-xs text-gray-400">+{order.items.length - 2} lainnya</p>
+                {/* Route dengan tombol WA */}
+                <div className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Package className="w-3.5 h-3.5 text-green-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500">Ambil di toko</p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">{order.pickup_from?.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{order.pickup_from?.address}</p>
+                    </div>
+                    <button
+                      onClick={() => openWA(order.pickup_from?.phone, `Halo, saya kurir BUMDESMart untuk pesanan #${order.order_code}. Saya sedang dalam perjalanan ke toko.`)}
+                      disabled={!order.pickup_from?.phone}
+                      className="flex-shrink-0 w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center disabled:opacity-30"
+                    >
+                      <MessageCircle className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+
+                  <div className="ml-3.5 border-l-2 border-dashed border-gray-200 h-4" />
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Navigation className="w-3.5 h-3.5 text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500">Antar ke — <span className="font-semibold text-gray-700">{order.deliver_to?.recipient_name}</span></p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">{order.deliver_to?.address}</p>
+                      <p className="text-xs text-gray-500">{order.deliver_to?.city}</p>
+                    </div>
+                    <button
+                      onClick={() => openWA(order.deliver_to?.phone, `Halo ${order.deliver_to?.recipient_name ?? ""}, saya kurir BUMDESMart. Sedang mengantarkan pesanan #${order.order_code}. Bisa konfirmasi alamat? Terima kasih.`)}
+                      disabled={!order.deliver_to?.phone}
+                      className="flex-shrink-0 w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center disabled:opacity-30"
+                    >
+                      <MessageCircle className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Action button */}
+                {order.status === "picking_up" && (
+                  <button
+                    onClick={() => updateStatus(order.id, "shipped")}
+                    disabled={updatingId === order.id}
+                    className="w-full py-3 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                  >
+                    {updatingId === order.id ? "Memproses..." : "Barang Sudah Diambil — Mulai Antar"}
+                  </button>
+                )}
+                {order.status === "shipped" && (
+                  <button
+                    onClick={() => updateStatus(order.id, "delivered")}
+                    disabled={updatingId === order.id}
+                    className="w-full py-3 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  >
+                    {updatingId === order.id ? "Memproses..." : "Pesanan Sudah Diterima Pembeli"}
+                  </button>
                 )}
               </div>
-
-              {/* Alamat */}
-              {order.address && (
-                <div className="bg-gray-50 rounded-xl px-3 py-2">
-                  <p className="text-xs font-medium text-gray-700">
-                    {order.address.recipient_name ?? order.address.name}
-                  </p>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    {order.address.address ?? order.address.address_line}, {order.address.city}
-                  </p>
-                </div>
-              )}
-
-              {/* Actions */}
-              {tab === "available" && (
-                <button onClick={() => accept(order.id)} disabled={acceptingId === order.id}
-                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                  style={{ background: "#EA580C" }}>
-                  {acceptingId === order.id ? "Memproses..." : "Ambil Pesanan Ini"}
-                </button>
-              )}
-              {tab === "active" && (
-                <div className="flex gap-2">
-                  {order.status !== "shipped" && (
-                    <button onClick={() => updateStatus(order.id, "shipped")}
-                      disabled={updatingId === order.id}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                      style={{ background: "#EA580C" }}>
-                      {updatingId === order.id ? "..." : "Tandai Dikirim"}
-                    </button>
-                  )}
-                  {order.status === "shipped" && (
-                    <button onClick={() => updateStatus(order.id, "delivered")}
-                      disabled={updatingId === order.id}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                      style={{ background: "var(--primary)" }}>
-                      {updatingId === order.id ? "..." : "Selesai Diantar"}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
     </div>

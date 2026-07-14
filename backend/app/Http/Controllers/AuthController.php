@@ -92,11 +92,17 @@ class AuthController extends Controller
             'email'         => 'required|string|email|unique:users,email',
             'password'      => 'required|string|min:8|confirmed',
             'phone'         => 'required|string|max:20',
-            'vehicle_type'  => 'required|in:motor,mobil,pickup,sepeda',
-            'vehicle_brand' => 'required|string|max:100',
-            'vehicle_plate' => 'required|string|max:20',
-            'vehicle_year'  => 'nullable|integer|min:1990|max:2030',
-            'sim_type'      => 'required|in:A,B,C,A1,B1',
+            'vehicle_type'        => 'required|in:motor,mobil,pickup_box,pickup_bak',
+            'vehicle_brand'       => 'required|string|max:100',
+            'vehicle_plate'       => 'required|string|max:20',
+            'vehicle_year'        => 'nullable|integer|min:1990|max:2030',
+            'sim_type'            => 'required|in:A,B,C,A1,B1',
+            'id_number'           => 'nullable|string|digits:16',
+            'bank_name'           => 'nullable|string|max:100',
+            'bank_account_number' => 'nullable|string|max:50',
+            'bank_account_name'   => 'nullable|string|max:100',
+            'photo_profile'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'photo_ktp'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         if ($validator->fails()) {
@@ -104,7 +110,14 @@ class AuthController extends Controller
         }
 
         try {
-            $user = $this->authService->registerDriver($request->all());
+            $data = $request->except(['photo_profile', 'photo_ktp']);
+            if ($request->hasFile('photo_profile')) {
+                $data['photo_profile'] = $request->file('photo_profile')->store('driver/photos', 'public');
+            }
+            if ($request->hasFile('photo_ktp')) {
+                $data['photo_ktp'] = $request->file('photo_ktp')->store('driver/ktp', 'public');
+            }
+            $user = $this->authService->registerDriver($data);
             return response()->json([
                 'message' => 'Pendaftaran pengirim berhasil.',
                 'user'    => $user,

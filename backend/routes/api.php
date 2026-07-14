@@ -192,6 +192,14 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('super-admin')->
     Route::get('/umkm/{id}', [SuperAdminUmkmController::class, 'show']);
     Route::patch('/umkm/{id}/status', [SuperAdminUmkmController::class, 'updateStatus']);
 
+    // Driver management
+    Route::get('/drivers', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'index']);
+    Route::get('/drivers/{id}', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'show']);
+    Route::patch('/drivers/{id}/verify', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'verify']);
+    Route::patch('/drivers/{id}/reject', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'reject']);
+    Route::patch('/drivers/{id}/suspend', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'suspend']);
+    Route::patch('/drivers/{id}/unsuspend', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'unsuspend']);
+
     // Laporan
     Route::get('/reports/overview', [SuperAdminReportController::class, 'overview']);
     Route::get('/reports/bumdes', [SuperAdminReportController::class, 'bumdesBreakdown']);
@@ -212,7 +220,14 @@ Route::middleware(['auth:sanctum', 'role:pengirim'])->prefix('driver')->group(fu
     Route::patch('/orders/{id}/status', [DriverController::class, 'updateOrderStatus']);
     Route::get('/history', [DriverController::class, 'orderHistory']);
     Route::get('/stats', [DriverController::class, 'stats']);
+    Route::post('/device-token', [DriverController::class, 'registerDeviceToken']);
 });
+
+// Device token untuk semua user yang terautentikasi (customer, umkm, dll)
+Route::middleware('auth:sanctum')->post('/device-token', [DriverController::class, 'registerDeviceToken']);
+
+// Public stats (landing page counter)
+Route::get('/stats', [\App\Http\Controllers\PublicStatsController::class, 'index']);
 
 // Public bumdes list (untuk FE pilih bumdes saat daftar mitra)
 Route::get('/bumdes', [SuperAdminBumdesController::class, 'index']);

@@ -48,6 +48,8 @@ class ProfileController extends Controller
             'nib'               => 'sometimes|nullable|string|max:30',
             'npwp'              => 'sometimes|nullable|string|max:20',
             'business_category' => 'sometimes|nullable|string|max:100',
+            'latitude'          => 'sometimes|nullable|numeric|between:-90,90',
+            'longitude'         => 'sometimes|nullable|numeric|between:-180,180',
         ]);
 
         if ($validator->fails()) {
@@ -90,7 +92,7 @@ class ProfileController extends Controller
                         $request->only([
                             'shop_name', 'owner_name', 'description', 'phone', 'email',
                             'address', 'city', 'province', 'postal_code',
-                            'nib', 'npwp', 'business_category',
+                            'nib', 'npwp', 'business_category', 'latitude', 'longitude',
                         ]),
                         fn($v) => !is_null($v)
                     );

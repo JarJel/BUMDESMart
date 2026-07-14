@@ -1,11 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { sellerApi, SellerData } from "@/lib/api/seller";
 import { StarIcon } from "@/components/ui/StarIcon";
 import { useRouter } from "next/navigation";
 import { cartApi } from "@/lib/api/cart";
+import api from "@/lib/api/axios";
+import { useAuth } from "@/hooks/useAuth";
+import { Bike, Store, Package, ShoppingBag, MapPin, DollarSign, Clock, BadgeCheck } from "lucide-react";
+
+// ─── Counter animasi count-up ─────────────────────────────────────────────────
+function CountUp({ target, suffix = "", duration = 1800 }: { target: number; suffix?: string; duration?: number }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLParagraphElement>(null);
+  const started = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !started.current) {
+        started.current = true;
+        observer.disconnect();
+        let startTs: number | null = null;
+        const step = (ts: number) => {
+          if (!startTs) startTs = ts;
+          const p = Math.min((ts - startTs) / duration, 1);
+          const eased = 1 - Math.pow(1 - p, 3);
+          setCount(Math.floor(eased * target));
+          if (p < 1) requestAnimationFrame(step);
+          else setCount(target);
+        };
+        requestAnimationFrame(step);
+      }
+    }, { threshold: 0.4 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [target, duration]);
+
+  return (
+    <p ref={ref} className="text-2xl font-bold text-white">
+      {count.toLocaleString("id-ID")}{suffix}
+    </p>
+  );
+}
 
 // ─── Sticky Bar GoFood Component ─────────────────────────────────────────────
 function StickyCartBar({ items, shopName, onViewCart }: {
@@ -127,16 +166,26 @@ function TokoCard({ toko }: { toko: any }) {
   );
 }
 
+interface PublicStats {
+  umkm_aktif: number;
+  produk_tersedia: number;
+  transaksi_selesai: number;
+  desa_binaan: number;
+}
+
 export default function BerandaPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [tokoUnggulan, setTokoUnggulan] = useState<SellerData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<PublicStats>({ umkm_aktif: 0, produk_tersedia: 0, transaksi_selesai: 0, desa_binaan: 0 });
 
   // State untuk sticky bar keranjang
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [cartShopName, setCartShopName] = useState<string>("");
 
   const loadCartData = async () => {
+    if (user?.role !== "customer") return;
     try {
       const res = await cartApi.get();
       if (res.data?.success && res.data?.data?.items) {
@@ -150,13 +199,14 @@ export default function BerandaPage() {
         }
       }
     } catch {
-      // Belum login
+      // Belum login atau tidak ada cart
     }
   };
 
   useEffect(() => {
     loadCartData();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Listen event update keranjang jika ada perubahan di page lain
   useEffect(() => {
@@ -171,17 +221,13 @@ export default function BerandaPage() {
 
   useEffect(() => {
     sellerApi.list({ limit: 4 })
-      .then(res => {
-        if (res.data && res.data.success) {
-          setTokoUnggulan(res.data.data);
-        }
-      })
-      .catch(err => {
-        console.error("Gagal memuat toko unggulan:", err);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      .then(res => { if (res.data?.success) setTokoUnggulan(res.data.data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+
+    api.get("/stats")
+      .then(res => { if (res.data?.data) setStats(res.data.data); })
+      .catch(() => {});
   }, []);
 
   return (
@@ -331,16 +377,17 @@ export default function BerandaPage() {
                 </Link>
               </div>
 
-              {/* Stat */}
+              {/* Stat dengan animasi count-up */}
               <div className="hidden md:grid grid-cols-2 gap-4 shrink-0">
-                {[
-                  { label: "UMKM Aktif", value: "9+" },
-                  { label: "Produk Tersedia", value: "50+" },
-                  { label: "Transaksi/Hari", value: "100+" },
-                  { label: "Desa Binaan", value: "1" },
-                ].map((s) => (
+                {([
+                  { label: "UMKM Aktif",        value: stats.umkm_aktif,        suffix: "+", Icon: Store },
+                  { label: "Produk Tersedia",    value: stats.produk_tersedia,   suffix: "+", Icon: Package },
+                  { label: "Transaksi Selesai",  value: stats.transaksi_selesai, suffix: "+", Icon: ShoppingBag },
+                  { label: "Desa Binaan",        value: stats.desa_binaan,       suffix: "",  Icon: MapPin },
+                ] as const).map((s) => (
                   <div key={s.label} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5 text-center">
-                    <p className="text-2xl font-bold text-white">{s.value}</p>
+                    <s.Icon className="w-5 h-5 text-green-300 mx-auto mb-1" />
+                    <CountUp target={s.value} suffix={s.suffix} />
                     <p className="text-xs text-green-200 mt-1">{s.label}</p>
                   </div>
                 ))}
@@ -365,7 +412,9 @@ export default function BerandaPage() {
                   </svg>
                 </div>
                 <div className="relative z-10 text-center text-white px-6">
-                  <p className="text-5xl font-bold mb-2">🛵</p>
+                  <div className="flex items-center justify-center mb-3">
+                    <Bike className="w-14 h-14 text-white drop-shadow-lg" strokeWidth={1.5} />
+                  </div>
                   <p className="text-lg font-bold">Antar. Cepat. Cuan.</p>
                   <p className="text-sm text-orange-100 mt-1">Bergabung bersama pengirim BUMDESMart</p>
                 </div>
@@ -387,16 +436,14 @@ export default function BerandaPage() {
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                {[
-                  { icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z", label: "Penghasilan Harian", desc: "Bayaran per pengiriman langsung masuk" },
-                  { icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z", label: "Jam Kerja Bebas", desc: "Aktif sesuai kesiapanmu, kapan saja" },
-                  { icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z", label: "Mitra Resmi", desc: "Terdaftar & dipercaya BUMDes" },
-                ].map(b => (
+                {([
+                  { Icon: DollarSign, label: "Penghasilan Harian",  desc: "Bayaran per pengiriman langsung masuk" },
+                  { Icon: Clock,      label: "Jam Kerja Bebas",     desc: "Aktif sesuai kesiapanmu, kapan saja" },
+                  { Icon: BadgeCheck, label: "Mitra Resmi",         desc: "Terdaftar & dipercaya BUMDes" },
+                ] as const).map(b => (
                   <div key={b.label} className="flex gap-3 items-start p-3 rounded-xl" style={{ background: "#FFF7ED" }}>
                     <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center" style={{ background: "#EA580C" }}>
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={b.icon} />
-                      </svg>
+                      <b.Icon className="w-4 h-4 text-white" strokeWidth={2} />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-gray-900">{b.label}</p>
