@@ -538,9 +538,9 @@ export default function Navbar() {
 
 
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu Dropdown Overlay */}
         {open && (
-          <div className="md:hidden border-t border-gray-100 py-4 space-y-1">
+          <div className="absolute top-full left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-2xl py-4 px-4 space-y-2 md:hidden">
             {/* Search Input for Mobile */}
             <div className="px-3 pb-3">
               <form action="/produk" method="GET" className="relative">

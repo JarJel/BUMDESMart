@@ -14,6 +14,7 @@ use App\Models\OrderHistory;
 use App\Models\Product;
 use App\Models\ProductDiscount;
 use App\Models\ProductVariant;
+use App\Models\ProductVariantOption;
 use App\Models\UmkmProfile;
 use App\Models\BumdesProfile;
 use App\Models\Address;
@@ -51,8 +52,10 @@ class CheckoutController extends Controller
 
                 $variant = null;
                 if ($variantId) {
-                    $variant = ProductVariant::where('id', $variantId)
-                        ->where('product_id', $productId)
+                    $variant = ProductVariantOption::where('id', $variantId)
+                        ->whereHas('productVariant', function($q) use ($productId) {
+                            $q->where('product_id', $productId);
+                        })
                         ->first();
                     if (!$variant) {
                         return response()->json([

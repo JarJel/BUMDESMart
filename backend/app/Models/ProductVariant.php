@@ -25,4 +25,15 @@ class ProductVariant extends Model
     {
         return $this->hasMany(ProductVariantOption::class, 'product_variant_id');
     }
+
+    // Accessor dinamis untuk kompatibilitas dengan CartController & CheckoutController
+    public function getPriceAttribute()
+    {
+        return $this->options()->first()?->price ?? 0;
+    }
+
+    public function getStockAttribute()
+    {
+        return $this->options()->first()?->stock ?? 0;
+    }
 }

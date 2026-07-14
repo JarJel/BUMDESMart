@@ -112,6 +112,7 @@ export default function CheckoutPage() {
   const [deletingAddr, setDeletingAddr] = useState(false);
   const [shippingCost, setShippingCost] = useState<number | null>(null);
   const [loadingShipping, setLoadingShipping] = useState(false);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null);
 
   // Address modal
   const [showModal, setShowModal] = useState(false);
@@ -476,7 +477,7 @@ export default function CheckoutPage() {
                   </p>
                   <div className="space-y-3">
                     {group.items.map((item) => {
-                      const imgUrl = getAssetUrl(item.product?.images?.[0]?.image_path);
+                      const imgUrl = getAssetUrl(item.product?.images?.[0]?.file_path);
                       const price = getProductPrice(item);
                       const originalPrice = item.variant ? Number(item.variant.price) : Number(item.product?.price || 0);
                       const hasDiscount = !item.variant && !!item.product?.active_discount;
@@ -495,7 +496,7 @@ export default function CheckoutPage() {
                             </div>
                             <div className="min-w-0">
                               <p className="text-xs font-semibold text-gray-800 truncate">{item.product?.name}</p>
-                              {item.variant && <p className="text-[10px] text-gray-400 mt-0.5">Varian: {item.variant.name}</p>}
+                              {item.variant && <p className="text-[10px] text-gray-400 mt-0.5">Varian: {item.variant.value}</p>}
                               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                 <p className="text-xs font-bold text-green-600">{formatRupiah(price)}</p>
                                 {hasDiscount && (
@@ -527,7 +528,7 @@ export default function CheckoutPage() {
 
                             {/* Delete button */}
                             <button
-                              onClick={() => handleRemoveItem(item.id)}
+                              onClick={() => setConfirmRemoveId(item.id)}
                               className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors border-0 bg-transparent cursor-pointer"
                               title="Hapus"
                             >
@@ -770,6 +771,21 @@ export default function CheckoutPage() {
         loading={deletingAddr}
         onConfirm={executeDeleteAddress}
         onClose={() => setDeleteAddrId(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmRemoveId !== null}
+        title="Hapus Produk?"
+        description="Apakah Anda yakin ingin menghapus produk ini dari daftar pesanan?"
+        confirmLabel="Ya, Hapus"
+        variant="danger"
+        onConfirm={async () => {
+          if (confirmRemoveId !== null) {
+            await handleRemoveItem(confirmRemoveId);
+            setConfirmRemoveId(null);
+          }
+        }}
+        onClose={() => setConfirmRemoveId(null)}
       />
 
       {/* Modal Tambah/Edit Alamat */}

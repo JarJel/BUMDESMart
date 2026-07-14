@@ -100,14 +100,24 @@ function StickyCartBar({ items, shopName, onViewCart }: {
 function TokoCard({ toko }: { toko: any }) {
   const shopName = toko.shop_name || toko.nama || "Nama Toko";
   const desc = toko.description || toko.deskripsi || "Deskripsi toko";
-  const banner = toko.banner || toko.foto || "";
+  const banner = toko.logo || toko.banner || toko.foto || "";
   const city = toko.city || toko.lokasi || "Jawa Barat";
   const rating = toko.rating || "5.0";
   const totalProduk = toko.totalProduk ?? 0;
   const totalPenjualan = toko.totalPenjualan ?? 0;
 
-  const hasBanner = banner && (banner.startsWith('http') || banner.startsWith('/'));
-  const bannerUrl = hasBanner ? banner : (banner ? `http://localhost:8000${banner}` : '');
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+  const IMG_BASE = API_URL.replace("/api/v1", "");
+  
+  let bannerUrl = "";
+  if (banner) {
+    if (banner.startsWith("http")) {
+      bannerUrl = banner;
+    } else {
+      const cleanBanner = banner.startsWith("/") ? banner : `/${banner}`;
+      bannerUrl = `${IMG_BASE}${cleanBanner}`;
+    }
+  }
 
   return (
     <Link
@@ -115,7 +125,7 @@ function TokoCard({ toko }: { toko: any }) {
       className="group bg-white rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border border-gray-100"
     >
       {/* Banner foto toko */}
-      <div className="h-44 relative overflow-hidden bg-gray-50 flex items-center justify-center">
+      <div className="h-32 sm:h-44 relative overflow-hidden bg-gray-50 flex items-center justify-center">
         {bannerUrl ? (
           <img
             src={bannerUrl}
@@ -333,13 +343,13 @@ export default function BerandaPage() {
             </Link>
           </div>
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
               {[1, 2, 3, 4].map(n => (
-                <div key={n} className="bg-white rounded-2xl h-72 animate-pulse border border-gray-100" />
+                <div key={n} className="bg-white rounded-2xl h-60 sm:h-72 animate-pulse border border-gray-100" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
               {tokoUnggulan.map((toko) => <TokoCard key={toko.id} toko={toko} />)}
             </div>
           )}

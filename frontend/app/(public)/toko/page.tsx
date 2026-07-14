@@ -34,8 +34,11 @@ export default function SemuaTokoPage() {
 
   const getBannerUrl = (banner: string | null) => {
     if (!banner) return "";
-    if (banner.startsWith("http") || banner.startsWith("/")) return banner;
-    return `http://localhost:8000/${banner}`;
+    if (banner.startsWith("http")) return banner;
+    const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+    const IMG_BASE = API_URL.replace("/api/v1", "");
+    const cleanBanner = banner.startsWith("/") ? banner : `/${banner}`;
+    return `${IMG_BASE}${cleanBanner}`;
   };
 
   return (
@@ -73,8 +76,10 @@ export default function SemuaTokoPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filtered.map((toko) => {
                 const bannerUrl = getBannerUrl(toko.banner);
+                const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+                const IMG_BASE = API_URL.replace("/api/v1", "");
                 const logoUrl = toko.logo
-                  ? (toko.logo.startsWith("http") || toko.logo.startsWith("/") ? toko.logo : `http://localhost:8000/${toko.logo}`)
+                  ? (toko.logo.startsWith("http") ? toko.logo : `${IMG_BASE}${toko.logo.startsWith("/") ? toko.logo : `/${toko.logo}`}`)
                   : null;
                 const initials = toko.shop_name ? toko.shop_name.slice(0, 2).toUpperCase() : "TK";
 

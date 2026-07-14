@@ -90,6 +90,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
   const [showLoginAlert, setShowLoginAlert] = useState(false);
   const [showConflictAlert, setShowConflictAlert] = useState(false);
@@ -148,6 +149,10 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   }, [slug]);
 
   const handleAddToCart = async (qty: number) => {
+    if (produk.variants && produk.variants.length > 0 && selectedVariantId === null) {
+      toast.warning("Silakan pilih varian produk terlebih dahulu.");
+      return;
+    }
     try {
       const res = await cartApi.add(produk.id, qty, selectedVariantId);
       if (res.data && res.data.success) {
@@ -175,6 +180,10 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   };
 
   const handleBuyNow = async (qty: number) => {
+    if (produk.variants && produk.variants.length > 0 && selectedVariantId === null) {
+      toast.warning("Silakan pilih varian produk terlebih dahulu.");
+      return;
+    }
     try {
       const res = await cartApi.add(produk.id, qty, selectedVariantId);
       if (res.data && res.data.success) {
@@ -225,11 +234,12 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   if (error || !produk) return notFound();
 
   const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
-  const mainImageUrl = produk.primary_image?.file_path
+  const defaultMainImage = produk.primary_image?.file_path
     ? `${IMG_BASE}${produk.primary_image.file_path}`
     : produk.images?.[0]?.file_path
       ? `${IMG_BASE}${produk.images[0].file_path}`
       : '/placeholder-product.jpg';
+  const mainImageUrl = selectedImage || defaultMainImage;
 
   const documents: Dokumen[] = [];
   if (toko?.nib) documents.push({ type: 'nib', nomor: toko.nib, tanggalTerbit: '2026-01-01', berlakuHingga: 'Permanen' });
@@ -239,7 +249,23 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   const rating = produk.rating || "4.8";
   const soldCount = produk.sold_count ?? 0;
   const activeDiscount = produk.active_discount ?? null;
-  const finalPrice = activeDiscount ? activeDiscount.discounted_price : price;
+  
+  // Hitung harga dinamis berdasarkan varian (options) atau diskon
+  let activeVariant: any = null;
+  if (produk.variants) {
+    for (const v of produk.variants) {
+      const found = v.options?.find((opt: any) => opt.id === selectedVariantId);
+      if (found) {
+        activeVariant = found;
+        break;
+      }
+    }
+  }
+
+  const finalPrice = activeVariant 
+    ? Number(activeVariant.price) 
+    : (activeDiscount ? Number(activeDiscount.discounted_price) : price);
+    
   const totalCartQty = cartItems.reduce((s, i) => s + i.quantity, 0);
 
   return (
@@ -343,23 +369,32 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
             </div>
             {/* Thumbnail — hanya sm+ */}
             {produk.images && produk.images.length > 0 && (
-              <div className="hidden sm:flex gap-1.5 mb-2">
-                {produk.images.map((img: any, i: number) => (
-                  <div
-                    key={img.id}
-                    className={`w-11 h-11 rounded-lg overflow-hidden cursor-pointer border-2 transition-colors shrink-0 ${i === 0 ? "border-green-500" : "border-transparent hover:border-green-300"}`}
-                    style={{
-                      backgroundImage: `url('${IMG_BASE}${img.file_path}')`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  />
-                ))}
+              <div className="hidden sm:flex gap-1.5 mb-2 overflow-x-auto">
+                {produk.images.map((img: any) => {
+                  const imgUrl = `${IMG_BASE}${img.file_path}`;
+                  const isActive = mainImageUrl === imgUrl;
+                  return (
+                    <div
+                      key={img.id}
+                      onClick={() => setSelectedImage(imgUrl)}
+                      className={`w-11 h-11 rounded-lg overflow-hidden cursor-pointer border-2 transition-colors shrink-0 ${isActive ? "border-green-600" : "border-transparent hover:border-green-300"}`}
+                      style={{
+                        backgroundImage: `url('${imgUrl}')`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                    />
+                  );
+                })}
               </div>
             )}
             {/* Varian di bawah gambar — mengisi ruang kosong */}
             {produk.variants && produk.variants.length > 0 && (
-              <VariantSelector variasi={produk.variants} />
+              <VariantSelector 
+                variants={produk.variants}
+                selectedId={selectedVariantId}
+                onChange={setSelectedVariantId}
+              />
             )}
           </div>
 
@@ -389,32 +424,43 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
             </div>
 
             {/* Harga */}
-            {activeDiscount ? (
-              <div className="mb-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-base sm:text-2xl lg:text-3xl font-bold" style={{ color: "var(--primary)" }}>
-                    Rp {Number(activeDiscount.discounted_price).toLocaleString("id-ID")}
-                  </span>
-                  <span className="text-xs sm:text-sm font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
-                    {activeDiscount.type === "percentage"
-                      ? `-${Number(activeDiscount.value).toFixed(0)}%`
-                      : `-Rp ${Number(activeDiscount.value).toLocaleString("id-ID")}`}
-                  </span>
+            <div className="mb-3">
+              {activeVariant ? (
+                <div>
+                  <p className="text-base sm:text-2xl lg:text-3xl font-bold" style={{ color: "var(--primary)" }}>
+                    Rp {Number(activeVariant.price).toLocaleString("id-ID")}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Varian terpilih: <span className="font-semibold text-gray-700">{activeVariant.value}</span>
+                  </p>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-400 line-through mt-0.5">
+              ) : activeDiscount ? (
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-base sm:text-2xl lg:text-3xl font-bold" style={{ color: "var(--primary)" }}>
+                      Rp {Number(activeDiscount.discounted_price).toLocaleString("id-ID")}
+                    </span>
+                    <span className="text-xs sm:text-sm font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                      {activeDiscount.type === "percentage"
+                        ? `-${Number(activeDiscount.value).toFixed(0)}%`
+                        : `-Rp ${Number(activeDiscount.value).toLocaleString("id-ID")}`}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-gray-400 line-through mt-0.5">
+                    Rp {price.toLocaleString("id-ID")}
+                  </p>
+                  {activeDiscount.end_date && (
+                    <p className="text-xs text-orange-500 mt-0.5">
+                      ⏳ Berakhir {new Date(activeDiscount.end_date).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-base sm:text-2xl lg:text-3xl font-bold" style={{ color: "var(--primary)" }}>
                   Rp {price.toLocaleString("id-ID")}
                 </p>
-                {activeDiscount.end_date && (
-                  <p className="text-xs text-orange-500 mt-0.5">
-                    ⏳ Berakhir {new Date(activeDiscount.end_date).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="text-base sm:text-2xl lg:text-3xl font-bold mb-2" style={{ color: "var(--primary)" }}>
-                Rp {price.toLocaleString("id-ID")}
-              </p>
-            )}
+              )}
+            </div>
 
             <p className="hidden sm:block text-xs text-gray-500 leading-relaxed mb-3 line-clamp-2">{produk.description}</p>
 
