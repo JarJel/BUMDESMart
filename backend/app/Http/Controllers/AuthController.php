@@ -354,9 +354,10 @@ class AuthController extends Controller
             $idToken = $request->id_token;
 
             // 1. Verifikasi token ke Google API
-            $response = Http::get('https://oauth2.googleapis.com/tokeninfo', [
-                'id_token' => $idToken
-            ]);
+            $response = Http::when(app()->environment('local'), fn($q) => $q->withoutVerifying())
+                ->get('https://oauth2.googleapis.com/tokeninfo', [
+                    'id_token' => $idToken
+                ]);
 
             if (!$response->successful()) {
                 return response()->json(['error' => 'Token Google tidak valid.'], 401);

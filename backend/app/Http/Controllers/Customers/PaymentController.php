@@ -58,10 +58,11 @@ class PaymentController extends Controller
             'failure_redirect_url' => config('app.frontend_url') . '/pembayaran/gagal?order=' . $order->order_code,
         ];
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Basic ' . $this->xenditAuth(),
-            'Content-Type'  => 'application/json',
-        ])->post('https://api.xendit.co/v2/invoices', $payload);
+        $response = Http::when(app()->environment('local'), fn($q) => $q->withoutVerifying())
+            ->withHeaders([
+                'Authorization' => 'Basic ' . $this->xenditAuth(),
+                'Content-Type'  => 'application/json',
+            ])->post('https://api.xendit.co/v2/invoices', $payload);
 
         if ($response->failed()) {
             return response()->json([
@@ -118,9 +119,10 @@ class PaymentController extends Controller
         }
 
         // Cek langsung ke Xendit
-        $response = Http::withHeaders([
-            'Authorization' => 'Basic ' . $this->xenditAuth(),
-        ])->get('https://api.xendit.co/v2/invoices/' . $payment->xendit_invoice_id);
+        $response = Http::when(app()->environment('local'), fn($q) => $q->withoutVerifying())
+            ->withHeaders([
+                'Authorization' => 'Basic ' . $this->xenditAuth(),
+            ])->get('https://api.xendit.co/v2/invoices/' . $payment->xendit_invoice_id);
 
         if ($response->failed()) {
             return response()->json(['status' => $payment->status]);

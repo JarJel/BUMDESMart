@@ -154,10 +154,11 @@ class WebhookController extends Controller
             'status'         => 'pending',
         ]);
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Basic ' . base64_encode(config('services.xendit.secret_key') . ':'),
-            'Content-Type'  => 'application/json',
-        ])->post('https://api.xendit.co/disbursements', [
+        $response = Http::when(app()->environment('local'), fn($q) => $q->withoutVerifying())
+            ->withHeaders([
+                'Authorization' => 'Basic ' . base64_encode(config('services.xendit.secret_key') . ':'),
+                'Content-Type'  => 'application/json',
+            ])->post('https://api.xendit.co/disbursements', [
             'external_id'     => $referenceId,
             'amount'          => (int) $amount,
             'bank_code'       => $account->channel_code,
