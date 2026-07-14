@@ -866,7 +866,7 @@ export default function CheckoutPage() {
                   </button>
                 </div>
                 {form.latitude && !showMap && (
-                  <p className="text-xs text-green-600 flex items-center gap-1"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg> Koordinat tersimpan ({form.latitude?.toFixed(5)}, {form.longitude?.toFixed(5)})</p>
+                  <p className="text-xs text-green-600 flex items-center gap-1"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg> Koordinat tersimpan ({Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)})</p>
                 )}
                 {showMap && (
                   <MapPicker
