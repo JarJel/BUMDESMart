@@ -21,11 +21,14 @@ class HaversineHelper
 
     public static function shippingCost(float $distanceKm, string $vehicleType = 'motor'): int
     {
-        $baseCost = 5000; // flat untuk ≤ 1 km
-        if ($distanceKm <= 1) {
-            return $baseCost;
-        }
-        $perKm = $vehicleType === 'mobil' ? 3000 : 2000;
+        $baseCost = 5000;
+        if ($distanceKm <= 1) return $baseCost;
+
+        $perKm = match ($vehicleType) {
+            'pickup_box', 'pickup_bak' => 3500,
+            'mobil'                    => 3000,
+            default                    => 2000, // motor
+        };
         return $baseCost + (int) round(($distanceKm - 1) * $perKm);
     }
 }

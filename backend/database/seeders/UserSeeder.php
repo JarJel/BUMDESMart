@@ -12,202 +12,230 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         // Super Admin
-        User::create([
-            'name'              => 'Super Admin',
-            'email'             => 'superadmin@bumdesmart.id',
-            'password'          => 'password123',
-            'role'              => 'super_admin',
-            'status'            => 'active',
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'superadmin@bumdesmart.id'],
+            [
+                'name'              => 'Super Admin',
+                'password'          => 'password123',
+                'role'              => 'super_admin',
+                'status'            => 'active',
+                'email_verified_at' => now(),
+            ]
+        );
 
         // Admin BUMDes
-        User::create([
-            'name'              => 'Admin BUMDes',
-            'email'             => 'bumdes@bumdesmart.id',
-            'password'          => 'password123',
-            'role'              => 'admin_bumdes',
-            'status'            => 'active',
-            'email_verified_at' => now(),
-        ]);
+        $adminUser = User::firstOrCreate(
+            ['email' => 'bumdes@bumdesmart.id'],
+            [
+                'name'              => 'Admin BUMDes',
+                'password'          => 'password123',
+                'role'              => 'admin_bumdes',
+                'status'            => 'active',
+                'email_verified_at' => now(),
+            ]
+        );
+
+        $bumdesProfile = \App\Models\BumdesProfile::firstOrCreate(
+            ['user_id' => $adminUser->id],
+            [
+                'name'        => 'BUMDes Sukamaju',
+                'slug'        => 'bumdes-sukamaju',
+                'village'     => 'Sukamaju',
+                'district'    => 'Cikembar',
+                'city'        => 'Sukabumi',
+                'province'    => 'Jawa Barat',
+                'postal_code' => '43157',
+                'phone'       => '081234567891',
+                'email'       => 'sukamaju@bumdesmart.id',
+                'description' => 'Badan Usaha Milik Desa Sukamaju yang mandiri dan berdaya saing.',
+                'status'      => 'active',
+            ]
+        );
 
         // UMKM
-        $umkmUser = User::create([
-            'name'              => 'Mang Asep',
-            'email'             => 'umkm@bumdesmart.id',
-            'password'          => 'password123',
-            'role'              => 'umkm',
-            'phone'             => '081234567890',
-            'status'            => 'active',
-            'email_verified_at' => now(),
-        ]);
+        $umkmUser = User::firstOrCreate(
+            ['email' => 'umkm@bumdesmart.id'],
+            [
+                'name'              => 'Mang Asep',
+                'password'          => 'password123',
+                'role'              => 'umkm',
+                'phone'             => '081234567890',
+                'status'            => 'active',
+                'email_verified_at' => now(),
+            ]
+        );
 
-        $umkmProfile1 = UmkmProfile::create([
-            'user_id'    => $umkmUser->id,
-            'shop_name'  => 'Keripik Mang Asep',
-            'slug'       => 'keripik-mang-asep',
-            'owner_name' => 'Mang Asep',
-            'phone'      => '081234567890',
-            'description'=> 'Keripik singkong khas desa Sukamaju',
-            'city'       => 'Sukabumi',
-            'province'   => 'Jawa Barat',
-            'status'     => 'active',
-        ]);
+        $umkmProfile1 = UmkmProfile::firstOrCreate(
+            ['user_id' => $umkmUser->id],
+            [
+                'bumdes_profile_id' => $bumdesProfile->id,
+                'shop_name'         => 'Keripik Mang Asep',
+                'slug'              => 'keripik-mang-asep',
+                'owner_name'        => 'Mang Asep',
+                'phone'             => '081234567890',
+                'description'       => 'Keripik singkong khas desa Sukamaju',
+                'city'              => 'Sukabumi',
+                'province'          => 'Jawa Barat',
+                'status'            => 'active',
+            ]
+        );
 
         // UMKM 2 (Bu Eti)
-        $umkmUser2 = User::create([
-            'name'              => 'Bu Eti',
-            'email'             => 'bueti@bumdesmart.id',
-            'password'          => 'password123',
-            'role'              => 'umkm',
-            'phone'             => '081234567891',
-            'status'            => 'active',
-            'email_verified_at' => now(),
-        ]);
+        $umkmUser2 = User::firstOrCreate(
+            ['email' => 'bueti@bumdesmart.id'],
+            [
+                'name'              => 'Bu Eti',
+                'password'          => 'password123',
+                'role'              => 'umkm',
+                'phone'             => '081234567891',
+                'status'            => 'active',
+                'email_verified_at' => now(),
+            ]
+        );
 
-        $umkmProfile2 = UmkmProfile::create([
-            'user_id'    => $umkmUser2->id,
-            'shop_name'  => 'Bakso Bu Eti',
-            'slug'       => 'bakso-bu-eti',
-            'owner_name' => 'Bu Eti',
-            'phone'      => '081234567891',
-            'description'=> 'Bakso urat sapi asli khas desa Sukamaju',
-            'city'       => 'Sukabumi',
-            'province'   => 'Jawa Barat',
-            'status'     => 'active',
-        ]);
+        $umkmProfile2 = UmkmProfile::firstOrCreate(
+            ['user_id' => $umkmUser2->id],
+            [
+                'bumdes_profile_id' => $bumdesProfile->id,
+                'shop_name'         => 'Bakso Bu Eti',
+                'slug'              => 'bakso-bu-eti',
+                'owner_name'        => 'Bu Eti',
+                'phone'             => '081234567891',
+                'description'       => 'Bakso urat sapi asli khas desa Sukamaju',
+                'city'              => 'Sukabumi',
+                'province'          => 'Jawa Barat',
+                'status'            => 'active',
+            ]
+        );
 
         // Customer
-        $customerUser = User::create([
-            'name'              => 'Budi Santoso',
-            'email'             => 'customer@bumdesmart.id',
-            'password'          => 'password123',
-            'role'              => 'customer',
-            'phone'             => '082100001111',
-            'status'            => 'active',
-            'email_verified_at' => now(),
-        ]);
+        $customerUser = User::firstOrCreate(
+            ['email' => 'customer@bumdesmart.id'],
+            [
+                'name'              => 'Budi Santoso',
+                'password'          => 'password123',
+                'role'              => 'customer',
+                'phone'             => '082100001111',
+                'status'            => 'active',
+                'email_verified_at' => now(),
+            ]
+        );
 
-        Customer::create([
-            'user_id' => $customerUser->id,
-            'name'    => 'Budi Santoso',
-            'phone'   => '082100001111',
-            'gender'  => 'male',
-        ]);
+        Customer::firstOrCreate(
+            ['user_id' => $customerUser->id],
+            [
+                'name'   => 'Budi Santoso',
+                'phone'  => '082100001111',
+                'gender' => 'male',
+            ]
+        );
 
         // Pengirim
-        User::create([
-            'name'              => 'Andi Pengirim',
-            'email'             => 'pengirim@bumdesmart.id',
-            'password'          => 'password123',
-            'role'              => 'pengirim',
-            'phone'             => '085900002222',
-            'status'            => 'active',
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'pengirim@bumdesmart.id'],
+            [
+                'name'              => 'Andi Pengirim',
+                'password'          => 'password123',
+                'role'              => 'pengirim',
+                'phone'             => '085900002222',
+                'status'            => 'active',
+                'email_verified_at' => now(),
+            ]
+        );
 
         // Categories
-        $catMakanan = \App\Models\Category::create([
-            'name' => 'Makanan',
-            'slug' => 'makanan',
-        ]);
-        $catMinuman = \App\Models\Category::create([
-            'name' => 'Minuman',
-            'slug' => 'minuman',
-        ]);
-        $catKerajinan = \App\Models\Category::create([
-            'name' => 'Kerajinan',
-            'slug' => 'kerajinan',
-        ]);
+        $catMakanan   = \App\Models\Category::firstOrCreate(['slug' => 'makanan'],   ['name' => 'Makanan']);
+        $catMinuman   = \App\Models\Category::firstOrCreate(['slug' => 'minuman'],   ['name' => 'Minuman']);
+        $catKerajinan = \App\Models\Category::firstOrCreate(['slug' => 'kerajinan'], ['name' => 'Kerajinan']);
 
         // Products for Mang Asep (umkm_profile_id = $umkmProfile1->id)
-        $prod1 = \App\Models\Product::create([
-            'umkm_profile_id' => $umkmProfile1->id,
-            'category_id'     => $catMakanan->id,
-            'name'            => 'Keripik Singkong Keju',
-            'slug'            => 'keripik-singkong-keju',
-            'description'     => 'Keripik singkong gurih rasa keju spesial dari desa.',
-            'price'           => 12000.00,
-            'stock'           => 100,
-            'weight'          => 150,
-            'has_variant'     => false,
-            'is_digital'      => false,
-            'sold_count'      => 5,
-            'status'          => 'active',
-        ]);
+        $prod1 = \App\Models\Product::firstOrCreate(
+            ['slug' => 'keripik-singkong-keju'],
+            [
+                'umkm_profile_id' => $umkmProfile1->id,
+                'category_id'     => $catMakanan->id,
+                'name'            => 'Keripik Singkong Keju',
+                'description'     => 'Keripik singkong gurih rasa keju spesial dari desa.',
+                'price'           => 12000.00,
+                'stock'           => 100,
+                'weight'          => 150,
+                'has_variant'     => false,
+                'is_digital'      => false,
+                'sold_count'      => 5,
+                'status'          => 'active',
+            ]
+        );
 
-        \App\Models\ProductImage::create([
-            'product_id' => $prod1->id,
-            'file_path'  => '/uploads/products/singkong_keju.jpg',
-            'is_primary' => true,
-            'sort_order' => 0,
-        ]);
+        \App\Models\ProductImage::firstOrCreate(
+            ['product_id' => $prod1->id, 'is_primary' => true],
+            ['file_path' => '/uploads/products/singkong_keju.jpg', 'sort_order' => 0]
+        );
 
-        $prod2 = \App\Models\Product::create([
-            'umkm_profile_id' => $umkmProfile1->id,
-            'category_id'     => $catMakanan->id,
-            'name'            => 'Madu Hutan Asli',
-            'slug'            => 'madu-hutan-asli',
-            'description'     => 'Madu hutan murni 100% alami tanpa bahan campuran.',
-            'price'           => 75000.00,
-            'stock'           => 20,
-            'weight'          => 250,
-            'has_variant'     => false,
-            'is_digital'      => false,
-            'sold_count'      => 2,
-            'status'          => 'active',
-        ]);
+        $prod2 = \App\Models\Product::firstOrCreate(
+            ['slug' => 'madu-hutan-asli'],
+            [
+                'umkm_profile_id' => $umkmProfile1->id,
+                'category_id'     => $catMakanan->id,
+                'name'            => 'Madu Hutan Asli',
+                'description'     => 'Madu hutan murni 100% alami tanpa bahan campuran.',
+                'price'           => 75000.00,
+                'stock'           => 20,
+                'weight'          => 250,
+                'has_variant'     => false,
+                'is_digital'      => false,
+                'sold_count'      => 2,
+                'status'          => 'active',
+            ]
+        );
 
-        \App\Models\ProductImage::create([
-            'product_id' => $prod2->id,
-            'file_path'  => '/uploads/products/madu_hutan.jpg',
-            'is_primary' => true,
-            'sort_order' => 0,
-        ]);
+        \App\Models\ProductImage::firstOrCreate(
+            ['product_id' => $prod2->id, 'is_primary' => true],
+            ['file_path' => '/uploads/products/madu_hutan.jpg', 'sort_order' => 0]
+        );
 
         // Products for Bu Eti (umkm_profile_id = $umkmProfile2->id)
-        $prod3 = \App\Models\Product::create([
-            'umkm_profile_id' => $umkmProfile2->id,
-            'category_id'     => $catMakanan->id,
-            'name'            => 'Bakso Urat Frozen',
-            'slug'            => 'bakso-urat-frozen',
-            'description'     => 'Bakso urat sapi frozen lezat isi 10 pcs siap saji.',
-            'price'           => 25000.00,
-            'stock'           => 50,
-            'weight'          => 300,
-            'has_variant'     => false,
-            'is_digital'      => false,
-            'sold_count'      => 8,
-            'status'          => 'active',
-        ]);
+        $prod3 = \App\Models\Product::firstOrCreate(
+            ['slug' => 'bakso-urat-frozen'],
+            [
+                'umkm_profile_id' => $umkmProfile2->id,
+                'category_id'     => $catMakanan->id,
+                'name'            => 'Bakso Urat Frozen',
+                'description'     => 'Bakso urat sapi frozen lezat isi 10 pcs siap saji.',
+                'price'           => 25000.00,
+                'stock'           => 50,
+                'weight'          => 300,
+                'has_variant'     => false,
+                'is_digital'      => false,
+                'sold_count'      => 8,
+                'status'          => 'active',
+            ]
+        );
 
-        \App\Models\ProductImage::create([
-            'product_id' => $prod3->id,
-            'file_path'  => '/uploads/products/bakso_urat.jpg',
-            'is_primary' => true,
-            'sort_order' => 0,
-        ]);
+        \App\Models\ProductImage::firstOrCreate(
+            ['product_id' => $prod3->id, 'is_primary' => true],
+            ['file_path' => '/uploads/products/bakso_urat.jpg', 'sort_order' => 0]
+        );
 
-        $prod4 = \App\Models\Product::create([
-            'umkm_profile_id' => $umkmProfile2->id,
-            'category_id'     => $catMinuman->id,
-            'name'            => 'Es Cendol Durian',
-            'slug'            => 'es-cendol-durian',
-            'description'     => 'Es cendol durian segar manis gurih nikmat.',
-            'price'           => 15000.00,
-            'stock'           => 30,
-            'weight'          => 200,
-            'has_variant'     => false,
-            'is_digital'      => false,
-            'sold_count'      => 12,
-            'status'          => 'active',
-        ]);
+        $prod4 = \App\Models\Product::firstOrCreate(
+            ['slug' => 'es-cendol-durian'],
+            [
+                'umkm_profile_id' => $umkmProfile2->id,
+                'category_id'     => $catMinuman->id,
+                'name'            => 'Es Cendol Durian',
+                'description'     => 'Es cendol durian segar manis gurih nikmat.',
+                'price'           => 15000.00,
+                'stock'           => 30,
+                'weight'          => 200,
+                'has_variant'     => false,
+                'is_digital'      => false,
+                'sold_count'      => 12,
+                'status'          => 'active',
+            ]
+        );
 
-        \App\Models\ProductImage::create([
-            'product_id' => $prod4->id,
-            'file_path'  => '/uploads/products/es_cendol.jpg',
-            'is_primary' => true,
-            'sort_order' => 0,
-        ]);
+        \App\Models\ProductImage::firstOrCreate(
+            ['product_id' => $prod4->id, 'is_primary' => true],
+            ['file_path' => '/uploads/products/es_cendol.jpg', 'sort_order' => 0]
+        );
     }
 }

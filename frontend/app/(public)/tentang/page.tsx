@@ -1,42 +1,57 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import api from "@/lib/api/axios";
+import { Store, Package, CalendarDays, ShieldCheck, Zap, Star } from "lucide-react";
+
+function CountUp({ target, suffix = "", duration = 1800 }: { target: number; suffix?: string; duration?: number }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLParagraphElement>(null);
+  const started = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !started.current) {
+        started.current = true;
+        observer.disconnect();
+        let startTs: number | null = null;
+        const step = (ts: number) => {
+          if (!startTs) startTs = ts;
+          const p = Math.min((ts - startTs) / duration, 1);
+          setCount(Math.floor((1 - Math.pow(1 - p, 3)) * target));
+          if (p < 1) requestAnimationFrame(step);
+          else setCount(target);
+        };
+        requestAnimationFrame(step);
+      }
+    }, { threshold: 0.4 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [target, duration]);
+
+  return (
+    <p ref={ref} className="text-2xl font-bold mb-1" style={{ color: "var(--primary)" }}>
+      {count.toLocaleString("id-ID")}{suffix}
+    </p>
+  );
+}
 
 const prinsip = [
-  {
-    title: "Integritas",
-    desc: "Kami membangun ekosistem yang transparan dan terpercaya antara penjual, pembeli, dan BUMDes.",
-    icon: (
-      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: "var(--primary)" }}>
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Pemberdayaan",
-    desc: "Mendorong UMKM lokal berkembang melalui teknologi dan akses pasar yang lebih luas.",
-    icon: (
-      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: "var(--primary)" }}>
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Kualitas Lokal",
-    desc: "Mengangkat produk-produk berkualitas tinggi dari desa-desa Indonesia ke seluruh penjuru nusantara.",
-    icon: (
-      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: "var(--primary)" }}>
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-      </svg>
-    ),
-  },
-];
-
-const stats = [
-  { angka: "9+", label: "UMKM Mitra Aktif" },
-  { angka: "25+", label: "Produk Terdaftar" },
-  { angka: "2026", label: "Tahun Berdiri" },
+  { title: "Integritas",     desc: "Kami membangun ekosistem yang transparan dan terpercaya antara penjual, pembeli, dan BUMDes.", Icon: ShieldCheck },
+  { title: "Pemberdayaan",   desc: "Mendorong UMKM lokal berkembang melalui teknologi dan akses pasar yang lebih luas.",          Icon: Zap },
+  { title: "Kualitas Lokal", desc: "Mengangkat produk-produk berkualitas tinggi dari desa-desa Indonesia ke seluruh penjuru nusantara.", Icon: Star },
 ];
 
 export default function TentangPage() {
+  const [stats, setStats] = useState({ umkm_aktif: 0, produk_tersedia: 0 });
+
+  useEffect(() => {
+    api.get("/stats").then(res => { if (res.data?.data) setStats(res.data.data); }).catch(() => {});
+  }, []);
+
   return (
     <div style={{ background: "#F4F7F5", minHeight: "100vh" }}>
 
@@ -141,7 +156,7 @@ export default function TentangPage() {
             {prinsip.map((p) => (
               <div key={p.title} className="bg-white rounded-2xl border border-gray-100 p-7 text-center shadow-sm">
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "var(--primary-muted)" }}>
-                  {p.icon}
+                  <p.Icon className="w-7 h-7" style={{ color: "var(--primary)" }} strokeWidth={1.5} />
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2 text-base">{p.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{p.desc}</p>
@@ -169,14 +184,23 @@ export default function TentangPage() {
               <p className="text-sm text-gray-600 leading-relaxed mb-8">
                 Setiap transaksi di BumdesMart berarti mendukung langsung kehidupan keluarga petani, pengrajin, dan pelaku usaha lokal di Desa.
               </p>
-              {/* Stats */}
+              {/* Stats dengan count-up */}
               <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
-                {stats.map((s) => (
-                  <div key={s.label} className="text-center">
-                    <p className="text-2xl font-bold mb-1" style={{ color: "var(--primary)" }}>{s.angka}</p>
-                    <p className="text-xs text-gray-500 leading-tight">{s.label}</p>
-                  </div>
-                ))}
+                <div className="text-center">
+                  <Store className="w-5 h-5 mx-auto mb-1" style={{ color: "var(--primary)" }} />
+                  <CountUp target={stats.umkm_aktif} suffix="+" />
+                  <p className="text-xs text-gray-500 leading-tight">UMKM Mitra Aktif</p>
+                </div>
+                <div className="text-center">
+                  <Package className="w-5 h-5 mx-auto mb-1" style={{ color: "var(--primary)" }} />
+                  <CountUp target={stats.produk_tersedia} suffix="+" />
+                  <p className="text-xs text-gray-500 leading-tight">Produk Terdaftar</p>
+                </div>
+                <div className="text-center">
+                  <CalendarDays className="w-5 h-5 mx-auto mb-1" style={{ color: "var(--primary)" }} />
+                  <CountUp target={2026} suffix="" duration={1200} />
+                  <p className="text-xs text-gray-500 leading-tight">Tahun Berdiri</p>
+                </div>
               </div>
             </div>
 

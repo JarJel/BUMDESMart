@@ -28,6 +28,7 @@ class SellerOrderController extends Controller
             'items.variantOption:id,value',
             'customer.user:id,name,email,phone',
             'address:id,label,address,city,province,postal_code,recipient_name,phone',
+            'driver:id,name,phone',
         ])->where('umkm_profile_id', $umkm->id);
 
         if ($request->filled('status')) {
@@ -63,14 +64,13 @@ class SellerOrderController extends Controller
         $umkm  = $this->getUmkm($request);
         $order = Order::where('umkm_profile_id', $umkm->id)->findOrFail($id);
 
-        // Transisi yang diizinkan untuk seller (shipped ditangani driver)
+        // Seller hanya bisa konfirmasi atau batalkan (kurir yang handle sisanya)
         $allowed = [
-            'pending'   => ['confirmed', 'cancelled'],
-            'confirmed' => ['processing', 'cancelled'],
+            'pending' => ['confirmed', 'cancelled'],
         ];
 
         $validated = $request->validate([
-            'status' => ['required', 'string', Rule::in(['confirmed', 'processing', 'cancelled'])],
+            'status' => ['required', 'string', Rule::in(['confirmed', 'cancelled'])],
             'note'   => 'nullable|string|max:300',
         ]);
 

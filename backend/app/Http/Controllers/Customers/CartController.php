@@ -8,6 +8,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\ProductVariantOption;
 use Illuminate\Support\Facades\Validator;
 use Exception;
 
@@ -74,8 +75,10 @@ class CartController extends Controller
             $maxStock = $product->stock;
 
             if ($variantId) {
-                $variant = ProductVariant::where('id', $variantId)
-                    ->where('product_id', $productId)
+                $variant = ProductVariantOption::where('id', $variantId)
+                    ->whereHas('productVariant', function($q) use ($productId) {
+                        $q->where('product_id', $productId);
+                    })
                     ->first();
                 if (!$variant) {
                     return response()->json([
@@ -201,8 +204,10 @@ class CartController extends Controller
             $maxStock = $product->stock;
 
             if ($variantId) {
-                $variant = ProductVariant::where('id', $variantId)
-                    ->where('product_id', $productId)
+                $variant = ProductVariantOption::where('id', $variantId)
+                    ->whereHas('productVariant', function($q) use ($productId) {
+                        $q->where('product_id', $productId);
+                    })
                     ->first();
                 if ($variant) {
                     $maxStock = $variant->stock;
