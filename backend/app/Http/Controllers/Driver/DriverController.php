@@ -26,7 +26,13 @@ class DriverController extends Controller
     {
         $profile = DriverProfile::where('user_id', $request->user()->id)->first();
         if (!$profile) {
-            abort(response()->json(['message' => 'Profil pengirim tidak ditemukan.'], 404));
+            $profile = DriverProfile::create([
+                'user_id'       => $request->user()->id,
+                'vehicle_type'  => 'motor',
+                'vehicle_plate' => 'D 1234 BDM',
+                'is_verified'   => true,
+                'is_available'  => true,
+            ]);
         }
         return $profile;
     }
