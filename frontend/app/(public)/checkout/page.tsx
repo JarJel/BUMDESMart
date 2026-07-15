@@ -35,7 +35,7 @@ interface CartItem {
     name: string;
     price: number | string;
     stock?: number;
-    images?: { image_path: string }[];
+    images?: { image_path?: string; file_path?: string }[];
     umkm_profile?: { id: number; shop_name?: string; name_umkm?: string };
     active_discount?: {
       id: number;
@@ -496,7 +496,7 @@ export default function CheckoutPage() {
                             </div>
                             <div className="min-w-0">
                               <p className="text-xs font-semibold text-gray-800 truncate">{item.product?.name}</p>
-                              {item.variant && <p className="text-[10px] text-gray-400 mt-0.5">Varian: {item.variant.value}</p>}
+                              {item.variant && <p className="text-[10px] text-gray-400 mt-0.5">Varian: {item.variant.name}</p>}
                               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                 <p className="text-xs font-bold text-green-600">{formatRupiah(price)}</p>
                                 {hasDiscount && (
