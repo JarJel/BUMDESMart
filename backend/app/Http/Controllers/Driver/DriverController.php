@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Driver;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\WebhookController;
 use App\Models\DeviceToken;
 use App\Models\DriverProfile;
 use App\Models\Order;
 use App\Models\OrderHistory;
+use App\Models\UmkmBalance;
 use App\Helpers\HaversineHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -299,6 +301,7 @@ class DriverController extends Controller
 
         if ($newStatus === 'delivered') {
             $this->getProfile($request)->increment('total_deliveries');
+            app(WebhookController::class)->triggerDisbursement($order->fresh(['payment']));
         }
 
         return response()->json(['message' => 'Status diperbarui.', 'data' => $order->fresh()]);
@@ -324,6 +327,7 @@ class DriverController extends Controller
         $active    = Order::where('driver_id', $userId)->whereNotIn('status', ['delivered', 'cancelled'])->count();
         $today     = Order::where('driver_id', $userId)->where('status', 'delivered')->whereDate('updated_at', today())->count();
         $available = Order::where('status', 'confirmed')->whereNull('driver_id')->count();
+        $balance   = UmkmBalance::findOrCreateFor($userId, 'driver');
 
         return response()->json([
             'data' => [
@@ -331,6 +335,11 @@ class DriverController extends Controller
                 'active_deliveries' => $active,
                 'today_deliveries'  => $today,
                 'available_orders'  => $available,
+                'balance'           => [
+                    'available' => (float) $balance->available,
+                    'pending'   => (float) $balance->pending,
+                    'withdrawn' => (float) $balance->withdrawn,
+                ],
                 'is_available'      => $profile->is_available,
                 'rating'            => $profile->rating,
                 'is_verified'       => $profile->is_verified,

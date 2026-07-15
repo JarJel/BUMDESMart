@@ -33,15 +33,15 @@ export default function PengirimRiwayatPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   return (
-    <div className="p-5 space-y-5">
-      <div>
+    <div className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-5 lg:p-6">
+      <div className="min-w-0">
         <h1 className="text-xl font-bold text-gray-900">Riwayat Pengiriman</h1>
         <p className="text-sm text-gray-500 mt-0.5">Semua pengiriman yang telah kamu selesaikan</p>
       </div>
 
       {/* Stats mini */}
       {stats && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <p className="text-xs text-gray-400 mb-1">Total Selesai</p>
             <p className="text-2xl font-bold text-gray-900">{stats.total_deliveries}</p>
@@ -70,15 +70,15 @@ export default function PengirimRiwayatPage() {
       ) : (
         <div className="space-y-3">
           {orders.map((order: any) => (
-            <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{order.order_code}</p>
+            <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
+              <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="break-all text-sm font-semibold text-gray-900">{order.order_code}</p>
                   <p className="text-xs text-gray-400">
                     {new Date(order.updated_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="shrink-0 text-right">
                   <p className="text-sm font-bold" style={{ color: "#EA580C" }}>{formatRp(Number(order.total))}</p>
                   <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700">
                     Selesai
@@ -86,7 +86,7 @@ export default function PengirimRiwayatPage() {
                 </div>
               </div>
               {order.address && (
-                <p className="text-xs text-gray-500 truncate">
+                <p className="break-words text-xs text-gray-500">
                   {order.address.recipient_name ?? order.address.name} · {order.address.city}
                 </p>
               )}

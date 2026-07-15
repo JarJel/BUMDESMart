@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
-import { MessageCircle, Package, Navigation, RefreshCw } from "lucide-react";
+import { ClipboardList, MessageCircle, Navigation, Package, RefreshCw } from "lucide-react";
 
 function formatRp(n: number) {
   return "Rp " + Math.round(n).toLocaleString("id-ID");
@@ -98,19 +98,32 @@ export default function PengirimPesananPage() {
   ] as const;
 
   return (
-    <div className="p-5 space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Pesanan</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Pilih dan kelola pesanan pengirimanmu</p>
+    <div className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-5 lg:p-6">
+      <div className="overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm">
+        <div className="flex items-start justify-between gap-3 bg-gradient-to-br from-orange-600 to-orange-500 px-4 py-5 text-white sm:px-5">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold">Daftar Pesanan</h1>
+            <p className="mt-0.5 text-sm text-orange-50">Pilih dan kelola pengirimanmu</p>
+          </div>
+          <button onClick={fetchOrders} className="rounded-xl bg-white/15 p-2 text-white transition-colors hover:bg-white/25">
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
-        <button onClick={fetchOrders} className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50">
-          <RefreshCw className="w-4 h-4" />
-        </button>
+
+        <div className="grid grid-cols-2 divide-x divide-gray-100">
+          <div className="px-4 py-3 text-center">
+            <p className="text-2xl font-bold text-gray-900">{available.length}</p>
+            <p className="text-xs text-gray-500">Tersedia</p>
+          </div>
+          <div className="px-4 py-3 text-center">
+            <p className="text-2xl font-bold text-gray-900">{active.length}</p>
+            <p className="text-xs text-gray-500">Aktif</p>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-100">
+      <div className="flex gap-1 overflow-x-auto border-b border-gray-100">
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === t.key ? "border-orange-500 text-orange-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
@@ -130,18 +143,22 @@ export default function PengirimPesananPage() {
         /* ── AVAILABLE ORDERS ── */
         <div className="space-y-3">
           {available.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center text-sm text-gray-400">
-              Belum ada pesanan tersedia saat ini.
+            <div className="rounded-2xl border border-gray-100 bg-white px-6 py-12 text-center text-sm text-gray-400 shadow-sm">
+              <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+                <ClipboardList className="h-10 w-10" />
+              </div>
+              <p className="font-semibold text-gray-600">Belum ada pesanan tersedia</p>
+              <p className="mt-1 text-xs text-gray-400">Pesanan baru akan muncul otomatis saat tersedia.</p>
             </div>
           ) : (
             available.map(order => (
-              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">{order.order_code}</span>
+              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3 shadow-sm sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="break-all text-xs text-gray-500">{order.order_code}</span>
                   <span className="text-lg font-bold text-orange-500">{formatRp(order.earning ?? 0)}</span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="grid grid-cols-1 gap-2 text-center min-[420px]:grid-cols-3">
                   <div className="bg-gray-50 rounded-xl py-2">
                     <p className="text-xs font-bold text-gray-900">{order.total_weight_kg ?? 0} kg</p>
                     <p className="text-xs text-gray-500">Berat</p>
@@ -159,7 +176,7 @@ export default function PengirimPesananPage() {
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-                    <p className="text-xs text-gray-700 flex-1 truncate">
+                    <p className="min-w-0 flex-1 break-words text-xs text-gray-700">
                       <span className="font-semibold">{order.pickup_from?.name}</span>
                       {order.pickup_from?.address ? ` · ${order.pickup_from.address}` : ""}
                     </p>
@@ -167,7 +184,7 @@ export default function PengirimPesananPage() {
                   <div className="ml-1 border-l border-dashed border-gray-300 h-3" />
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-                    <p className="text-xs text-gray-700 flex-1 truncate">
+                    <p className="min-w-0 flex-1 break-words text-xs text-gray-700">
                       <span className="font-semibold">{order.deliver_to?.recipient_name}</span>
                       {order.deliver_to?.city ? ` · ${order.deliver_to.city}` : ""}
                     </p>
@@ -191,15 +208,19 @@ export default function PengirimPesananPage() {
         /* ── ACTIVE ORDERS ── */
         <div className="space-y-3">
           {active.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center text-sm text-gray-400">
-              Tidak ada pengiriman aktif.
+            <div className="rounded-2xl border border-gray-100 bg-white px-6 py-12 text-center text-sm text-gray-400 shadow-sm">
+              <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-green-50 text-green-600">
+                <Navigation className="h-10 w-10" />
+              </div>
+              <p className="font-semibold text-gray-600">Tidak ada pengiriman aktif</p>
+              <p className="mt-1 text-xs text-gray-400">Ambil pesanan tersedia untuk mulai mengantar.</p>
             </div>
           ) : (
             active.map(order => (
-              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-gray-900">{order.order_code}</p>
+              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-4 shadow-sm sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="break-all text-xs font-bold text-gray-900">{order.order_code}</p>
                     <span className={`mt-1 inline-block text-xs px-2 py-0.5 rounded-full font-semibold ${
                       order.status === "picking_up" ? "bg-orange-50 text-orange-600" :
                       order.status === "shipped"    ? "bg-purple-50 text-purple-600" : "bg-green-50 text-green-700"
@@ -208,7 +229,7 @@ export default function PengirimPesananPage() {
                        order.status === "shipped"    ? "Sedang Diantar" : "Selesai"}
                     </span>
                   </div>
-                  <span className="text-base font-bold text-orange-500">{formatRp(order.earning ?? order.shipping_cost ?? 0)}</span>
+                  <span className="shrink-0 text-base font-bold text-orange-500">{formatRp(order.earning ?? order.shipping_cost ?? 0)}</span>
                 </div>
 
                 {/* Route dengan tombol WA */}
@@ -219,8 +240,8 @@ export default function PengirimPesananPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-gray-500">Ambil di toko</p>
-                      <p className="text-sm font-semibold text-gray-900 truncate">{order.pickup_from?.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{order.pickup_from?.address}</p>
+                      <p className="break-words text-sm font-semibold text-gray-900">{order.pickup_from?.name}</p>
+                      <p className="break-words text-xs text-gray-500">{order.pickup_from?.address}</p>
                     </div>
                     <button
                       onClick={() => openWA(order.pickup_from?.phone, `Halo, saya kurir BUMDESMart untuk pesanan #${order.order_code}. Saya sedang dalam perjalanan ke toko.`)}
@@ -239,7 +260,7 @@ export default function PengirimPesananPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-gray-500">Antar ke — <span className="font-semibold text-gray-700">{order.deliver_to?.recipient_name}</span></p>
-                      <p className="text-sm font-semibold text-gray-900 truncate">{order.deliver_to?.address}</p>
+                      <p className="break-words text-sm font-semibold text-gray-900">{order.deliver_to?.address}</p>
                       <p className="text-xs text-gray-500">{order.deliver_to?.city}</p>
                     </div>
                     <button

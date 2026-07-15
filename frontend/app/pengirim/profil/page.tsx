@@ -87,15 +87,15 @@ export default function PengirimProfilPage() {
   if (!profile) return null;
 
   return (
-    <div className="p-5 space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-5 lg:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-gray-900">Profil Saya</h1>
           <p className="text-sm text-gray-500 mt-0.5">Informasi akunmu sebagai pengirim</p>
         </div>
         {!editing && (
           <button onClick={() => setEditing(true)}
-            className="px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all"
+            className="w-full rounded-xl border-2 px-4 py-2 text-sm font-semibold transition-all sm:w-auto"
             style={{ borderColor: "#EA580C", color: "#EA580C" }}>
             Edit Profil
           </button>
@@ -103,16 +103,16 @@ export default function PengirimProfilPage() {
       </div>
 
       {/* Status badge */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
+      <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 min-[420px]:flex-row min-[420px]:items-center">
         <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold text-white"
           style={{ background: "linear-gradient(135deg, #EA580C, #F97316)" }}>
           {(profile.name ?? "?")[0].toUpperCase()}
         </div>
-        <div className="flex-1">
-          <p className="text-sm font-bold text-gray-900">{profile.name}</p>
-          <p className="text-xs text-gray-500">{profile.email}</p>
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-sm font-bold text-gray-900">{profile.name}</p>
+          <p className="break-all text-xs text-gray-500">{profile.email}</p>
         </div>
-        <div className="text-right">
+        <div className="min-[420px]:text-right">
           <span className={`text-xs font-semibold px-2 py-1 rounded-full ${profile.is_verified ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>
             {profile.is_verified ? "Terverifikasi" : "Menunggu Verifikasi"}
           </span>
@@ -120,7 +120,7 @@ export default function PengirimProfilPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
           <p className="text-2xl font-bold text-gray-900">{profile.total_deliveries ?? 0}</p>
           <p className="text-xs text-gray-500 mt-0.5">Total Pengiriman</p>
@@ -132,10 +132,10 @@ export default function PengirimProfilPage() {
       </div>
 
       {/* Info / Edit Form */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+      <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 sm:p-5">
         <p className="text-sm font-semibold text-gray-900">Informasi Pribadi</p>
 
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {[
             { label: "Nama Lengkap", field: "name", placeholder: "Nama lengkap" },
             { label: "Nomor HP", field: "phone", placeholder: "08xxxxxxxxxx" },
@@ -155,11 +155,11 @@ export default function PengirimProfilPage() {
 
         <div className="border-t border-gray-50 pt-4">
           <p className="text-sm font-semibold text-gray-900 mb-3">Informasi Kendaraan</p>
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Jenis Kendaraan</label>
               {editing ? (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
                   {VEHICLE_TYPES.map(v => (
                     <button key={v.value} onClick={() => set("vehicle_type", v.value)}
                       className="py-2 px-3 rounded-xl text-sm font-medium border-2 transition-all"
@@ -192,10 +192,10 @@ export default function PengirimProfilPage() {
               </div>
             ))}
 
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-xs font-medium text-gray-500 mb-1">Jenis SIM</label>
               {editing ? (
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex flex-wrap gap-2">
                   {SIM_TYPES.map(s => (
                     <button key={s.value} onClick={() => set("sim_type", s.value)}
                       className="px-3 py-1.5 rounded-xl text-sm font-medium border-2 transition-all"
@@ -214,7 +214,7 @@ export default function PengirimProfilPage() {
         </div>
 
         {editing && (
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
             <button onClick={() => setEditing(false)}
               className="flex-1 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50">
               Batal

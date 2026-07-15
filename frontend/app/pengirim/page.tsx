@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
-import { MessageCircle, MapPin, Package, Navigation } from "lucide-react";
+import { BarChart3, MessageCircle, Navigation, Package, Power, RefreshCw, Star, Wallet } from "lucide-react";
 
 function formatRp(n: number) {
   return "Rp " + Math.round(n).toLocaleString("id-ID");
@@ -125,33 +125,105 @@ export default function PengirimDashboard() {
   }
 
   return (
-    <div className="p-5 space-y-5">
-      {/* Header + Online toggle */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Pengiriman hari ini</p>
+    <div className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-5 lg:p-6">
+      <section className="overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm">
+        <div className="bg-gradient-to-br from-orange-600 to-orange-500 px-4 py-5 text-white sm:px-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20 text-lg font-bold ring-2 ring-white/30">
+                P
+              </div>
+              <div className="min-w-0">
+                <h1 className="truncate text-xl font-bold">Pengirim BUMDESMart</h1>
+                <p className="mt-0.5 text-sm text-orange-50">
+                  {stats?.is_available ? "Status kerja aktif" : "Status kerja tidak aktif"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={fetchAll}
+              className="rounded-xl bg-white/15 p-2 text-white transition-colors hover:bg-white/25"
+              aria-label="Refresh data"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-white/12 px-3 py-2">
+              <div className="flex items-center gap-2 text-orange-50">
+                <Star className="h-4 w-4 fill-yellow-300 text-yellow-300" />
+                <span className="text-xs">Rating</span>
+              </div>
+              <p className="mt-1 text-lg font-bold">{stats?.rating ? Number(stats.rating).toFixed(2) : "5.00"}</p>
+            </div>
+            <div className="rounded-xl bg-white/12 px-3 py-2">
+              <div className="flex items-center gap-2 text-orange-50">
+                <BarChart3 className="h-4 w-4 text-yellow-200" />
+                <span className="text-xs">Selesai</span>
+              </div>
+              <p className="mt-1 text-lg font-bold">{stats?.total_deliveries ?? 0} pesanan</p>
+            </div>
+          </div>
         </div>
-        <button
-          onClick={toggleAvailability}
-          disabled={togglingAvail}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
-          style={stats?.is_available
-            ? { background: "#ECFDF5", color: "#065F46", border: "1.5px solid #6EE7B7" }
-            : { background: "#F3F4F6", color: "#6B7280", border: "1.5px solid #E5E7EB" }}>
-          <div className={`w-2.5 h-2.5 rounded-full ${stats?.is_available ? "bg-green-500" : "bg-gray-400"}`} />
-          {stats?.is_available ? "Online" : "Offline"}
-        </button>
-      </div>
+
+        <div className="grid grid-cols-2 border-b border-gray-100 text-center text-sm font-semibold">
+          <div className="px-3 py-3 text-gray-500">Area Tersedia</div>
+          <div className="border-b-2 border-orange-500 px-3 py-3 text-orange-600">Daftar Pesanan</div>
+        </div>
+
+        <div className="p-4 sm:p-5">
+          <button
+            onClick={toggleAvailability}
+            disabled={togglingAvail}
+            className={`flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all disabled:opacity-50 ${
+              stats?.is_available ? "bg-gray-100 text-gray-700 hover:bg-gray-200" : "bg-orange-500 text-white hover:bg-orange-600"
+            }`}
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/25">
+              <Power className="h-4 w-4" />
+            </span>
+            {stats?.is_available ? "Berhenti Menerima Pesanan" : "Mulai Menerima Pesanan"}
+          </button>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-sm">
+        <div className="flex items-start justify-between gap-3 p-4 sm:p-5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
+              <Wallet className="h-4 w-4" />
+              Saldo Pengirim
+            </div>
+            <p className="mt-2 text-2xl font-bold text-gray-900">
+              {formatRp(stats?.balance?.available ?? 0)}
+            </p>
+            <p className="mt-1 text-xs text-gray-500">Saldo tersedia dari ongkir pesanan selesai.</p>
+          </div>
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            Tersedia
+          </span>
+        </div>
+        <div className="grid grid-cols-2 border-t border-gray-100">
+          <div className="px-4 py-3 sm:px-5">
+            <p className="text-xs text-gray-500">Pending</p>
+            <p className="mt-1 text-sm font-bold text-gray-900">{formatRp(stats?.balance?.pending ?? 0)}</p>
+          </div>
+          <div className="border-l border-gray-100 px-4 py-3 sm:px-5">
+            <p className="text-xs text-gray-500">Sudah Dicairkan</p>
+            <p className="mt-1 text-sm font-bold text-gray-900">{formatRp(stats?.balance?.withdrawn ?? 0)}</p>
+          </div>
+        </div>
+      </section>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
         {[
           { label: "Hari Ini", value: stats?.today_deliveries ?? 0 },
           { label: "Total Selesai", value: stats?.total_deliveries ?? 0 },
           { label: "Tersedia", value: stats?.available_orders ?? 0 },
         ].map(c => (
-          <div key={c.label} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+          <div key={c.label} className="bg-white rounded-2xl border border-gray-100 p-4 text-center shadow-sm">
             <p className="text-2xl font-bold text-gray-900">{c.value}</p>
             <p className="text-xs text-gray-500 mt-1">{c.label}</p>
           </div>
@@ -163,10 +235,10 @@ export default function PengirimDashboard() {
         <div className="space-y-3">
           <h2 className="text-sm font-bold text-gray-700">Pesanan Aktif</h2>
           {activeOrders.map(order => (
-            <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-4">
+            <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-4 shadow-sm sm:p-5">
               {/* Header order */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-900">{order.order_code}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="break-all text-xs font-bold text-gray-900">{order.order_code}</span>
                 <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
                   order.status === "picking_up" ? "bg-orange-50 text-orange-600" :
                   order.status === "shipped"    ? "bg-purple-50 text-purple-600" : "bg-green-50 text-green-700"
@@ -176,7 +248,7 @@ export default function PengirimDashboard() {
               </div>
 
               {/* Earning */}
-              <div className="bg-orange-50 rounded-xl px-4 py-2 flex items-center justify-between">
+              <div className="bg-orange-50 rounded-xl px-4 py-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-xs text-orange-600 font-medium">Penghasilan kamu</span>
                 <span className="text-base font-bold text-orange-600">{formatRp(order.earning ?? order.shipping_cost ?? 0)}</span>
               </div>
@@ -187,10 +259,10 @@ export default function PengirimDashboard() {
                   <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Package className="w-3 h-3 text-green-600" />
                   </div>
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs text-gray-500">Ambil di</p>
                     <p className="text-sm font-semibold text-gray-900">{order.pickup_from?.name}</p>
-                    <p className="text-xs text-gray-500">{order.pickup_from?.address}</p>
+                    <p className="break-words text-xs text-gray-500">{order.pickup_from?.address}</p>
                   </div>
                   {order.pickup_from?.phone && (
                     <button onClick={() => openWA(order.pickup_from.phone, `Halo, saya kurir BUMDESMart untuk pesanan #${order.order_code}. Saya sedang dalam perjalanan ke toko.`)}
@@ -206,9 +278,9 @@ export default function PengirimDashboard() {
                   <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Navigation className="w-3 h-3 text-blue-600" />
                   </div>
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs text-gray-500">Antar ke — {order.deliver_to?.recipient_name}</p>
-                    <p className="text-sm font-semibold text-gray-900">{order.deliver_to?.address}</p>
+                    <p className="break-words text-sm font-semibold text-gray-900">{order.deliver_to?.address}</p>
                     <p className="text-xs text-gray-500">{order.deliver_to?.city}</p>
                   </div>
                   {order.deliver_to?.phone && (
@@ -252,20 +324,24 @@ export default function PengirimDashboard() {
         </div>
 
         {availableOrders.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400 text-sm">
-            Belum ada pesanan tersedia saat ini.
+          <div className="rounded-2xl border border-gray-100 bg-white px-6 py-12 text-center text-sm text-gray-400 shadow-sm">
+            <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+              <Package className="h-10 w-10" />
+            </div>
+            <p className="font-semibold text-gray-600">Belum ada pesanan tersedia</p>
+            <p className="mt-1 text-xs text-gray-400">Aktifkan status kerja dan tunggu pesanan baru masuk.</p>
           </div>
         ) : (
           availableOrders.map(order => (
-            <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+            <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3 shadow-sm sm:p-5">
               {/* Earning highlight */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">{order.order_code}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="break-all text-xs text-gray-500">{order.order_code}</span>
                 <span className="text-base font-bold text-orange-500">{formatRp(order.earning ?? 0)}</span>
               </div>
 
               {/* Info singkat */}
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="grid grid-cols-1 gap-2 text-center min-[420px]:grid-cols-3">
                 <div className="bg-gray-50 rounded-xl py-2">
                   <p className="text-xs font-bold text-gray-900">{order.total_weight_kg ?? 0} kg</p>
                   <p className="text-xs text-gray-500">Berat</p>
@@ -284,14 +360,14 @@ export default function PengirimDashboard() {
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-                  <p className="text-xs text-gray-700 flex-1 truncate">
+                  <p className="min-w-0 flex-1 break-words text-xs text-gray-700">
                     <span className="font-semibold">{order.pickup_from?.name}</span> · {order.pickup_from?.address}
                   </p>
                 </div>
                 <div className="ml-1 border-l border-dashed border-gray-300 h-3" />
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-                  <p className="text-xs text-gray-700 flex-1 truncate">
+                  <p className="min-w-0 flex-1 break-words text-xs text-gray-700">
                     <span className="font-semibold">{order.deliver_to?.recipient_name}</span> · {order.deliver_to?.city}
                   </p>
                 </div>
