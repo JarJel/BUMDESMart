@@ -319,7 +319,7 @@ export default function DetailPesananPage() {
                       <p className="text-xs text-gray-400">{item.variant_option.name}</p>
                     )}
                     <p className="text-xs text-gray-500">
-                      {item.quantity}× {formatRp(Number(item.price))}
+                      {item.quantity}× {formatRp(Number(item.product_price ?? item.price))}
                     </p>
                     {reviewed && (
                       <div className="flex items-center gap-1 mt-0.5">
@@ -330,7 +330,7 @@ export default function DetailPesananPage() {
                     )}
                   </div>
                   <p className="text-sm font-bold shrink-0" style={{ color: "var(--primary)" }}>
-                    {formatRp(Number(item.price) * item.quantity)}
+                    {formatRp(Number(item.product_price ?? item.price) * item.quantity)}
                   </p>
                 </div>
               );

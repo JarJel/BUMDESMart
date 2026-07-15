@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { checkoutApi } from "@/lib/api/checkout";
+import { useToast } from "@/components/ui/Toast";
 
 function formatRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
@@ -11,6 +12,7 @@ function formatRupiah(n: number) {
 
 function PembayaranContent() {
   const router = useRouter();
+  const toast = useToast();
   const searchParams = useSearchParams();
   const orderId = searchParams.get("order_id");
 
@@ -36,7 +38,8 @@ function PembayaranContent() {
 
         if (payStatus === "paid") {
           stopPolling();
-          setStep("success");
+          toast.success("Pembayaran berhasil!");
+          router.replace(`/pesanan/${id}`);
         } else if (payStatus === "expired" || payStatus === "failed") {
           stopPolling();
           setStep("expired");
@@ -63,7 +66,7 @@ function PembayaranContent() {
         const data = res.data;
 
         if (data.status === "paid") {
-          setStep("success");
+          router.replace(`/pesanan/${orderId}`);
           return;
         }
 
