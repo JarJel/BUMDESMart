@@ -20,38 +20,45 @@ function PembayaranContent() {
   const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
-  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const stopPolling = () => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
-  };
-
-  const startPolling = (id: number) => {
-    const poll = async () => {
-      try {
-        const res = await checkoutApi.checkPaymentStatus(id);
-        const data = res.data;
-        const payStatus = data?.status;
-
-        if (payStatus === "paid") {
-          stopPolling();
-          toast.success("Pembayaran berhasil!");
-          router.replace(`/pesanan/${id}`);
-        } else if (payStatus === "expired" || payStatus === "failed") {
-          stopPolling();
-          setStep("expired");
-        }
-      } catch {
-        // Tetap polling jika ada error sementara
-      }
-    };
-
-    poll(); // Langsung cek sekali
-    pollIntervalRef.current = setInterval(poll, 3000);
-  };
+   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+   const isFinishedRef = useRef(false);
+ 
+   const stopPolling = () => {
+     if (pollIntervalRef.current) {
+       clearInterval(pollIntervalRef.current);
+       pollIntervalRef.current = null;
+     }
+   };
+ 
+   const startPolling = (id: number) => {
+     const poll = async () => {
+       if (isFinishedRef.current) return;
+ 
+       try {
+         const res = await checkoutApi.checkPaymentStatus(id);
+         const data = res.data;
+         const payStatus = data?.status;
+ 
+         if (payStatus === "paid") {
+           isFinishedRef.current = true;
+           stopPolling();
+           toast.success("Pembayaran berhasil!");
+           router.replace(`/pesanan/${id}`);
+         } else if (payStatus === "expired" || payStatus === "failed") {
+           isFinishedRef.current = true;
+           stopPolling();
+           setStep("expired");
+         }
+       } catch {
+         // Tetap polling jika ada error sementara
+       }
+     };
+ 
+     poll(); // Langsung cek sekali
+     if (!isFinishedRef.current) {
+       pollIntervalRef.current = setInterval(poll, 3000);
+     }
+   };
 
   useEffect(() => {
     if (!orderId) {
