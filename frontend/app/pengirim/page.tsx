@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
-import { BarChart3, MessageCircle, Navigation, Package, Power, RefreshCw, Star, Wallet } from "lucide-react";
+import { BarChart3, ChevronRight, MessageCircle, Navigation, Package, Power, RefreshCw, Star, Wallet } from "lucide-react";
 
 function formatRp(n: number) {
   return "Rp " + Math.round(n).toLocaleString("id-ID");
@@ -21,8 +22,17 @@ const STATUS_LABEL: Record<string, string> = {
   delivered:  "Selesai",
 };
 
+const RADIUS_OPTIONS = [
+  { label: "Semua", value: null },
+  { label: "3 km", value: 3 },
+  { label: "5 km", value: 5 },
+  { label: "10 km", value: 10 },
+  { label: "20 km", value: 20 },
+];
+
 export default function PengirimDashboard() {
   const toast = useToast();
+  const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [activeOrders, setActiveOrders] = useState<any[]>([]);
   const [availableOrders, setAvailableOrders] = useState<any[]>([]);
@@ -32,12 +42,47 @@ export default function PengirimDashboard() {
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
-  const fetchAll = useCallback(async () => {
+  // Filter radius
+  const [selectedRadius, setSelectedRadius] = useState<number | null>(null);
+  const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [gettingLocation, setGettingLocation] = useState(false);
+
+  const getDriverLocation = useCallback((): Promise<{ lat: number; lng: number } | null> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) { resolve(null); return; }
+      setGettingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setDriverLocation(loc);
+          setGettingLocation(false);
+          resolve(loc);
+        },
+        () => {
+          setGettingLocation(false);
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    });
+  }, []);
+
+  const fetchAll = useCallback(async (radius?: number | null, location?: { lat: number; lng: number } | null) => {
     try {
+      const loc = location !== undefined ? location : driverLocation;
+      const rad = radius !== undefined ? radius : selectedRadius;
+
+      let availUrl = "/driver/orders/available";
+      if (loc && rad !== null) {
+        availUrl += `?lat=${loc.lat}&lng=${loc.lng}&radius=${rad}`;
+      } else if (loc) {
+        availUrl += `?lat=${loc.lat}&lng=${loc.lng}`;
+      }
+
       const [statsRes, activeRes, availRes] = await Promise.all([
         api.get("/driver/stats"),
         api.get("/driver/orders/active"),
-        api.get("/driver/orders/available"),
+        api.get(availUrl),
       ]);
       setStats(statsRes.data.data);
       setActiveOrders(activeRes.data.data ?? []);
@@ -53,9 +98,29 @@ export default function PengirimDashboard() {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [driverLocation, selectedRadius]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  const handleRadiusChange = async (radius: number | null) => {
+    setSelectedRadius(radius);
+    if (radius !== null) {
+      // Minta lokasi jika belum ada
+      let loc = driverLocation;
+      if (!loc) {
+        loc = await getDriverLocation();
+        if (!loc) {
+          toast.warning("Aktifkan izin lokasi di browser untuk menggunakan filter radius.");
+          setSelectedRadius(null);
+          return;
+        }
+      }
+      fetchAll(radius, loc);
+    } else {
+      fetchAll(null, driverLocation);
+    }
+  };
+
+  useEffect(() => { fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const toggleAvailability = async () => {
     setTogglingAvail(true);
@@ -320,7 +385,48 @@ export default function PengirimDashboard() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-gray-700">Pesanan Tersedia</h2>
-          <button onClick={fetchAll} className="text-xs text-orange-500 font-medium">Refresh</button>
+          <button onClick={() => fetchAll()} className="text-xs text-orange-500 font-medium">Refresh</button>
+        </div>
+
+        {/* Radius Filter */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm">
+          <div className="flex items-center gap-2 mb-2.5">
+            <svg className="w-3.5 h-3.5 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span className="text-xs font-semibold text-gray-700">Filter Radius Pencarian</span>
+            {gettingLocation && (
+              <span className="text-[10px] text-orange-500 animate-pulse">Mendapatkan lokasi…</span>
+            )}
+            {driverLocation && !gettingLocation && (
+              <span className="ml-auto text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></svg>
+                GPS aktif
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {RADIUS_OPTIONS.map(opt => (
+              <button
+                key={String(opt.value)}
+                onClick={() => handleRadiusChange(opt.value)}
+                disabled={gettingLocation}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border disabled:opacity-50 ${
+                  selectedRadius === opt.value
+                    ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                    : "bg-gray-50 text-gray-600 border-gray-200 hover:border-orange-300 hover:text-orange-600"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {selectedRadius !== null && (
+            <p className="mt-2 text-[11px] text-gray-400">
+              Menampilkan pesanan dalam radius <span className="font-semibold text-orange-500">{selectedRadius} km</span> dari lokasi kamu, diurutkan dari terdekat.
+            </p>
+          )}
         </div>
 
         {availableOrders.length === 0 ? (
@@ -333,55 +439,81 @@ export default function PengirimDashboard() {
           </div>
         ) : (
           availableOrders.map(order => (
-            <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3 shadow-sm sm:p-5">
-              {/* Earning highlight */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="break-all text-xs text-gray-500">{order.order_code}</span>
-                <span className="text-base font-bold text-orange-500">{formatRp(order.earning ?? 0)}</span>
-              </div>
-
-              {/* Info singkat */}
-              <div className="grid grid-cols-1 gap-2 text-center min-[420px]:grid-cols-3">
-                <div className="bg-gray-50 rounded-xl py-2">
-                  <p className="text-xs font-bold text-gray-900">{order.total_weight_kg ?? 0} kg</p>
-                  <p className="text-xs text-gray-500">Berat</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl py-2">
-                  <p className="text-xs font-bold text-gray-900">{order.distance_km != null ? `${order.distance_km} km` : "—"}</p>
-                  <p className="text-xs text-gray-500">Jarak</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl py-2">
-                  <p className="text-xs font-bold text-gray-900">{(order.items?.length ?? 0)} produk</p>
-                  <p className="text-xs text-gray-500">Item</p>
-                </div>
-              </div>
-
-              {/* Route */}
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-                  <p className="min-w-0 flex-1 break-words text-xs text-gray-700">
-                    <span className="font-semibold">{order.pickup_from?.name}</span> · {order.pickup_from?.address}
-                  </p>
-                </div>
-                <div className="ml-1 border-l border-dashed border-gray-300 h-3" />
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-                  <p className="min-w-0 flex-1 break-words text-xs text-gray-700">
-                    <span className="font-semibold">{order.deliver_to?.recipient_name}</span> · {order.deliver_to?.city}
-                  </p>
-                </div>
-              </div>
-
+            <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              {/* Header kartu — klik untuk detail */}
               <button
-                onClick={() => acceptOrder(order.id)}
-                disabled={acceptingId === order.id || (activeOrders.length >= 1)}
-                className="w-full py-2.5 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                onClick={() => router.push(`/pengirim/pesanan/${order.id}`)}
+                className="w-full p-4 sm:p-5 text-left hover:bg-gray-50 transition-colors"
               >
-                {acceptingId === order.id ? "Mengambil..." :
-                 activeOrders.length >= 1 ? "Selesaikan pesanan aktif dulu" :
-                 "Ambil Pesanan Ini"}
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div>
+                    <span className="block text-xs font-mono text-gray-400">{order.order_code}</span>
+                    <span className="text-base font-bold text-orange-500">{formatRp(order.earning ?? 0)}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs font-medium text-orange-500">
+                    Lihat Detail
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </div>
+                </div>
+
+                {/* Info singkat */}
+                <div className="grid grid-cols-2 gap-2 text-center min-[420px]:grid-cols-4 mb-3">
+                  <div className="bg-gray-50 rounded-xl py-2">
+                    <p className="text-xs font-bold text-gray-900">{order.total_weight_kg ?? 0} kg</p>
+                    <p className="text-xs text-gray-500">Berat</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl py-2">
+                    <p className="text-xs font-bold text-gray-900">{order.distance_km != null ? `${order.distance_km} km` : "—"}</p>
+                    <p className="text-xs text-gray-500">Jarak Antar</p>
+                  </div>
+                  <div className={`rounded-xl py-2 ${
+                    order.distance_driver_to_pickup != null ? "bg-orange-50" : "bg-gray-50"
+                  }`}>
+                    <p className={`text-xs font-bold ${
+                      order.distance_driver_to_pickup != null ? "text-orange-600" : "text-gray-900"
+                    }`}>
+                      {order.distance_driver_to_pickup != null ? `${order.distance_driver_to_pickup} km` : "—"}
+                    </p>
+                    <p className="text-xs text-gray-500">Ke Toko</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl py-2">
+                    <p className="text-xs font-bold text-gray-900">{(order.items?.length ?? 0)} produk</p>
+                    <p className="text-xs text-gray-500">Item</p>
+                  </div>
+                </div>
+
+                {/* Route singkat */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                    <p className="min-w-0 flex-1 break-words text-xs text-gray-700">
+                      <span className="font-semibold">{order.pickup_from?.name}</span>
+                      {order.pickup_from?.address ? ` · ${order.pickup_from.address}` : ""}
+                    </p>
+                  </div>
+                  <div className="ml-1 border-l border-dashed border-gray-300 h-3" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                    <p className="min-w-0 flex-1 break-words text-xs text-gray-700">
+                      <span className="font-semibold">{order.deliver_to?.recipient_name}</span>
+                      {order.deliver_to?.city ? ` · ${order.deliver_to.city}` : ""}
+                    </p>
+                  </div>
+                </div>
               </button>
+
+              {/* Tombol ambil di bawah */}
+              <div className="border-t border-gray-100 p-3 sm:px-5">
+                <button
+                  onClick={() => acceptOrder(order.id)}
+                  disabled={acceptingId === order.id || (activeOrders.length >= 1)}
+                  className="w-full py-2.5 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {acceptingId === order.id ? "Mengambil..." :
+                   activeOrders.length >= 1 ? "Selesaikan pesanan aktif dulu" :
+                   "Ambil Pesanan Ini"}
+                </button>
+              </div>
             </div>
           ))
         )}

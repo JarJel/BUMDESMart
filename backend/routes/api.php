@@ -216,6 +216,7 @@ Route::middleware(['auth:sanctum', 'role:pengirim'])->prefix('driver')->group(fu
     Route::patch('/profile/availability', [DriverController::class, 'toggleAvailability']);
     Route::get('/orders/available', [DriverController::class, 'availableOrders']);
     Route::get('/orders/active', [DriverController::class, 'activeOrders']);
+    Route::get('/orders/{id}', [DriverController::class, 'showOrder']);
     Route::post('/orders/{id}/accept', [DriverController::class, 'acceptOrder']);
     Route::patch('/orders/{id}/status', [DriverController::class, 'updateOrderStatus']);
     Route::get('/history', [DriverController::class, 'orderHistory']);

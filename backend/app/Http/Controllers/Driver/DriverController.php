@@ -129,6 +129,11 @@ class DriverController extends Controller
         $vehicleType = $profile->vehicle_type;
         $maxWeight   = self::VEHICLE_CAPACITY[$vehicleType] ?? 10_000;
 
+        // Koordinat & radius dari driver (opsional)
+        $driverLat = $request->query('lat')    ? (float) $request->query('lat')    : null;
+        $driverLng = $request->query('lng')    ? (float) $request->query('lng')    : null;
+        $radiusKm  = $request->query('radius') ? (float) $request->query('radius') : null;
+
         $orders = Order::where('status', 'confirmed')
             ->whereNull('driver_id')
             ->with([
@@ -140,13 +145,14 @@ class DriverController extends Controller
             ->latest()
             ->get();
 
-        $result = $orders->map(function (Order $order) use ($maxWeight) {
+        $result = $orders->map(function (Order $order) use ($maxWeight, $driverLat, $driverLng, $radiusKm) {
             $totalWeight = $order->items->sum(fn($i) => ($i->product?->weight ?? 0) * $i->quantity);
             if ($totalWeight > $maxWeight) return null;
 
             $umkm = $order->umkmProfile;
             $addr = $order->address;
 
+            // Jarak dari toko UMKM ke alamat pengiriman
             $distance = null;
             if ($umkm?->latitude && $umkm?->longitude && $addr?->latitude && $addr?->longitude) {
                 $distance = round(HaversineHelper::distanceKm(
@@ -155,10 +161,96 @@ class DriverController extends Controller
                 ), 1);
             }
 
+            // Jarak dari posisi driver ke toko UMKM (pickup point)
+            $distanceDriverToPickup = null;
+            if ($driverLat && $driverLng && $umkm?->latitude && $umkm?->longitude) {
+                $distanceDriverToPickup = round(HaversineHelper::distanceKm(
+                    $driverLat, $driverLng,
+                    (float)$umkm->latitude, (float)$umkm->longitude,
+                ), 1);
+
+                // Filter: buang pesanan di luar radius yang diminta
+                if ($radiusKm !== null && $distanceDriverToPickup > $radiusKm) {
+                    return null;
+                }
+            }
+
             return array_merge($order->toArray(), [
+                'total_weight_gram'          => $totalWeight,
+                'total_weight_kg'            => round($totalWeight / 1000, 2),
+                'distance_km'                => $distance,
+                'distance_driver_to_pickup'  => $distanceDriverToPickup,
+                'earning'                    => (float) $order->shipping_cost,
+                'pickup_from'                => [
+                    'name'    => $umkm?->shop_name,
+                    'address' => $umkm?->address,
+                    'phone'   => $umkm?->phone,
+                    'lat'     => $umkm?->latitude,
+                    'lng'     => $umkm?->longitude,
+                ],
+                'deliver_to'                 => [
+                    'recipient_name' => $addr?->recipient_name,
+                    'phone'          => $addr?->phone,
+                    'label'          => $addr?->label ?? 'Rumah',
+                    'address'        => $addr?->address,
+                    'city'           => $addr?->city,
+                    'province'       => $addr?->province,
+                    'lat'            => $addr?->latitude,
+                    'lng'            => $addr?->longitude,
+                ],
+            ]);
+        })->filter()->values();
+
+        // Urutkan: pesanan terdekat ke driver di atas (jika koordinat driver tersedia)
+        if ($driverLat && $driverLng) {
+            $result = $result->sortBy(fn($o) => $o['distance_driver_to_pickup'] ?? PHP_INT_MAX)->values();
+        }
+
+        return response()->json(['data' => $result]);
+    }
+
+    /**
+     * Detail satu pesanan — bisa dilihat jika:
+     * (a) pesanan belum diambil siapapun (status confirmed), ATAU
+     * (b) pesanan ini memang milik kurir yang sedang request.
+     */
+    public function showOrder(Request $request, int $id)
+    {
+        $profile = $this->getProfile($request);
+        $this->requireVerified($profile);
+
+        $userId = $request->user()->id;
+
+        $order = Order::where(function ($q) use ($userId) {
+                $q->where('status', 'confirmed')->whereNull('driver_id')
+                  ->orWhere('driver_id', $userId);
+            })
+            ->with([
+                'items.product.images',
+                'address',
+                'umkmProfile:id,shop_name,logo,address,latitude,longitude,phone',
+                'customer.user:id,name,phone',
+            ])
+            ->findOrFail($id);
+
+        $umkm = $order->umkmProfile;
+        $addr = $order->address;
+
+        $totalWeight = $order->items->sum(fn($i) => ($i->product?->weight ?? 0) * $i->quantity);
+
+        $distanceKm = null;
+        if ($umkm?->latitude && $umkm?->longitude && $addr?->latitude && $addr?->longitude) {
+            $distanceKm = round(HaversineHelper::distanceKm(
+                (float)$umkm->latitude, (float)$umkm->longitude,
+                (float)$addr->latitude,  (float)$addr->longitude,
+            ), 1);
+        }
+
+        return response()->json([
+            'data' => array_merge($order->toArray(), [
                 'total_weight_gram' => $totalWeight,
                 'total_weight_kg'   => round($totalWeight / 1000, 2),
-                'distance_km'       => $distance,
+                'distance_km'       => $distanceKm,
                 'earning'           => (float) $order->shipping_cost,
                 'pickup_from'       => [
                     'name'    => $umkm?->shop_name,
@@ -177,10 +269,8 @@ class DriverController extends Controller
                     'lat'            => $addr?->latitude,
                     'lng'            => $addr?->longitude,
                 ],
-            ]);
-        })->filter()->values();
-
-        return response()->json(['data' => $result]);
+            ]),
+        ]);
     }
 
     // Pesanan aktif milik kurir ini
@@ -275,7 +365,9 @@ class DriverController extends Controller
         $order  = Order::where('driver_id', $userId)->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'status' => 'required|in:shipped,delivered',
+            'status'          => 'required|in:shipped,delivered',
+            'pickup_photo'    => 'required_if:status,shipped|image|max:5120', // Maks 5MB
+            'delivered_photo' => 'required_if:status,delivered|image|max:5120', // Maks 5MB
         ]);
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
@@ -291,7 +383,21 @@ class DriverController extends Controller
             return response()->json(['message' => 'Perubahan status tidak valid.'], 422);
         }
 
-        $order->update(['status' => $newStatus]);
+        $updateData = ['status' => $newStatus];
+
+        // Upload bukti jemput (pickup)
+        if ($newStatus === 'shipped' && $request->hasFile('pickup_photo')) {
+            $path = $request->file('pickup_photo')->store('uploads/proofs', 'public');
+            $updateData['pickup_photo'] = '/storage/' . $path;
+        }
+
+        // Upload bukti kirim (delivered)
+        if ($newStatus === 'delivered' && $request->hasFile('delivered_photo')) {
+            $path = $request->file('delivered_photo')->store('uploads/proofs', 'public');
+            $updateData['delivered_photo'] = '/storage/' . $path;
+        }
+
+        $order->update($updateData);
 
         $descriptions = [
             'shipped'   => 'Kurir telah mengambil barang dari toko dan sedang mengantarkan.',

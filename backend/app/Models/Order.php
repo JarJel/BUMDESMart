@@ -26,6 +26,8 @@ class Order extends Model
         'notes',
         'delivery_type',
         'driver_id',
+        'pickup_photo',
+        'delivered_photo',
     ];
 
     public function customer(): BelongsTo

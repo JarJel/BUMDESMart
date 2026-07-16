@@ -21,13 +21,19 @@ const STATUS_STEPS = [
 ];
 
 const STATUS_IDX: Record<string, number> = {
-  pending: 0, confirmed: 1, processing: 2, shipped: 3, delivered: 4,
+  pending: 0,
+  confirmed: 1,
+  processing: 2,
+  picking_up: 2, // driver menjemput barang masuk kategori diproses
+  shipped: 3,
+  delivered: 4,
 };
 
 const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
   pending:    { bg: "#FFF7ED", text: "#C2410C", label: "Menunggu Pembayaran" },
   confirmed:  { bg: "#EFF6FF", text: "#1D4ED8", label: "Dikonfirmasi" },
   processing: { bg: "#FEF9C3", text: "#A16207", label: "Sedang Diproses" },
+  picking_up: { bg: "#EDE9FE", text: "#5B21B6", label: "Driver Menuju Toko" },
   shipped:    { bg: "#ECFDF5", text: "#065F46", label: "Sedang Dikirim" },
   delivered:  { bg: "#F0FDF4", text: "#15803D", label: "Selesai" },
   cancelled:  { bg: "#FEF2F2", text: "#DC2626", label: "Dibatalkan" },

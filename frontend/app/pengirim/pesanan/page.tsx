@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
-import { ClipboardList, MessageCircle, Navigation, Package, RefreshCw } from "lucide-react";
+import { ChevronRight, ClipboardList, MessageCircle, Navigation, Package, RefreshCw } from "lucide-react";
 
 function formatRp(n: number) {
   return "Rp " + Math.round(n).toLocaleString("id-ID");
@@ -17,6 +18,7 @@ function openWA(phone: string | undefined, msg: string) {
 
 export default function PengirimPesananPage() {
   const toast = useToast();
+  const router = useRouter();
   const [tab, setTab] = useState<"available" | "active">("available");
   const [available, setAvailable] = useState<any[]>([]);
   const [active, setActive] = useState<any[]>([]);
@@ -152,54 +154,69 @@ export default function PengirimPesananPage() {
             </div>
           ) : (
             available.map(order => (
-              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3 shadow-sm sm:p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="break-all text-xs text-gray-500">{order.order_code}</span>
-                  <span className="text-lg font-bold text-orange-500">{formatRp(order.earning ?? 0)}</span>
-                </div>
-
-                <div className="grid grid-cols-1 gap-2 text-center min-[420px]:grid-cols-3">
-                  <div className="bg-gray-50 rounded-xl py-2">
-                    <p className="text-xs font-bold text-gray-900">{order.total_weight_kg ?? 0} kg</p>
-                    <p className="text-xs text-gray-500">Berat</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl py-2">
-                    <p className="text-xs font-bold text-gray-900">{order.distance_km != null ? `${order.distance_km} km` : "—"}</p>
-                    <p className="text-xs text-gray-500">Jarak</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl py-2">
-                    <p className="text-xs font-bold text-gray-900">{order.items?.length ?? 0}</p>
-                    <p className="text-xs text-gray-500">Item</p>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-                    <p className="min-w-0 flex-1 break-words text-xs text-gray-700">
-                      <span className="font-semibold">{order.pickup_from?.name}</span>
-                      {order.pickup_from?.address ? ` · ${order.pickup_from.address}` : ""}
-                    </p>
-                  </div>
-                  <div className="ml-1 border-l border-dashed border-gray-300 h-3" />
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-                    <p className="min-w-0 flex-1 break-words text-xs text-gray-700">
-                      <span className="font-semibold">{order.deliver_to?.recipient_name}</span>
-                      {order.deliver_to?.city ? ` · ${order.deliver_to.city}` : ""}
-                    </p>
-                  </div>
-                </div>
-
+              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                {/* Bagian kartu atas dapat diklik untuk detail */}
                 <button
-                  onClick={() => accept(order.id)}
-                  disabled={acceptingId === order.id || active.length >= 1}
-                  className="w-full py-3 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  onClick={() => router.push(`/pengirim/pesanan/${order.id}`)}
+                  className="w-full p-4 sm:p-5 text-left hover:bg-gray-50 transition-colors animate-fade-in"
                 >
-                  {acceptingId === order.id ? "Mengambil..." :
-                   active.length >= 1 ? "Selesaikan pesanan aktif dulu" :
-                   "Ambil Pesanan Ini"}
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div>
+                      <span className="block text-xs font-mono text-gray-400">{order.order_code}</span>
+                      <span className="text-base font-bold text-orange-500">{formatRp(order.earning ?? 0)}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs font-medium text-orange-500">
+                      Lihat Detail
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-center min-[420px]:grid-cols-3 mb-3">
+                    <div className="bg-gray-50 rounded-xl py-2">
+                      <p className="text-xs font-bold text-gray-900">{order.total_weight_kg ?? 0} kg</p>
+                      <p className="text-xs text-gray-500">Berat</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl py-2">
+                      <p className="text-xs font-bold text-gray-900">{order.distance_km != null ? `${order.distance_km} km` : "—"}</p>
+                      <p className="text-xs text-gray-500">Jarak</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl py-2">
+                      <p className="text-xs font-bold text-gray-900">{order.items?.length ?? 0}</p>
+                      <p className="text-xs text-gray-500">Item</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                      <p className="min-w-0 flex-1 break-words text-xs text-gray-700">
+                        <span className="font-semibold">{order.pickup_from?.name}</span>
+                        {order.pickup_from?.address ? ` · ${order.pickup_from.address}` : ""}
+                      </p>
+                    </div>
+                    <div className="ml-1 border-l border-dashed border-gray-300 h-3" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                      <p className="min-w-0 flex-1 break-words text-xs text-gray-700">
+                        <span className="font-semibold">{order.deliver_to?.recipient_name}</span>
+                        {order.deliver_to?.city ? ` · ${order.deliver_to.city}` : ""}
+                      </p>
+                    </div>
+                  </div>
                 </button>
+
+                {/* Tombol Ambil di bagian bawah */}
+                <div className="border-t border-gray-100 p-3 sm:px-5">
+                  <button
+                    onClick={() => accept(order.id)}
+                    disabled={acceptingId === order.id || active.length >= 1}
+                    className="w-full py-2.5 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {acceptingId === order.id ? "Mengambil..." :
+                     active.length >= 1 ? "Selesaikan pesanan aktif dulu" :
+                     "Ambil Pesanan Ini"}
+                  </button>
+                </div>
               </div>
             ))
           )}
@@ -217,81 +234,101 @@ export default function PengirimPesananPage() {
             </div>
           ) : (
             active.map(order => (
-              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-4 shadow-sm sm:p-5">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="break-all text-xs font-bold text-gray-900">{order.order_code}</p>
-                    <span className={`mt-1 inline-block text-xs px-2 py-0.5 rounded-full font-semibold ${
-                      order.status === "picking_up" ? "bg-orange-50 text-orange-600" :
-                      order.status === "shipped"    ? "bg-purple-50 text-purple-600" : "bg-green-50 text-green-700"
-                    }`}>
-                      {order.status === "picking_up" ? "Menuju Toko" :
-                       order.status === "shipped"    ? "Sedang Diantar" : "Selesai"}
-                    </span>
-                  </div>
-                  <span className="shrink-0 text-base font-bold text-orange-500">{formatRp(order.earning ?? order.shipping_cost ?? 0)}</span>
-                </div>
-
-                {/* Route dengan tombol WA */}
-                <div className="space-y-2">
-                  <div className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Package className="w-3.5 h-3.5 text-green-600" />
+              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                {/* Header kartu dapat diklik untuk detail */}
+                <button
+                  onClick={() => router.push(`/pengirim/pesanan/${order.id}`)}
+                  className="w-full p-4 sm:p-5 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+                    <div className="min-w-0">
+                      <span className="block text-xs font-mono text-gray-400">{order.order_code}</span>
+                      <span className={`mt-1 inline-block text-xs px-2.5 py-0.5 rounded-full font-semibold ${
+                        order.status === "picking_up" ? "bg-orange-50 text-orange-600" :
+                        order.status === "shipped"    ? "bg-purple-50 text-purple-600" : "bg-green-50 text-green-700"
+                      }`} style={order.status === "picking_up" ? { color: "#ea580c", backgroundColor: "#fff7ed" } : {}}>
+                        {order.status === "picking_up" ? "Menuju Toko" :
+                         order.status === "shipped"    ? "Sedang Diantar" : "Selesai"}
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500">Ambil di toko</p>
-                      <p className="break-words text-sm font-semibold text-gray-900">{order.pickup_from?.name}</p>
-                      <p className="break-words text-xs text-gray-500">{order.pickup_from?.address}</p>
+                    <div className="text-right">
+                      <span className="block text-base font-bold text-orange-500">{formatRp(order.earning ?? order.shipping_cost ?? 0)}</span>
+                      <span className="inline-flex items-center gap-0.5 text-xs font-medium text-orange-500 mt-1">
+                        Lihat Detail
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </span>
                     </div>
-                    <button
-                      onClick={() => openWA(order.pickup_from?.phone, `Halo, saya kurir BUMDESMart untuk pesanan #${order.order_code}. Saya sedang dalam perjalanan ke toko.`)}
-                      disabled={!order.pickup_from?.phone}
-                      className="flex-shrink-0 w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center disabled:opacity-30"
-                    >
-                      <MessageCircle className="w-4 h-4 text-white" />
-                    </button>
                   </div>
 
-                  <div className="ml-3.5 border-l-2 border-dashed border-gray-200 h-4" />
+                  {/* Route dengan info pickup & deliver */}
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-3">
+                      <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Package className="w-3.5 h-3.5 text-green-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500">Ambil di toko</p>
+                        <p className="break-words text-sm font-semibold text-gray-900">{order.pickup_from?.name}</p>
+                        <p className="break-words text-xs text-gray-500">{order.pickup_from?.address}</p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // Mencegah terpicunya navigasi detail
+                          openWA(order.pickup_from?.phone, `Halo, saya kurir BUMDESMart untuk pesanan #${order.order_code}. Saya sedang dalam perjalanan ke toko.`);
+                        }}
+                        disabled={!order.pickup_from?.phone}
+                        className="flex-shrink-0 w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center disabled:opacity-30"
+                      >
+                        <MessageCircle className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
 
-                  <div className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Navigation className="w-3.5 h-3.5 text-blue-600" />
+                    <div className="ml-3.5 border-l-2 border-dashed border-gray-200 h-4" />
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Navigation className="w-3.5 h-3.5 text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500">Antar ke — <span className="font-semibold text-gray-700">{order.deliver_to?.recipient_name}</span></p>
+                        <p className="break-words text-sm font-semibold text-gray-900">{order.deliver_to?.address}</p>
+                        <p className="text-xs text-gray-500">{order.deliver_to?.city}</p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // Mencegah terpicunya navigasi detail
+                          openWA(order.deliver_to?.phone, `Halo ${order.deliver_to?.recipient_name ?? ""}, saya kurir BUMDESMart. Sedang mengantarkan pesanan #${order.order_code}. Bisa konfirmasi alamat? Terima kasih.`);
+                        }}
+                        disabled={!order.deliver_to?.phone}
+                        className="flex-shrink-0 w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center disabled:opacity-30"
+                      >
+                        <MessageCircle className="w-4 h-4 text-white" />
+                      </button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500">Antar ke — <span className="font-semibold text-gray-700">{order.deliver_to?.recipient_name}</span></p>
-                      <p className="break-words text-sm font-semibold text-gray-900">{order.deliver_to?.address}</p>
-                      <p className="text-xs text-gray-500">{order.deliver_to?.city}</p>
-                    </div>
-                    <button
-                      onClick={() => openWA(order.deliver_to?.phone, `Halo ${order.deliver_to?.recipient_name ?? ""}, saya kurir BUMDESMart. Sedang mengantarkan pesanan #${order.order_code}. Bisa konfirmasi alamat? Terima kasih.`)}
-                      disabled={!order.deliver_to?.phone}
-                      className="flex-shrink-0 w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center disabled:opacity-30"
-                    >
-                      <MessageCircle className="w-4 h-4 text-white" />
-                    </button>
                   </div>
-                </div>
+                </button>
 
                 {/* Action button */}
-                {order.status === "picking_up" && (
-                  <button
-                    onClick={() => updateStatus(order.id, "shipped")}
-                    disabled={updatingId === order.id}
-                    className="w-full py-3 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-50 transition-colors"
-                  >
-                    {updatingId === order.id ? "Memproses..." : "Barang Sudah Diambil — Mulai Antar"}
-                  </button>
-                )}
-                {order.status === "shipped" && (
-                  <button
-                    onClick={() => updateStatus(order.id, "delivered")}
-                    disabled={updatingId === order.id}
-                    className="w-full py-3 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors"
-                  >
-                    {updatingId === order.id ? "Memproses..." : "Pesanan Sudah Diterima Pembeli"}
-                  </button>
-                )}
+                <div className="border-t border-gray-100 p-3 sm:px-5">
+                  {order.status === "picking_up" && (
+                    <button
+                      onClick={() => updateStatus(order.id, "shipped")}
+                      disabled={updatingId === order.id}
+                      className="w-full py-2.5 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                    >
+                      {updatingId === order.id ? "Memproses..." : "Barang Sudah Diambil — Mulai Antar"}
+                    </button>
+                  )}
+                  {order.status === "shipped" && (
+                    <button
+                      onClick={() => updateStatus(order.id, "delivered")}
+                      disabled={updatingId === order.id}
+                      className="w-full py-2.5 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors"
+                    >
+                      {updatingId === order.id ? "Memproses..." : "Pesanan Sudah Diterima Pembeli"}
+                    </button>
+                  )}
+                </div>
               </div>
             ))
           )}

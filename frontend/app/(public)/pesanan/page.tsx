@@ -20,6 +20,7 @@ const STATUS_COLOR: Record<string, { bg: string; text: string; label: string }> 
   pending:    { bg: "#FEF3C7", text: "#92400E", label: "Menunggu Bayar" },
   confirmed:  { bg: "#DBEAFE", text: "#1E40AF", label: "Dikonfirmasi" },
   processing: { bg: "#EDE9FE", text: "#5B21B6", label: "Diproses" },
+  picking_up: { bg: "#EDE9FE", text: "#5B21B6", label: "Driver Menuju Toko" },
   shipped:    { bg: "#CFFAFE", text: "#164E63", label: "Dikirim" },
   delivered:  { bg: "#D1FAE5", text: "#065F46", label: "Selesai" },
   cancelled:  { bg: "#FEE2E2", text: "#991B1B", label: "Dibatalkan" },
