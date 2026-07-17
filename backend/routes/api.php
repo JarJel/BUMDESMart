@@ -257,6 +257,11 @@ Route::get('/stats', [\App\Http\Controllers\PublicStatsController::class, 'index
 // Public bumdes list (untuk FE pilih bumdes saat daftar mitra)
 Route::get('/bumdes', [SuperAdminBumdesController::class, 'index']);
 
+// Berita / broadcast dari BUMDes — public (landing page) & auth (UMKM/kurir)
+Route::get('/berita', [\App\Http\Controllers\Public\BeritaController::class, 'index']);
+Route::get('/berita/{id}', [\App\Http\Controllers\Public\BeritaController::class, 'show']);
+Route::middleware('auth:sanctum')->get('/my/berita', [\App\Http\Controllers\Public\BeritaController::class, 'myBerita']);
+
 // Webhook Xendit (tidak perlu auth Sanctum)
 Route::post('/webhooks/xendit', [WebhookController::class, 'xendit']);
 

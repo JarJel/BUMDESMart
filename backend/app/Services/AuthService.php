@@ -61,6 +61,8 @@ class AuthService
             'phone'             => $data['phone'] ?? null,
             'description'       => $data['description'] ?? null,
             'business_category' => $data['business_category'] ?? null,
+            'agreed_to_terms'   => true,
+            'agreed_at'         => now(),
             'status'            => 'pending',
         ]);
 
