@@ -108,7 +108,7 @@ export default function AdminBumdesPage() {
       {/* Form Tambah */}
       {showForm && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h2 className="text-base font-bold text-gray-900 mb-5">Form Pendaftaran BUMDes</h2>
+          <h2 className="text-base font-bold text-gray-900 mb-5">Profile BUMDes</h2>
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Info BUMDes */}
             <div>

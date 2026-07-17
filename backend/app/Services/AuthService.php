@@ -61,6 +61,8 @@ class AuthService
             'phone'             => $data['phone'] ?? null,
             'description'       => $data['description'] ?? null,
             'business_category' => $data['business_category'] ?? null,
+            'agreed_to_terms'   => true,
+            'agreed_at'         => now(),
             'status'            => 'pending',
         ]);
 
@@ -83,6 +85,7 @@ class AuthService
 
         \App\Models\DriverProfile::create([
             'user_id'             => $user->id,
+            'bumdes_profile_id'   => $data['bumdes_profile_id'] ?? null,
             'vehicle_type'        => $data['vehicle_type'],
             'vehicle_brand'       => $data['vehicle_brand'] ?? null,
             'vehicle_plate'       => $data['vehicle_plate'],

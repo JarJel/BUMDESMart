@@ -26,6 +26,7 @@ class BumdesProfile extends Model
         'status',
         'fee_type',
         'fee_value',
+        'buyer_service_fee',
     ];
 
     public function calculateFee(float $netAmount): int

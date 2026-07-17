@@ -21,6 +21,7 @@ class Order extends Model
         'shipping_cost',
         'discount',
         'bumdes_fee',
+        'service_fee',
         'total',
         'status',
         'notes',

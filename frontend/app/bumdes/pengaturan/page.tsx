@@ -19,6 +19,7 @@ interface BumdesProfile {
   status: string;
   fee_type: "percent" | "flat" | null;
   fee_value: number;
+  buyer_service_fee: number;
 }
 
 interface Balance {
@@ -69,8 +70,11 @@ export default function BumdesPengaturanPage() {
   const [loading, setLoading] = useState(true);
   const [savingDesc, setSavingDesc] = useState(false);
   const [savingFee, setSavingFee] = useState(false);
+  const [savingServiceFee, setSavingServiceFee] = useState(false);
   const [descError, setDescError] = useState("");
   const [feeError, setFeeError] = useState("");
+  const [serviceFeeValue, setServiceFeeValue] = useState("");
+  const [serviceFeeError, setServiceFeeError] = useState("");
   const toast = useToast();
 
   const fetchProfile = async () => {
@@ -84,6 +88,7 @@ export default function BumdesPengaturanPage() {
       setDescription(p.description ?? "");
       setFeeType(p.fee_type ?? "");
       setFeeValue(p.fee_value > 0 ? String(p.fee_value) : "");
+      setServiceFeeValue(p.buyer_service_fee > 0 ? String(p.buyer_service_fee) : "");
       setBalance(balanceRes.data.data);
     } catch {
       setDescError("Gagal memuat profil BUMDes.");
@@ -136,6 +141,24 @@ export default function BumdesPengaturanPage() {
       setFeeError(err.response?.data?.message ?? "Gagal menyimpan.");
     } finally {
       setSavingFee(false);
+    }
+  };
+
+  const handleSaveServiceFee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setServiceFeeError("");
+    const val = parseInt(serviceFeeValue || "0", 10);
+    if (isNaN(val) || val < 0) { setServiceFeeError("Nominal tidak valid."); return; }
+    if (val > 50000) { setServiceFeeError("Biaya layanan maksimal Rp 50.000."); return; }
+    setSavingServiceFee(true);
+    try {
+      const res = await api.put("/admin/profile", { buyer_service_fee: val });
+      setProfile(res.data.data);
+      toast.success("Biaya layanan pembeli berhasil disimpan.");
+    } catch (err: any) {
+      setServiceFeeError(err.response?.data?.message ?? "Gagal menyimpan.");
+    } finally {
+      setSavingServiceFee(false);
     }
   };
 
@@ -337,6 +360,7 @@ export default function BumdesPengaturanPage() {
           </div>
         </div>
       </form>
+
     </div>
   );
 }

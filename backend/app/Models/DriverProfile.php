@@ -11,6 +11,7 @@ class DriverProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'bumdes_profile_id',
         'vehicle_type',
         'vehicle_brand',
         'vehicle_plate',
@@ -40,5 +41,10 @@ class DriverProfile extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function bumdesProfile()
+    {
+        return $this->belongsTo(BumdesProfile::class, 'bumdes_profile_id');
     }
 }

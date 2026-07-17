@@ -29,6 +29,9 @@ use App\Http\Controllers\SuperAdmin\UserController as SuperAdminUserController;
 use App\Http\Controllers\SuperAdmin\UmkmController as SuperAdminUmkmController;
 use App\Http\Controllers\SuperAdmin\ReportController as SuperAdminReportController;
 use App\Http\Controllers\SuperAdmin\SettingController as SuperAdminSettingController;
+use App\Http\Controllers\Admin\DriverController as AdminDriverController;
+use App\Http\Controllers\Admin\BalanceController as AdminBalanceController;
+use App\Http\Controllers\Admin\BroadcastController as AdminBroadcastController;
 use App\Http\Controllers\Admin\RequiredDocumentController;
 use App\Http\Controllers\Admin\UmkmVerificationController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
@@ -164,6 +167,27 @@ Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('ad
     Route::put('/categories/{category}', [AdminCategoryController::class, 'update']);
     Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy']);
 
+    // Admin BUMDes - driver management (hanya kurir di BUMDes ini)
+    Route::get('/drivers', [AdminDriverController::class, 'index']);
+    Route::get('/drivers/stats', [AdminDriverController::class, 'stats']);
+    Route::get('/drivers/{id}', [AdminDriverController::class, 'show']);
+    Route::patch('/drivers/{id}/verify', [AdminDriverController::class, 'verify']);
+    Route::patch('/drivers/{id}/reject', [AdminDriverController::class, 'reject']);
+    Route::patch('/drivers/{id}/suspend', [AdminDriverController::class, 'suspend']);
+    Route::patch('/drivers/{id}/unsuspend', [AdminDriverController::class, 'unsuspend']);
+
+    // Admin BUMDes - saldo & histori transaksi
+    Route::get('/balance', [AdminBalanceController::class, 'index']);
+    Route::get('/transactions', [AdminBalanceController::class, 'transactions']);
+    Route::get('/disbursements', [AdminBalanceController::class, 'disbursements']);
+    Route::post('/withdraw', [AdminBalanceController::class, 'withdraw']);
+    Route::post('/bank-account', [AdminBalanceController::class, 'saveBankAccount']);
+
+    // Admin BUMDes - broadcast
+    Route::get('/broadcasts', [AdminBroadcastController::class, 'index']);
+    Route::post('/broadcasts', [AdminBroadcastController::class, 'store']);
+    Route::get('/broadcasts/{id}', [AdminBroadcastController::class, 'show']);
+
     Route::get('/required-documents', [RequiredDocumentController::class, 'index']);
     Route::post('/required-documents/seed-defaults', [RequiredDocumentController::class, 'seedDefaults']);
     Route::post('/required-documents', [RequiredDocumentController::class, 'store']);
@@ -232,6 +256,11 @@ Route::get('/stats', [\App\Http\Controllers\PublicStatsController::class, 'index
 
 // Public bumdes list (untuk FE pilih bumdes saat daftar mitra)
 Route::get('/bumdes', [SuperAdminBumdesController::class, 'index']);
+
+// Berita / broadcast dari BUMDes — public (landing page) & auth (UMKM/kurir)
+Route::get('/berita', [\App\Http\Controllers\Public\BeritaController::class, 'index']);
+Route::get('/berita/{id}', [\App\Http\Controllers\Public\BeritaController::class, 'show']);
+Route::middleware('auth:sanctum')->get('/my/berita', [\App\Http\Controllers\Public\BeritaController::class, 'myBerita']);
 
 // Webhook Xendit (tidak perlu auth Sanctum)
 Route::post('/webhooks/xendit', [WebhookController::class, 'xendit']);

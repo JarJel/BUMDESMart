@@ -39,16 +39,20 @@ class UmkmProfile extends Model
         'verified_at',
         'rejection_reason',
         'business_category',
+        'agreed_to_terms',
+        'agreed_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'verified_at'  => 'datetime',
-            'rating'       => 'float',
-            'is_open'      => 'boolean',
-            'open_hours'   => 'array',
-            'closed_until' => 'datetime',
+            'verified_at'     => 'datetime',
+            'agreed_at'       => 'datetime',
+            'agreed_to_terms' => 'boolean',
+            'rating'          => 'float',
+            'is_open'         => 'boolean',
+            'open_hours'      => 'array',
+            'closed_until'    => 'datetime',
         ];
     }
 
