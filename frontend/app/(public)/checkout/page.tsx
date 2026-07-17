@@ -383,13 +383,14 @@ export default function CheckoutPage() {
   
   // Hitung values berdasarkan data dari API preview (tenants)
   const apiTenants = previewData?.tenants || [];
-  const apiSubtotal = apiTenants.reduce((s: number, t: any) => s + (Number(t.sub_total) || 0), 0);
-  const apiDiscount = apiTenants.reduce((s: number, t: any) => s + (Number(t.discount) || 0), 0);
-  const apiTotal = apiTenants.reduce((s: number, t: any) => s + (Number(t.total) || 0), 0);
+  const apiSubtotal    = apiTenants.reduce((s: number, t: any) => s + (Number(t.sub_total)    || 0), 0);
+  const apiDiscount    = apiTenants.reduce((s: number, t: any) => s + (Number(t.discount)     || 0), 0);
+  const apiServiceFee  = apiTenants.reduce((s: number, t: any) => s + (Number(t.service_fee)  || 0), 0);
+  const apiTotal       = apiTenants.reduce((s: number, t: any) => s + (Number(t.total)        || 0), 0);
 
-  const finalSubtotal = apiTenants.length > 0 ? apiSubtotal : subtotal;
-  const finalDiscount = apiTenants.length > 0 ? apiDiscount : 0;
-  const grandTotal = (apiTenants.length > 0 ? apiTotal : subtotal) + shippingDisplay;
+  const finalSubtotal  = apiTenants.length > 0 ? apiSubtotal : subtotal;
+  const finalDiscount  = apiTenants.length > 0 ? apiDiscount : 0;
+  const grandTotal     = (apiTenants.length > 0 ? apiTotal : subtotal) + shippingDisplay;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -728,6 +729,14 @@ export default function CheckoutPage() {
                     shippingCost !== null ? formatRupiah(shippingCost) : "-"}
                 </span>
               </div>
+
+              {apiServiceFee > 0 && (
+                <div className="flex justify-between text-gray-500">
+                  <span>Biaya Layanan</span>
+                  <span>{formatRupiah(apiServiceFee)}</span>
+                </div>
+              )}
+
               <div className="flex justify-between font-bold text-gray-900 pt-1 border-t border-gray-100">
                 <span>Total</span>
                 <span style={{ color: "var(--primary)" }}>

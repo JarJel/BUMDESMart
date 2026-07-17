@@ -41,8 +41,9 @@ class ProfileController extends Controller
             'phone'       => 'nullable|string|max:20',
             'email'       => 'nullable|email|max:255',
             'description' => 'nullable|string',
-            'fee_type'    => 'nullable|in:percent,flat',
-            'fee_value'   => 'nullable|numeric|min:0',
+            'fee_type'           => 'nullable|in:percent,flat',
+            'fee_value'          => 'nullable|numeric|min:0',
+            'buyer_service_fee'  => 'nullable|integer|min:0|max:50000',
         ]);
 
         // Enforce batas maksimum fee

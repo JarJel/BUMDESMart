@@ -1,12 +1,29 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import ApexChart from "@/components/shared/ApexChart";
+import api from "@/lib/api/axios";
 import {
   IconStore, IconBox, IconMoney, IconShoppingBag,
   IconCheck, IconDoc, IconTag, IconShield, IconChevronRight,
 } from "@/components/shared/Icon";
 import type { ApexOptions } from "apexcharts";
+
+function rupiah(n: number) {
+  return `Rp ${Math.round(n).toLocaleString("id-ID")}`;
+}
+
+interface BalanceData {
+  pending: number;
+  available: number;
+  total_seller_fee: number;
+  total_service_fee: number;
+  month_seller_fee: number;
+  month_service_fee: number;
+  month_total: number;
+}
+
+
 
 const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 
@@ -32,6 +49,12 @@ const recentActivity = [
 
 export default function BumdesDashboard() {
   const [activeChart, setActiveChart] = useState<ChartKey>("umkm");
+  const [balance, setBalance] = useState<BalanceData | null>(null);
+
+  useEffect(() => {
+    api.get("/admin/balance").then(r => setBalance(r.data.data)).catch(() => {});
+  }, []);
+
   const chart = CHART_DATA[activeChart];
   const growth = (((chart.data[11] - chart.data[0]) / chart.data[0]) * 100).toFixed(0);
 
@@ -90,6 +113,32 @@ export default function BumdesDashboard() {
             <p className="text-xs mt-1 text-gray-400">{sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* Saldo BUMDes — ringkasan, detail di /bumdes/saldo */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-900">Saldo BUMDes</h2>
+          <Link href="/bumdes/saldo" className="text-xs font-medium text-green-700">Kelola saldo →</Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-green-50 rounded-xl p-3">
+            <p className="text-xs text-gray-500">Tersedia</p>
+            <p className="text-lg font-bold text-green-700 mt-0.5">{balance ? rupiah(balance.available) : "—"}</p>
+          </div>
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-xs text-gray-500">Menunggu</p>
+            <p className="text-lg font-bold text-gray-700 mt-0.5">{balance ? rupiah(balance.pending) : "—"}</p>
+          </div>
+          <div className="bg-blue-50 rounded-xl p-3">
+            <p className="text-xs text-gray-500">Bulan Ini</p>
+            <p className="text-lg font-bold text-blue-700 mt-0.5">{balance ? rupiah(balance.month_total) : "—"}</p>
+          </div>
+          <div className="bg-yellow-50 rounded-xl p-3">
+            <p className="text-xs text-gray-500">Total</p>
+            <p className="text-lg font-bold text-yellow-700 mt-0.5">{balance ? rupiah(balance.total_seller_fee + balance.total_service_fee) : "—"}</p>
+          </div>
+        </div>
       </div>
 
       {/* Chart + Activity */}

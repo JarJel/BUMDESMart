@@ -88,10 +88,11 @@ class AuthController extends Controller
     public function registerDriver(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name'          => 'required|string|max:255',
-            'email'         => 'required|string|email|unique:users,email',
-            'password'      => 'required|string|min:8|confirmed',
-            'phone'         => 'required|string|max:20',
+            'name'              => 'required|string|max:255',
+            'email'             => 'required|string|email|unique:users,email',
+            'password'          => 'required|string|min:8|confirmed',
+            'phone'             => 'required|string|max:20',
+            'bumdes_profile_id' => 'required|exists:bumdes_profiles,id',
             'vehicle_type'        => 'required|in:motor,mobil,pickup_box,pickup_bak',
             'vehicle_brand'       => 'required|string|max:100',
             'vehicle_plate'       => 'required|string|max:20',

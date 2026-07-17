@@ -104,21 +104,46 @@ class WebhookController extends Controller
             $this->createXenditDisbursement($order, $umkmAccount, $umkmNet, 'umkm');
         }
 
-        // Pindahkan pending → available untuk BUMDes
-        if ($bumdesFee > 0 && $order->umkmProfile?->bumdesProfile) {
+        // Pindahkan pending → available untuk BUMDes (bumdes_fee + service_fee)
+        if ($order->umkmProfile?->bumdesProfile) {
             $bumdesProfile = $order->umkmProfile->bumdesProfile;
-            $bumdesBalance = UmkmBalance::findOrCreateFor($bumdesProfile->id, 'bumdes');
-            $bumdesBalance->decrement('pending', $bumdesFee);
-            $bumdesBalance->increment('available', $bumdesFee);
+            $serviceFee    = (float) ($order->service_fee ?? 0);
+            $totalBumdes   = $bumdesFee + $serviceFee;
 
-            // Disbursement BUMDes jika ada rekening bank terdaftar
-            $bumdesAccount = UmkmBankAccount::where('owner_id', $bumdesProfile->id)
-                ->where('owner_type', 'bumdes')
-                ->where('is_active', true)
-                ->first();
+            if ($totalBumdes > 0) {
+                $bumdesBalance = UmkmBalance::findOrCreateFor($bumdesProfile->id, 'bumdes');
+                $bumdesBalance->decrement('pending', $totalBumdes);
+                $bumdesBalance->increment('available', $totalBumdes);
 
-            if ($bumdesAccount) {
-                $this->createXenditDisbursement($order, $bumdesAccount, $bumdesFee, 'bumdes');
+                // Catat histori transaksi BUMDes
+                if ($bumdesFee > 0) {
+                    \App\Models\BumdesTransaction::create([
+                        'bumdes_profile_id' => $bumdesProfile->id,
+                        'order_id'          => $order->id,
+                        'type'              => 'seller_fee',
+                        'amount'            => (int) $bumdesFee,
+                        'description'       => 'Fee dari seller order #' . $order->order_code,
+                    ]);
+                }
+                if ($serviceFee > 0) {
+                    \App\Models\BumdesTransaction::create([
+                        'bumdes_profile_id' => $bumdesProfile->id,
+                        'order_id'          => $order->id,
+                        'type'              => 'service_fee',
+                        'amount'            => (int) $serviceFee,
+                        'description'       => 'Biaya layanan pembeli order #' . $order->order_code,
+                    ]);
+                }
+
+                // Disbursement BUMDes jika ada rekening bank terdaftar
+                $bumdesAccount = UmkmBankAccount::where('owner_id', $bumdesProfile->id)
+                    ->where('owner_type', 'bumdes')
+                    ->where('is_active', true)
+                    ->first();
+
+                if ($bumdesAccount && $totalBumdes > 0) {
+                    $this->createXenditDisbursement($order, $bumdesAccount, $totalBumdes, 'bumdes');
+                }
             }
         }
 

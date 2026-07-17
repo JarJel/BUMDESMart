@@ -193,6 +193,10 @@ class CheckoutController extends Controller
                 }
             }
 
+            // Preload bumdes profiles untuk service fee
+            $umkmIdsForFee = collect($items)->pluck('product.umkm_profile.id')->unique()->filter()->values();
+            $bumdesForFee  = UmkmProfile::with('bumdesProfile')->whereIn('id', $umkmIdsForFee)->get()->keyBy('id');
+
             // Apply promotions per tenant
             foreach ($tenants as $tenantKey => &$tenant) {
                 $umkmId = $tenant['umkm_profile_id'];
@@ -201,7 +205,14 @@ class CheckoutController extends Controller
                 $tenant['promotion_name'] = null;
                 $tenant['discount'] = 0;
                 $tenant['promotion_error'] = null;
+                $tenant['service_fee'] = 0;
                 $tenant['total'] = $tenant['sub_total'];
+
+                // Service fee BUMDes dibebankan ke pembeli (flat per pesanan)
+                if ($umkmId && isset($bumdesForFee[$umkmId])) {
+                    $bumdes = $bumdesForFee[$umkmId]->bumdesProfile;
+                    $tenant['service_fee'] = (int) ($bumdes?->buyer_service_fee ?? 0);
+                }
 
                 if ($umkmId && isset($promotionCodes[$umkmId])) {
                     $code = $promotionCodes[$umkmId];
@@ -212,10 +223,12 @@ class CheckoutController extends Controller
                         $tenant['promotion_code'] = $promo->code;
                         $tenant['promotion_name'] = $promo->name;
                         $tenant['discount'] = $promoResult['discount'];
-                        $tenant['total'] = max(0, $tenant['sub_total'] - $promoResult['discount']);
+                        $tenant['total'] = max(0, $tenant['sub_total'] - $promoResult['discount']) + $tenant['service_fee'];
                     } else {
                         $tenant['promotion_error'] = $promoResult['message'];
                     }
+                } else {
+                    $tenant['total'] = $tenant['sub_total'] + $tenant['service_fee'];
                 }
             }
             unset($tenant);
@@ -492,14 +505,16 @@ class CheckoutController extends Controller
 
                 $netAmount = max(0, $subTotal - $orderDiscount);
 
-                // Hitung fee BUMDes dari net amount (setelah diskon, sebelum ongkir)
-                $bumdesFee = 0;
+                // Hitung fee BUMDes dari net amount (dipotong dari seller)
+                $bumdesFee  = 0;
+                $serviceFee = 0;
                 $umkmForFee = UmkmProfile::with('bumdesProfile')->find($umkmId);
                 if ($umkmForFee?->bumdesProfile) {
-                    $bumdesFee = $umkmForFee->bumdesProfile->calculateFee((float) $netAmount);
+                    $bumdesFee  = $umkmForFee->bumdesProfile->calculateFee((float) $netAmount);
+                    $serviceFee = (int) ($umkmForFee->bumdesProfile->buyer_service_fee ?? 0);
                 }
 
-                $total = $netAmount + $shippingCost;
+                $total = $netAmount + $shippingCost + $serviceFee;
                 $orderCode    = 'ORD-' . strtoupper(base_convert((string) time(), 10, 36)) . '-' . strtoupper(substr(uniqid(), -5));
 
                 $order = Order::create([
@@ -511,6 +526,7 @@ class CheckoutController extends Controller
                     'shipping_cost'   => $shippingCost,
                     'discount'        => $orderDiscount,
                     'bumdes_fee'      => $bumdesFee,
+                    'service_fee'     => $serviceFee,
                     'total'           => $total,
                     'status'          => 'pending',
                     'notes'           => $validated['notes'] ?? null,

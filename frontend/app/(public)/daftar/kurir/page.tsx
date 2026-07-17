@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
@@ -11,7 +11,7 @@ import {
   Eye, EyeOff, CreditCard,
   Camera, IdCard, CheckCircle,
   ChevronRight, ArrowLeft,
-  Rocket,
+  Rocket, Building2,
 } from "lucide-react";
 
 const VEHICLES = [
@@ -80,12 +80,20 @@ function PhotoPicker({
   );
 }
 
+interface BumdesOption {
+  id: number;
+  name: string;
+  village: string;
+  city: string;
+}
+
 export default function DaftarKurirPage() {
   const router = useRouter();
   const toast  = useToast();
   const [step, setStep]       = useState(1);
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [bumdesList, setBumdesList] = useState<BumdesOption[]>([]);
 
   const [photoProfile, setPhotoProfile] = useState<File | null>(null);
   const [photoKtp, setPhotoKtp]         = useState<File | null>(null);
@@ -93,15 +101,24 @@ export default function DaftarKurirPage() {
   const [form, setForm] = useState({
     name: "", email: "", phone: "", id_number: "",
     password: "", password_confirmation: "",
+    bumdes_profile_id: "",
     vehicle_type: "motor", vehicle_brand: "", vehicle_plate: "", vehicle_year: "",
     sim_type: "C",
     bank_name: "", bank_account_number: "", bank_account_name: "",
   });
 
+  useEffect(() => {
+    api.get("/bumdes").then(res => {
+      const data = res.data?.data ?? res.data ?? [];
+      setBumdesList(Array.isArray(data) ? data : data.data ?? []);
+    }).catch(() => {});
+  }, []);
+
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
   const validate = (s: number) => {
     if (s === 1) {
+      if (!form.bumdes_profile_id)                             { toast.error("Pilih BUMDes tempat kamu mendaftar."); return false; }
       if (!form.name.trim())                                   { toast.error("Nama lengkap wajib diisi.");     return false; }
       if (!form.email.includes("@"))                           { toast.error("Email tidak valid.");            return false; }
       if (!form.phone.trim())                                  { toast.error("Nomor HP wajib diisi.");         return false; }
@@ -125,6 +142,7 @@ export default function DaftarKurirPage() {
     setLoading(true);
     try {
       const fd = new FormData();
+      fd.append("bumdes_profile_id",     form.bumdes_profile_id);
       fd.append("name",                 form.name);
       fd.append("email",                form.email);
       fd.append("phone",                form.phone);
@@ -275,6 +293,29 @@ export default function DaftarKurirPage() {
                   <div>
                     <h2 className="text-lg font-bold text-gray-900">Data Diri</h2>
                     <p className="text-sm text-gray-500 mt-0.5">Informasi akun dan identitas kamu</p>
+                  </div>
+
+                  {/* BUMDes Selector */}
+                  <div className="p-4 rounded-xl bg-orange-50 border border-orange-100">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-orange-600" />
+                      BUMDes Tempat Mendaftar <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={form.bumdes_profile_id}
+                      onChange={e => set("bumdes_profile_id", e.target.value)}
+                      className="w-full px-4 py-3 text-sm border border-orange-200 rounded-xl focus:outline-none focus:border-orange-500 bg-white"
+                    >
+                      <option value="">-- Pilih BUMDes kamu --</option>
+                      {bumdesList.map(b => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} — {b.village}{b.city ? `, ${b.city}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-orange-600 mt-1.5">
+                      Pilih BUMDes di desamu. Admin BUMDes yang akan memverifikasi pendaftaranmu.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
