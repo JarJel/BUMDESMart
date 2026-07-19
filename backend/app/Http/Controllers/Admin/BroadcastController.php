@@ -43,7 +43,22 @@ class BroadcastController extends Controller
             'content'       => 'required|string',
             'target'        => 'required|in:all,umkm,driver,umkm_category',
             'umkm_category' => 'required_if:target,umkm_category|nullable|string|max:100',
+            'photos'        => 'nullable|array|max:5',
+            'photos.*'      => 'image|mimes:jpeg,png,jpg,webp|max:3072',
         ]);
+
+        // Upload multiple foto
+        $photoPaths = [];
+        if ($request->hasFile('photos')) {
+            $dir = public_path('uploads/broadcasts');
+            if (!file_exists($dir)) mkdir($dir, 0755, true);
+
+            foreach ($request->file('photos') as $file) {
+                $filename    = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move($dir, $filename);
+                $photoPaths[] = '/uploads/broadcasts/' . $filename;
+            }
+        }
 
         // Kumpulkan penerima
         $emails = $this->collectEmails($bumdes, $validated['target'], $validated['umkm_category'] ?? null);
@@ -57,7 +72,6 @@ class BroadcastController extends Controller
                         ->html($this->buildEmailHtml($bumdes->name, $validated['title'], $validated['content'], $validated['category']));
                 });
             } catch (\Throwable $e) {
-                // Log saja, jangan berhenti
                 \Log::warning("Broadcast email gagal ke {$email}: " . $e->getMessage());
             }
         }
@@ -67,6 +81,7 @@ class BroadcastController extends Controller
             'title'             => $validated['title'],
             'category'          => $validated['category'],
             'content'           => $validated['content'],
+            'photos'            => !empty($photoPaths) ? $photoPaths : null,
             'target'            => $validated['target'],
             'umkm_category'     => $validated['umkm_category'] ?? null,
             'recipient_count'   => count($emails),
@@ -74,9 +89,9 @@ class BroadcastController extends Controller
         ]);
 
         return response()->json([
-            'message'          => 'Broadcast berhasil dikirim ke ' . count($emails) . ' penerima.',
-            'data'             => $broadcast,
-            'recipient_count'  => count($emails),
+            'message'         => 'Berita berhasil diterbitkan ke ' . count($emails) . ' penerima.',
+            'data'            => $broadcast,
+            'recipient_count' => count($emails),
         ], 201);
     }
 
@@ -86,6 +101,24 @@ class BroadcastController extends Controller
         $bumdes    = $this->getBumdes($request);
         $broadcast = BumdesBroadcast::where('bumdes_profile_id', $bumdes->id)->findOrFail($id);
         return response()->json(['data' => $broadcast]);
+    }
+
+    // DELETE /admin/broadcasts/{id}
+    public function destroy(Request $request, int $id)
+    {
+        $bumdes    = $this->getBumdes($request);
+        $broadcast = BumdesBroadcast::where('bumdes_profile_id', $bumdes->id)->findOrFail($id);
+
+        // Hapus foto dari disk
+        if ($broadcast->photos) {
+            foreach ($broadcast->photos as $path) {
+                $fullPath = public_path($path);
+                if (file_exists($fullPath)) @unlink($fullPath);
+            }
+        }
+
+        $broadcast->delete();
+        return response()->json(['message' => 'Berita berhasil dihapus.']);
     }
 
     private function collectEmails(BumdesProfile $bumdes, string $target, ?string $umkmCategory): array

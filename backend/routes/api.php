@@ -187,6 +187,7 @@ Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('ad
     Route::get('/broadcasts', [AdminBroadcastController::class, 'index']);
     Route::post('/broadcasts', [AdminBroadcastController::class, 'store']);
     Route::get('/broadcasts/{id}', [AdminBroadcastController::class, 'show']);
+    Route::delete('/broadcasts/{id}', [AdminBroadcastController::class, 'destroy']);
 
     Route::get('/required-documents', [RequiredDocumentController::class, 'index']);
     Route::post('/required-documents/seed-defaults', [RequiredDocumentController::class, 'seedDefaults']);

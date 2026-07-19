@@ -114,6 +114,9 @@ export default function BumdesDashboard() {
   const [balance, setBalance] = useState<BalanceData | null>(null);
   const [newsList, setNewsList] = useState<any[]>([]);
   const [loadingNews, setLoadingNews] = useState(true);
+  const [selectedNews, setSelectedNews] = useState<any | null>(null);
+
+  const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
 
   useEffect(() => {
     // Fetch saldo
@@ -121,9 +124,9 @@ export default function BumdesDashboard() {
       .then(r => setBalance(r.data.data))
       .catch(() => {});
 
-    // Fetch berita
-    api.get("/admin/announcements")
-      .then(res => setNewsList(res.data.data?.slice(0, 4) ?? []))
+    // Fetch berita dari endpoint broadcasts (BumdesBroadcast — data konsisten dengan seller & publik)
+    api.get("/admin/broadcasts")
+      .then(res => setNewsList(res.data.data?.data?.slice(0, 4) ?? []))
       .catch(() => setNewsList([]))
       .finally(() => setLoadingNews(false));
   }, []);
@@ -352,19 +355,73 @@ export default function BumdesDashboard() {
           </div>
         </div>
 
-        {/* Activity feed */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Aktivitas Terkini</h2>
-          <div>
-            {recentActivity.map((a, i) => (
-              <div key={i} className="flex gap-3 py-3 border-b border-gray-50 last:border-0">
-                <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: a.color }} />
-                <div>
-                  <p className="text-xs text-gray-700 leading-snug">{a.text}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{a.time}</p>
-                </div>
+        {/* Berita Terkini */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col">
+          <div className="flex items-center justify-between mb-4 border-b border-gray-50 pb-2">
+            <h2 className="text-sm font-semibold text-gray-900">Berita Terkini</h2>
+            <Link href="/bumdes/berita" className="text-xs font-semibold text-green-600 hover:text-green-700">
+              Kelola →
+            </Link>
+          </div>
+          <div className="space-y-3 overflow-y-auto max-h-[320px] pr-1">
+            {loadingNews ? (
+              <div className="text-center py-8 text-xs text-gray-400">Memuat berita...</div>
+            ) : newsList.length === 0 ? (
+              <div className="text-center py-10 text-xs text-gray-400 space-y-1">
+                <p>Belum ada berita yang diterbitkan.</p>
+                <Link href="/bumdes/berita" className="text-green-600 hover:underline text-[11px]">Tulis Berita Baru</Link>
               </div>
-            ))}
+            ) : (
+              newsList.map((a) => {
+                const firstPhoto = a.photos?.[0];
+                const photoUrl = firstPhoto ? (firstPhoto.startsWith("http") ? firstPhoto : `${BASE_URL}${firstPhoto}`) : null;
+                const catColors: Record<string, string> = {
+                  pengumuman: "bg-blue-50 text-blue-700", pelatihan: "bg-purple-50 text-purple-700",
+                  info_bantuan: "bg-yellow-50 text-yellow-700", jadwal: "bg-orange-50 text-orange-700",
+                  acara: "bg-pink-50 text-pink-700", promosi: "bg-green-50 text-green-700",
+                  sistem: "bg-gray-100 text-gray-600", undangan: "bg-indigo-50 text-indigo-700",
+                };
+                const catLabels: Record<string, string> = {
+                  pengumuman: "Pengumuman", pelatihan: "Pelatihan", info_bantuan: "Info Bantuan",
+                  jadwal: "Jadwal", acara: "Acara Desa", promosi: "Promosi", sistem: "Sistem", undangan: "Undangan",
+                };
+                return (
+                  <div
+                    key={a.id}
+                    onClick={() => setSelectedNews(a)}
+                    className="flex gap-3 items-start p-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer border border-transparent hover:border-gray-100"
+                  >
+                    {/* Thumbnail */}
+                    <div className="w-16 h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
+                      {photoUrl ? (
+                        <img src={photoUrl} alt={a.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                        <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wide ${catColors[a.category] ?? "bg-gray-100 text-gray-600"}`}>
+                          {catLabels[a.category] ?? "Info"}
+                        </span>
+                        {a.photos && a.photos.length > 1 && (
+                          <span className="text-[8px] text-gray-400">📷 {a.photos.length}</span>
+                        )}
+                      </div>
+                      <p className="text-xs font-bold text-gray-900 line-clamp-1">{a.title}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        {new Date(a.sent_at ?? a.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
@@ -409,6 +466,72 @@ export default function BumdesDashboard() {
           </Link>
         ))}
       </div>
+
+      {/* Modal Detail Berita */}
+      {selectedNews && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-gray-100 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="text-sm font-bold text-gray-900 pr-4">Detail Berita</h2>
+              <button onClick={() => setSelectedNews(null)} className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition shrink-0">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+              {/* Slider Foto */}
+              {selectedNews.photos && selectedNews.photos.length > 0 && (() => {
+                const NewsPhotoSlider = () => {
+                  const [pidx, setPidx] = useState(0);
+                  const photoUrls = selectedNews.photos!.map((p: string) =>
+                    p.startsWith("http") ? p : `${BASE_URL}${p}`
+                  );
+                  return (
+                    <div className="relative w-full aspect-video bg-gray-100 rounded-xl overflow-hidden">
+                      <img src={photoUrls[pidx]} alt={`Foto ${pidx + 1}`} className="w-full h-full object-cover" />
+                      {photoUrls.length > 1 && (
+                        <>
+                          <button onClick={() => setPidx((i) => (i - 1 + photoUrls.length) % photoUrls.length)} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                          </button>
+                          <button onClick={() => setPidx((i) => (i + 1) % photoUrls.length)} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                          </button>
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                            {photoUrls.map((_: string, i: number) => (
+                              <button key={i} onClick={() => setPidx(i)} className={`w-1.5 h-1.5 rounded-full transition ${i === pidx ? "bg-white" : "bg-white/50"}`} />
+                            ))}
+                          </div>
+                          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/40 text-white text-[10px] font-semibold">{pidx + 1}/{photoUrls.length}</span>
+                        </>
+                      )}
+                    </div>
+                  );
+                };
+                return <NewsPhotoSlider />;
+              })()}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-green-50 text-green-700">
+                    {(({ pengumuman: "Pengumuman", pelatihan: "Pelatihan", info_bantuan: "Info Bantuan", jadwal: "Jadwal", acara: "Acara Desa", promosi: "Promosi", sistem: "Sistem", undangan: "Undangan" } as Record<string, string>)[selectedNews.category]) ?? "Info"}
+                  </span>
+                </div>
+                <h1 className="text-base font-bold text-gray-900 leading-snug">{selectedNews.title}</h1>
+                <p className="text-[10px] text-gray-400">
+                  {new Date(selectedNews.sent_at ?? selectedNews.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                  {" · "}{selectedNews.recipient_count} penerima
+                </p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed pt-2">{selectedNews.content}</p>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setSelectedNews(null)} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

@@ -65,10 +65,11 @@ class BeritaController extends Controller
     {
         $user = $request->user();
 
+        // Support role 'pengirim' dan alias 'driver'
         $bumdesId = match ($user->role) {
-            'umkm'     => UmkmProfile::where('user_id', $user->id)->value('bumdes_profile_id'),
-            'pengirim' => DriverProfile::where('user_id', $user->id)->value('bumdes_profile_id'),
-            default    => null,
+            'umkm'                 => UmkmProfile::where('user_id', $user->id)->value('bumdes_profile_id'),
+            'pengirim', 'driver'   => DriverProfile::where('user_id', $user->id)->value('bumdes_profile_id'),
+            default                => null,
         };
 
         if (!$bumdesId) {
@@ -79,7 +80,15 @@ class BeritaController extends Controller
             ]]);
         }
 
+        // Filter berita yang relevan dengan role user
+        $relevantTargets = match ($user->role) {
+            'umkm'               => ['all', 'umkm', 'umkm_category'],
+            'pengirim', 'driver' => ['all', 'driver'],
+            default              => ['all'],
+        };
+
         $query = BumdesBroadcast::where('bumdes_profile_id', $bumdesId)
+            ->whereIn('target', $relevantTargets)
             ->with('bumdesProfile:id,name,slug')
             ->orderByDesc('created_at');
 

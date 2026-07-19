@@ -11,6 +11,7 @@ class BumdesBroadcast extends Model
         'title',
         'category',
         'content',
+        'photos',
         'target',
         'umkm_category',
         'recipient_count',
@@ -19,6 +20,7 @@ class BumdesBroadcast extends Model
 
     protected $casts = [
         'sent_at' => 'datetime',
+        'photos'  => 'array',
     ];
 
     public function bumdesProfile()

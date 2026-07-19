@@ -11,11 +11,22 @@ export default function SellerSummaryPage() {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
+  const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<any | null>(null);
+
   useEffect(() => {
     api.get<{ data: { data: ProductData[] } }>("/seller/products")
       .then(res => setProducts(res.data.data?.data ?? []))
       .catch(() => setProducts([]))
       .finally(() => setLoadingProducts(false));
+
+    // Fetch berita dari BUMDes yang menaungi akun UMKM yang login
+    api.get("/my/berita")
+      .then(res => setAnnouncements(res.data.data?.data ?? []))
+      .catch(() => setAnnouncements([]))
+      .finally(() => setLoadingAnnouncements(false));
   }, []);
 
   const activeProducts = products.filter(p => p.status === "active").length;
@@ -166,6 +177,80 @@ export default function SellerSummaryPage() {
         )}
       </div>
 
+      {/* Pengumuman dari BUMDes */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <h2 className="text-sm font-semibold text-gray-900">Pengumuman dari BUMDes</h2>
+          </div>
+        </div>
+        {loadingAnnouncements ? (
+          <div className="text-center py-10 text-sm text-gray-400">Memuat pengumuman...</div>
+        ) : announcements.length === 0 ? (
+          <div className="text-center py-10 text-xs text-gray-400">
+            Belum ada pengumuman dari BUMDes Anda.
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {announcements.slice(0, 5).map((ann) => {
+              const firstPhoto = ann.photos?.[0];
+              const photoUrl = firstPhoto
+                ? (firstPhoto.startsWith("http") ? firstPhoto : `${BASE_URL}${firstPhoto}`)
+                : null;
+              const catColors: Record<string, string> = {
+                pengumuman: "bg-blue-50 text-blue-700", pelatihan: "bg-purple-50 text-purple-700",
+                info_bantuan: "bg-yellow-50 text-yellow-700", jadwal: "bg-orange-50 text-orange-700",
+                acara: "bg-pink-50 text-pink-700", promosi: "bg-green-50 text-green-700",
+                sistem: "bg-gray-100 text-gray-600", undangan: "bg-indigo-50 text-indigo-700",
+              };
+              const catLabels: Record<string, string> = {
+                pengumuman: "Pengumuman", pelatihan: "Pelatihan", info_bantuan: "Info Bantuan",
+                jadwal: "Jadwal", acara: "Acara Desa", promosi: "Promosi", sistem: "Sistem", undangan: "Undangan",
+              };
+              return (
+                <div
+                  key={ann.id}
+                  onClick={() => setSelectedAnnouncement(ann)}
+                  className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50/70 transition-colors cursor-pointer"
+                >
+                  {/* Thumbnail */}
+                  <div className="w-14 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
+                    {photoUrl ? (
+                      <img src={photoUrl} alt={ann.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  {/* Konten */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide ${catColors[ann.category] ?? "bg-gray-100 text-gray-600"}`}>
+                        {catLabels[ann.category] ?? "Info"}
+                      </span>
+                      {ann.photos && ann.photos.length > 1 && (
+                        <span className="text-[9px] text-gray-400">📷 {ann.photos.length} foto</span>
+                      )}
+                    </div>
+                    <p className="text-xs font-semibold text-gray-900 line-clamp-1">{ann.title}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      {new Date(ann.sent_at ?? ann.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                    </p>
+                  </div>
+                  <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Quick actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link href="/seller/produk/tambah" className="flex items-center gap-4 bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow group">
@@ -187,6 +272,75 @@ export default function SellerSummaryPage() {
           </div>
         </Link>
       </div>
+
+      {/* Modal Detail Pengumuman */}
+      {selectedAnnouncement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-gray-100 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="text-sm font-bold text-gray-900 pr-4">Detail Berita</h2>
+              <button
+                onClick={() => setSelectedAnnouncement(null)}
+                className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition shrink-0"
+              >
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+              {/* Slider Foto Pengumuman */}
+              {selectedAnnouncement.photos && selectedAnnouncement.photos.length > 0 && (() => {
+                const AnnPhotoSlider = () => {
+                  const [pidx, setPidx] = useState(0);
+                  const photoUrls = (selectedAnnouncement.photos as string[]).map((p) =>
+                    p.startsWith("http") ? p : `${BASE_URL}${p}`
+                  );
+                  return (
+                    <div className="relative w-full aspect-video bg-gray-100 rounded-xl overflow-hidden">
+                      <img src={photoUrls[pidx]} alt={`Foto ${pidx + 1}`} className="w-full h-full object-cover" />
+                      {photoUrls.length > 1 && (
+                        <>
+                          <button onClick={() => setPidx((i) => (i - 1 + photoUrls.length) % photoUrls.length)} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                          </button>
+                          <button onClick={() => setPidx((i) => (i + 1) % photoUrls.length)} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                          </button>
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                            {photoUrls.map((_, i) => (
+                              <button key={i} onClick={() => setPidx(i)} className={`w-1.5 h-1.5 rounded-full transition ${i === pidx ? "bg-white" : "bg-white/50"}`} />
+                            ))}
+                          </div>
+                          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/40 text-white text-[10px] font-semibold">{pidx + 1}/{photoUrls.length}</span>
+                        </>
+                      )}
+                    </div>
+                  );
+                };
+                return <AnnPhotoSlider />;
+              })()}
+              <div>
+                <h1 className="text-base font-bold text-gray-900 leading-snug mb-1">{selectedAnnouncement.title}</h1>
+                <p className="text-[10px] text-gray-400 mb-3">
+                  {new Date(selectedAnnouncement.sent_at ?? selectedAnnouncement.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                  {selectedAnnouncement.bumdes_profile && ` · ${selectedAnnouncement.bumdes_profile.name}`}
+                </p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{selectedAnnouncement.content}</p>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => setSelectedAnnouncement(null)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
