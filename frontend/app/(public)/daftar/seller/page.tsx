@@ -64,6 +64,7 @@ export default function DaftarMerchantPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [registered, setRegistered] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const [bumdesList, setBumdesList] = useState<BumdesProfile[]>([]);
   const [selectedBumdes, setSelectedBumdes] = useState<BumdesProfile | null>(null);
@@ -107,11 +108,16 @@ export default function DaftarMerchantPage() {
   };
 
   const handleSubmit = async () => {
+    if (!agreed) {
+      toast.error("Anda harus menyetujui Syarat dan Ketentuan terlebih dahulu.");
+      return;
+    }
     setSubmitting(true);
     try {
       await axios.post(`${API}/register/umkm`, {
         ...form,
         bumdes_profile_id: selectedBumdes?.id,
+        agreed_to_terms: agreed,
       });
       setRegistered(true);
     } catch (err: any) {
@@ -374,6 +380,22 @@ export default function DaftarMerchantPage() {
                   ))}
                 </div>
               ))}
+              <label className="flex items-start gap-2.5 cursor-pointer py-1">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 rounded border-gray-300 accent-green-600"
+                />
+                <span className="text-xs text-gray-500 leading-relaxed font-normal">
+                  Saya menyetujui{" "}
+                  <Link href="#" className="font-semibold text-green-700 hover:underline">Syarat dan Ketentuan</Link>
+                  {" "}serta{" "}
+                  <Link href="#" className="font-semibold text-green-700 hover:underline">Kebijakan Privasi</Link>
+                  {" "}mitra BUMDESmart.
+                </span>
+              </label>
+
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setStep(2)} className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50">
                   ← Kembali
