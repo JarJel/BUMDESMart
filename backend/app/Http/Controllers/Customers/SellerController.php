@@ -78,9 +78,13 @@ class SellerController extends Controller
                 ->pluck('bumdes_required_documents.name')
                 ->map(fn($n) => strtolower((string) $n));
 
-            $data['has_nib']        = $approvedDocs->some(fn($n) => str_contains($n, 'nib'));
-            $data['has_npwp']       = $approvedDocs->some(fn($n) => str_contains($n, 'npwp'));
+            // NIB & NPWP tidak ditampilkan ke publik — hanya badge verified
             $data['has_halal_cert'] = $approvedDocs->some(fn($n) => str_contains($n, 'halal'));
+            $data['has_pirt']       = $approvedDocs->some(fn($n) => str_contains($n, 'pirt'));
+            $data['halal_number']   = $seller->halal_number;
+            $data['pirt_number']    = $seller->pirt_number;
+            // Sembunyikan field sensitif dari response publik
+            unset($data['nib'], $data['npwp']);
 
             return response()->json([
                 'success' => true,

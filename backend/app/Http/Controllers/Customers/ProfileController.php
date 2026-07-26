@@ -47,6 +47,8 @@ class ProfileController extends Controller
             'email'             => 'sometimes|nullable|email|max:255',
             'nib'               => 'sometimes|nullable|string|max:30',
             'npwp'              => 'sometimes|nullable|string|max:20',
+            'halal_number'      => 'sometimes|nullable|string|max:100',
+            'pirt_number'       => 'sometimes|nullable|string|max:100',
             'business_category' => 'sometimes|nullable|string|max:100',
             'latitude'          => 'sometimes|nullable|numeric|between:-90,90',
             'longitude'         => 'sometimes|nullable|numeric|between:-180,180',
@@ -92,7 +94,7 @@ class ProfileController extends Controller
                         $request->only([
                             'shop_name', 'owner_name', 'description', 'phone', 'email',
                             'address', 'city', 'province', 'postal_code',
-                            'nib', 'npwp', 'business_category', 'latitude', 'longitude',
+                            'nib', 'npwp', 'halal_number', 'pirt_number', 'business_category', 'latitude', 'longitude',
                         ]),
                         fn($v) => !is_null($v)
                     );

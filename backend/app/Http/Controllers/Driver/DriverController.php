@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\WebhookController;
 use App\Models\DeviceToken;
 use App\Models\DriverProfile;
+use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderHistory;
 use App\Models\UmkmBalance;
@@ -411,7 +412,37 @@ class DriverController extends Controller
             'description' => $descriptions[$newStatus],
         ]);
 
+        // Notifikasi ke pembeli
+        $order->load('customer.user', 'umkmProfile');
+        $buyerUserId = $order->customer?->user?->id;
+        if ($buyerUserId) {
+            if ($newStatus === 'shipped') {
+                Notification::send(
+                    $buyerUserId,
+                    '🚚 Pesanan Sedang Diantar',
+                    "Pesanan #{$order->order_code} sedang dalam perjalanan ke alamatmu. Siap-siap menerima ya!",
+                    'order_shipped', 'order', $order->id
+                );
+            } elseif ($newStatus === 'delivered') {
+                Notification::send(
+                    $buyerUserId,
+                    '📦 Pesanan Tiba!',
+                    "Pesanan #{$order->order_code} sudah sampai. Jangan lupa konfirmasi penerimaan dan beri ulasan ya!",
+                    'order_delivered', 'order', $order->id
+                );
+            }
+        }
+
         if ($newStatus === 'delivered') {
+            // Notifikasi ke UMKM: pesanan selesai, saldo akan segera cair
+            if ($order->umkmProfile?->user_id) {
+                Notification::send(
+                    $order->umkmProfile->user_id,
+                    '✅ Pesanan Selesai',
+                    "Pesanan #{$order->order_code} sudah diterima pembeli. Saldo kamu akan segera diproses.",
+                    'order_delivered', 'order', $order->id
+                );
+            }
             $this->getProfile($request)->increment('total_deliveries');
             app(WebhookController::class)->triggerDisbursement($order->fresh(['payment']));
         }

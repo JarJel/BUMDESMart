@@ -85,11 +85,12 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
   const totalPenjualan = toko.total_sold ?? 0;
   const productsCount = toko.products_count ?? products.length;
 
-  // Trust badges (boolean dari API, tidak expose dokumen asli)
-  const hasNib        = !!toko.has_nib;
-  const hasNpwp       = !!toko.has_npwp;
+  // Trust badges — NIB & NPWP tidak ditampilkan ke publik
   const hasHalalCert  = !!toko.has_halal_cert;
-  const hasBadges     = hasNib || hasNpwp || hasHalalCert;
+  const hasPirt       = !!toko.has_pirt;
+  const halalNumber   = toko.halal_number as string | null | undefined;
+  const pirtNumber    = toko.pirt_number as string | null | undefined;
+  const hasBadges     = hasHalalCert || hasPirt;
 
   const documents: Dokumen[] = [];
   if (toko.dokumen) documents.push(...toko.dokumen);
@@ -223,49 +224,35 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
               ))}
             </div>
 
-            {/* Trust Badges */}
+            {/* Trust Badges — NIB & NPWP tidak ditampilkan publik */}
             {hasBadges && (
               <div className="bg-white rounded-2xl p-4 border border-gray-100">
                 <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Legalitas Terverifikasi</h2>
                 <div className="space-y-2">
-                  {hasNib && (
-                    <div className="flex items-center gap-2.5 px-3 py-2 bg-green-50 rounded-xl border border-green-100">
-                      <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <div>
-                        <p className="text-xs font-semibold text-green-800">NIB Terdaftar</p>
-                        <p className="text-xs text-green-600">Nomor Induk Berusaha OSS</p>
-                      </div>
-                      <svg className="w-3.5 h-3.5 text-green-500 shrink-0 ml-auto" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  )}
-                  {hasNpwp && (
-                    <div className="flex items-center gap-2.5 px-3 py-2 bg-blue-50 rounded-xl border border-blue-100">
-                      <svg className="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                      </svg>
-                      <div>
-                        <p className="text-xs font-semibold text-blue-800">NPWP Terdaftar</p>
-                        <p className="text-xs text-blue-600">Wajib pajak terdaftar</p>
-                      </div>
-                      <svg className="w-3.5 h-3.5 text-blue-500 shrink-0 ml-auto" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  )}
                   {hasHalalCert && (
                     <div className="flex items-center gap-2.5 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
                       <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                       </svg>
                       <div>
-                        <p className="text-xs font-semibold text-emerald-800">Halal Certified</p>
-                        <p className="text-xs text-emerald-600">Bersertifikat MUI/BPJPH</p>
+                        <p className="text-xs font-semibold text-emerald-800">Produk Halal</p>
+                        <p className="text-xs text-emerald-600">{halalNumber ? `No. ${halalNumber}` : "Bersertifikat MUI/BPJPH"}</p>
                       </div>
                       <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                  {hasPirt && (
+                    <div className="flex items-center gap-2.5 px-3 py-2 bg-blue-50 rounded-xl border border-blue-100">
+                      <svg className="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-semibold text-blue-800">Izin PIRT</p>
+                        <p className="text-xs text-blue-600">{pirtNumber ? `No. ${pirtNumber}` : "Izin Dinas Kesehatan"}</p>
+                      </div>
+                      <svg className="w-3.5 h-3.5 text-blue-500 shrink-0 ml-auto" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                     </div>

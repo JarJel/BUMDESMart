@@ -30,6 +30,8 @@ class UmkmProfile extends Model
         'npwp',
         'nib',
         'halal_cert',
+        'halal_number',
+        'pirt_number',
         'rating',
         'status',
         'is_open',

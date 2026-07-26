@@ -12,6 +12,8 @@ class Promotion extends Model
 
     protected $fillable = [
         'umkm_profile_id',
+        'customer_id',
+        'voucher_program_id',
         'code',
         'name',
         'description',
@@ -24,6 +26,7 @@ class Promotion extends Model
         'usage_limit',
         'usage_count',
         'status',
+        'is_auto_generated',
     ];
 
     protected function casts(): array
@@ -37,6 +40,16 @@ class Promotion extends Model
     public function umkmProfile(): BelongsTo
     {
         return $this->belongsTo(UmkmProfile::class, 'umkm_profile_id');
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    public function voucherProgram(): BelongsTo
+    {
+        return $this->belongsTo(UmkmVoucherProgram::class, 'voucher_program_id');
     }
 
     public function promotionProducts(): HasMany
