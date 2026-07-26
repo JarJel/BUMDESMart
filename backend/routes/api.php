@@ -38,13 +38,7 @@ use App\Http\Controllers\Admin\UmkmVerificationController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Driver\DriverController;
-use App\Http\Controllers\DeviceTokenController;
-
 Route::middleware('auth:sanctum')->group(function () {
-    // Web Push — simpan/hapus OneSignal player ID (semua role)
-    Route::post('/device-token', [DeviceTokenController::class, 'store']);
-    Route::delete('/device-token', [DeviceTokenController::class, 'destroy']);
-
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
@@ -262,11 +256,7 @@ Route::middleware(['auth:sanctum', 'role:pengirim'])->prefix('driver')->group(fu
     Route::patch('/orders/{id}/status', [DriverController::class, 'updateOrderStatus']);
     Route::get('/history', [DriverController::class, 'orderHistory']);
     Route::get('/stats', [DriverController::class, 'stats']);
-    Route::post('/device-token', [DriverController::class, 'registerDeviceToken']);
 });
-
-// Device token untuk semua user yang terautentikasi (customer, umkm, dll)
-Route::middleware('auth:sanctum')->post('/device-token', [DriverController::class, 'registerDeviceToken']);
 
 // Public stats (landing page counter)
 Route::get('/stats', [\App\Http\Controllers\PublicStatsController::class, 'index']);

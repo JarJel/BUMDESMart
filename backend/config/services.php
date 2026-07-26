@@ -14,11 +14,6 @@ return [
     |
     */
 
-    'onesignal' => [
-        'app_id'   => env('ONESIGNAL_APP_ID'),
-        'api_key'  => env('ONESIGNAL_REST_API_KEY'),
-    ],
-
     'xendit' => [
         'secret_key'    => env('XENDIT_SECRET_KEY'),
         'public_key'    => env('XENDIT_PUBLIC_KEY'),

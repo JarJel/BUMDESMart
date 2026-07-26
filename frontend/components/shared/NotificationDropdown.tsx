@@ -101,13 +101,6 @@ export default function NotificationDropdown() {
   const ref = useRef<HTMLDivElement>(null);
   const prevUnreadRef = useRef<number | null>(null);
 
-  // Unlock AudioContext pada interaksi pertama user di halaman mana pun
-  useEffect(() => {
-    const unlock = () => { unlockAudio(); document.removeEventListener("click", unlock); };
-    document.addEventListener("click", unlock);
-    return () => document.removeEventListener("click", unlock);
-  }, []);
-
   const fetchNotifs = useCallback(() => {
     setLoading(true);
     api.get("/notifications")
