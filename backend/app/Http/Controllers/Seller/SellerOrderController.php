@@ -85,37 +85,47 @@ class SellerOrderController extends Controller
             ], 422);
         }
 
-        $order->update(['status' => $newStatus]);
+        // Self-pickup: saat seller confirm, langsung selesai tanpa perlu kurir
+        $isPickup = $order->delivery_type === 'pickup';
+        $finalStatus = ($newStatus === 'confirmed' && $isPickup) ? 'delivered' : $newStatus;
 
-        // Notifikasi ke pembeli saat status berubah
+        $order->update(['status' => $finalStatus]);
+
         $order->load('customer.user');
         $buyerUserId = $order->customer?->user?->id;
         if ($buyerUserId) {
-            $buyerMessages = [
-                'confirmed'  => "Pesanan #{$order->order_code} sedang disiapkan oleh penjual.",
-                'cancelled'  => "Pesanan #{$order->order_code} dibatalkan oleh penjual.",
-            ];
-            if (isset($buyerMessages[$newStatus])) {
+            if ($finalStatus === 'delivered') {
                 Notification::send(
                     $buyerUserId,
-                    $newStatus === 'confirmed' ? 'Pesanan Sedang Disiapkan' : 'Pesanan Dibatalkan',
-                    $buyerMessages[$newStatus],
-                    'order_' . $newStatus,
-                    'order',
-                    $order->id
+                    '✅ Pesanan Siap Diambil!',
+                    "Pesanan #{$order->order_code} sudah siap. Silakan ambil di toko.",
+                    'order_delivered', 'order', $order->id
+                );
+            } elseif ($finalStatus === 'cancelled') {
+                Notification::send(
+                    $buyerUserId,
+                    'Pesanan Dibatalkan',
+                    "Pesanan #{$order->order_code} dibatalkan oleh penjual.",
+                    'order_cancelled', 'order', $order->id
+                );
+            } elseif ($finalStatus === 'confirmed') {
+                Notification::send(
+                    $buyerUserId,
+                    'Pesanan Sedang Disiapkan',
+                    "Pesanan #{$order->order_code} sedang disiapkan oleh penjual.",
+                    'order_confirmed', 'order', $order->id
                 );
             }
         }
 
         $descriptions = [
             'confirmed'  => 'Pesanan dikonfirmasi oleh penjual.',
-            'processing' => 'Pesanan sedang diproses/dikemas.',
-            'shipped'    => 'Pesanan telah dikirim.',
+            'delivered'  => 'Pesanan siap diambil oleh pembeli (ambil sendiri).',
             'cancelled'  => 'Pesanan dibatalkan oleh penjual.',
         ];
 
-        // Notifikasi ke semua kurir yang sedang online saat order dikonfirmasi
-        if ($newStatus === 'confirmed') {
+        // Notifikasi ke kurir hanya untuk order yang perlu diantar (bukan pickup)
+        if ($finalStatus === 'confirmed' && !$isPickup) {
             $driverUserIds = DriverProfile::where('is_available', true)
                 ->pluck('user_id')
                 ->toArray();
