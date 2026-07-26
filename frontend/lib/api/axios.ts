@@ -7,6 +7,7 @@ const api = axios.create({
     'Accept': 'application/json',
   },
   withCredentials: true,
+  maxRedirects: 0,
 })
 
 // Attach token otomatis setiap request

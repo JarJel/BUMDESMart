@@ -55,9 +55,12 @@ export default function Navbar() {
     try {
       const res = await notificationApi.list();
       if (res.data && res.data.success) {
-        setNotifications(res.data.data);
-        const unread = res.data.data.filter(n => !n.is_read).length;
-        setUnreadCount(unread);
+        // BE returns paginated: res.data.data.data is the array
+        const items = Array.isArray(res.data.data)
+          ? res.data.data
+          : (res.data.data?.data ?? []);
+        setNotifications(items);
+        setUnreadCount(res.data.unread_count ?? items.filter((n: any) => !n.is_read).length);
       }
     } catch (err) {
       console.error("Failed to fetch notifications count in navbar:", err);

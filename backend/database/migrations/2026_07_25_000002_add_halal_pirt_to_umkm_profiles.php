@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('umkm_profiles', function (Blueprint $table) {
-            $table->string('halal_number')->nullable()->after('has_halal_cert');
-            $table->string('pirt_number')->nullable()->after('halal_number');
+            $table->string('halal_number')->nullable();
+            $table->string('pirt_number')->nullable();
         });
     }
 

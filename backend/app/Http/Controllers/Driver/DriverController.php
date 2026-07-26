@@ -433,6 +433,16 @@ class DriverController extends Controller
             }
         }
 
+        // Notifikasi ke UMKM saat kurir ambil barang
+        if ($newStatus === 'shipped' && $order->umkmProfile?->user_id) {
+            Notification::send(
+                $order->umkmProfile->user_id,
+                '🚚 Barang Sudah Diambil Kurir',
+                "Pesanan #{$order->order_code} sudah diambil kurir dan sedang dalam pengiriman ke pembeli.",
+                'order_shipped', 'order', $order->id
+            );
+        }
+
         if ($newStatus === 'delivered') {
             // Notifikasi ke UMKM: pesanan selesai, saldo akan segera cair
             if ($order->umkmProfile?->user_id) {

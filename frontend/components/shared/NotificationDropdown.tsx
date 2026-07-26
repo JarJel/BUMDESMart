@@ -1,7 +1,67 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import api from "@/lib/api/axios";
+
+// AudioContext shared — dibuat sekali, di-resume setelah user gesture
+let sharedCtx: AudioContext | null = null;
+
+function getAudioCtx(): AudioContext | null {
+  try {
+    if (!sharedCtx) {
+      sharedCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    if (sharedCtx.state === "suspended") {
+      sharedCtx.resume();
+    }
+    return sharedCtx;
+  } catch (e) {
+    console.warn("[Notif] AudioContext gagal dibuat:", e);
+    return null;
+  }
+}
+
+// Dipanggil sekali saat user pertama kali klik — "membuka kunci" AudioContext
+export function unlockAudio() {
+  getAudioCtx();
+}
+
+function playNotifSound(type: string) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === "order_new") {
+      osc.frequency.setValueAtTime(520, ctx.currentTime);
+      osc.frequency.setValueAtTime(780, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.5, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
+    } else if (type === "stock_warning") {
+      osc.frequency.setValueAtTime(320, ctx.currentTime);
+      osc.frequency.setValueAtTime(260, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
+    } else {
+      osc.frequency.setValueAtTime(660, ctx.currentTime);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+    }
+    console.log("[Notif] Suara diputar, tipe:", type);
+  } catch (e) {
+    console.warn("[Notif] Gagal putar suara:", e);
+  }
+}
 
 interface Notif {
   id: number;
@@ -39,25 +99,34 @@ export default function NotificationDropdown() {
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const prevUnreadRef = useRef<number | null>(null);
 
-  const fetchNotifs = () => {
+  const fetchNotifs = useCallback(() => {
     setLoading(true);
     api.get("/notifications")
       .then(res => {
         const data = res.data.data?.data ?? res.data.data ?? [];
-        setNotifs(Array.isArray(data) ? data : []);
-        setUnread(res.data.unread_count ?? 0);
+        const items: Notif[] = Array.isArray(data) ? data : [];
+        const newUnread: number = res.data.unread_count ?? 0;
+
+        // Bunyikan suara kalau unread bertambah sejak fetch terakhir
+        if (prevUnreadRef.current !== null && newUnread > prevUnreadRef.current) {
+          playNotifSound(items[0]?.type ?? "info");
+        }
+        prevUnreadRef.current = newUnread;
+
+        setNotifs(items);
+        setUnread(newUnread);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     fetchNotifs();
-    // Poll setiap 30 detik untuk notif baru
-    const timer = setInterval(fetchNotifs, 30_000);
+    const timer = setInterval(fetchNotifs, 15_000);
     return () => clearInterval(timer);
-  }, []);
+  }, [fetchNotifs]);
 
   // Tutup dropdown kalau klik di luar
   useEffect(() => {
@@ -84,7 +153,7 @@ export default function NotificationDropdown() {
     <div ref={ref} className="relative shrink-0">
       {/* Bell Button */}
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => { unlockAudio(); setOpen(!open); }}
         className="p-2 rounded-xl text-gray-400 hover:bg-gray-50 relative"
         aria-label="Notifikasi"
       >

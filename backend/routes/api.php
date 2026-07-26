@@ -38,8 +38,13 @@ use App\Http\Controllers\Admin\UmkmVerificationController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Driver\DriverController;
+use App\Http\Controllers\DeviceTokenController;
 
 Route::middleware('auth:sanctum')->group(function () {
+    // Web Push — simpan/hapus OneSignal player ID (semua role)
+    Route::post('/device-token', [DeviceTokenController::class, 'store']);
+    Route::delete('/device-token', [DeviceTokenController::class, 'destroy']);
+
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
