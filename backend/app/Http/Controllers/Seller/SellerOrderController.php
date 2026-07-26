@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Models\DriverProfile;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderHistory;
@@ -112,6 +113,23 @@ class SellerOrderController extends Controller
             'shipped'    => 'Pesanan telah dikirim.',
             'cancelled'  => 'Pesanan dibatalkan oleh penjual.',
         ];
+
+        // Notifikasi ke semua kurir yang sedang online saat order dikonfirmasi
+        if ($newStatus === 'confirmed') {
+            $driverUserIds = DriverProfile::where('is_available', true)
+                ->pluck('user_id')
+                ->toArray();
+            foreach ($driverUserIds as $driverUserId) {
+                Notification::send(
+                    $driverUserId,
+                    '📦 Ada Pesanan Baru!',
+                    "Pesanan #{$order->order_code} siap diambil. Cek sekarang dan ambil pengirimannya.",
+                    'order_new',
+                    'order',
+                    $order->id
+                );
+            }
+        }
 
         OrderHistory::create([
             'order_id'    => $order->id,

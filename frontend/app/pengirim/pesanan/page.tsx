@@ -26,6 +26,8 @@ export default function PengirimPesananPage() {
   const [notVerified, setNotVerified] = useState(false);
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [photoModal, setPhotoModal] = useState<{ orderId: number; type: "shipped" | "delivered" } | null>(null);
+  const [proofPhoto, setProofPhoto] = useState<File | null>(null);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -65,11 +67,20 @@ export default function PengirimPesananPage() {
     }
   };
 
-  const updateStatus = async (id: number, status: "shipped" | "delivered") => {
+  const updateStatus = async (id: number, status: "shipped" | "delivered", photo?: File) => {
     setUpdatingId(id);
     try {
-      await api.patch(`/driver/orders/${id}/status`, { status });
+      const form = new FormData();
+      form.append("status", status);
+      form.append("_method", "PATCH");
+      if (status === "shipped" && photo) form.append("pickup_photo", photo);
+      if (status === "delivered" && photo) form.append("delivered_photo", photo);
+      await api.post(`/driver/orders/${id}/status`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       toast.success(status === "shipped" ? "Status: Sedang Diantar ke Pembeli" : "Pengiriman selesai!");
+      setPhotoModal(null);
+      setProofPhoto(null);
       fetchOrders();
     } catch {
       toast.error("Gagal update status.");
@@ -236,9 +247,9 @@ export default function PengirimPesananPage() {
             active.map(order => (
               <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 {/* Header kartu dapat diklik untuk detail */}
-                <button
+                <div
                   onClick={() => router.push(`/pengirim/pesanan/${order.id}`)}
-                  className="w-full p-4 sm:p-5 text-left hover:bg-gray-50 transition-colors"
+                  className="w-full p-4 sm:p-5 text-left hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                     <div className="min-w-0">
@@ -306,22 +317,22 @@ export default function PengirimPesananPage() {
                       </button>
                     </div>
                   </div>
-                </button>
+                </div>
 
                 {/* Action button */}
                 <div className="border-t border-gray-100 p-3 sm:px-5">
                   {order.status === "picking_up" && (
                     <button
-                      onClick={() => updateStatus(order.id, "shipped")}
+                      onClick={() => setPhotoModal({ orderId: order.id, type: "shipped" })}
                       disabled={updatingId === order.id}
                       className="w-full py-2.5 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-50 transition-colors"
                     >
-                      {updatingId === order.id ? "Memproses..." : "Barang Sudah Diambil — Mulai Antar"}
+                      Barang Sudah Diambil — Mulai Antar
                     </button>
                   )}
                   {order.status === "shipped" && (
                     <button
-                      onClick={() => updateStatus(order.id, "delivered")}
+                      onClick={() => setPhotoModal({ orderId: order.id, type: "delivered" })}
                       disabled={updatingId === order.id}
                       className="w-full py-2.5 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors"
                     >
@@ -332,6 +343,63 @@ export default function PengirimPesananPage() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* Modal foto bukti (pickup & delivered) */}
+      {photoModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5 space-y-4">
+            <h3 className="font-bold text-gray-900">
+              {photoModal.type === "shipped" ? "Foto Bukti Ambil Barang" : "Foto Bukti Terima Pembeli"}
+            </h3>
+            <p className="text-sm text-gray-500">
+              {photoModal.type === "shipped"
+                ? "Foto barang saat diambil di toko sebagai bukti pengambilan."
+                : "Foto barang saat diserahkan ke pembeli sebagai bukti pengiriman."}
+            </p>
+
+            {proofPhoto ? (
+              <div className="relative">
+                <img src={URL.createObjectURL(proofPhoto)} alt="preview" className="w-full h-48 object-cover rounded-xl" />
+                <button
+                  onClick={() => setProofPhoto(null)}
+                  className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs"
+                >✕</button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-orange-50 border border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors">
+                  <span className="text-xl">📷</span>
+                  <span className="text-sm font-semibold text-orange-700">Buka Kamera</span>
+                  <input type="file" accept="image/*" capture="environment" className="hidden"
+                    onChange={e => setProofPhoto(e.target.files?.[0] ?? null)} />
+                </label>
+                <label className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+                  <span className="text-xl">🖼️</span>
+                  <span className="text-sm font-semibold text-gray-600">Pilih dari Galeri</span>
+                  <input type="file" accept="image/*" className="hidden"
+                    onChange={e => setProofPhoto(e.target.files?.[0] ?? null)} />
+                </label>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setPhotoModal(null); setProofPhoto(null); }}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600"
+              >Batal</button>
+              <button
+                onClick={() => proofPhoto && updateStatus(photoModal.orderId, photoModal.type, proofPhoto)}
+                disabled={!proofPhoto || updatingId === photoModal.orderId}
+                className={`flex-1 py-2.5 rounded-xl text-white text-sm font-bold disabled:opacity-50 ${
+                  photoModal.type === "shipped" ? "bg-orange-500" : "bg-green-600"
+                }`}
+              >
+                {updatingId === photoModal.orderId ? "Memproses..." : "Konfirmasi"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
