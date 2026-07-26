@@ -33,6 +33,8 @@ interface ProfileForm {
   business_category: string;
   latitude: string;
   longitude: string;
+  halal_number: string;
+  pirt_number: string;
 }
 
 interface UmkmStatus {
@@ -47,6 +49,7 @@ const EMPTY_FORM: ProfileForm = {
   shop_name: "", owner_name: "", description: "", phone: "",
   email: "", address: "", city: "", province: "", postal_code: "",
   business_category: "", latitude: "", longitude: "",
+  halal_number: "", pirt_number: "",
 };
 
 const DAYS = [
@@ -167,6 +170,8 @@ export default function PengaturanPage() {
       business_category: umkm.business_category ?? "",
       latitude: umkm.latitude ? String(umkm.latitude) : "",
       longitude: umkm.longitude ? String(umkm.longitude) : "",
+      halal_number: umkm.halal_number ?? "",
+      pirt_number: umkm.pirt_number ?? "",
     });
     setShopIsOpen(umkm.is_open ?? true);
     setClosedUntil(umkm.closed_until ? umkm.closed_until.slice(0, 16) : "");
@@ -532,6 +537,22 @@ export default function PengaturanPage() {
             <textarea value={form.description} onChange={set("description")} rows={3}
               placeholder="Ceritakan tentang produk dan keunggulan tokomu..."
               className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400 resize-none" />
+          </div>
+
+          {/* Nomor Sertifikat Halal & PIRT */}
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1.5 block">Nomor Sertifikat HALAL <span className="text-gray-400">(opsional)</span></label>
+            <input value={form.halal_number} onChange={set("halal_number")}
+              placeholder="Contoh: ID12345678901234"
+              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400" />
+            <p className="text-[11px] text-gray-400 mt-1">Ditampilkan sebagai badge di halaman toko kamu</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1.5 block">Nomor PIRT <span className="text-gray-400">(opsional)</span></label>
+            <input value={form.pirt_number} onChange={set("pirt_number")}
+              placeholder="Contoh: 2153371010334-22"
+              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400" />
+            <p className="text-[11px] text-gray-400 mt-1">Nomor izin PIRT dari Dinas Kesehatan</p>
           </div>
         </div>
 

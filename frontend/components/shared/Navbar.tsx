@@ -55,8 +55,10 @@ export default function Navbar() {
     try {
       const res = await notificationApi.list();
       if (res.data && res.data.success) {
-        setNotifications(res.data.data);
-        const unread = res.data.data.filter(n => !n.is_read).length;
+        // Response adalah paginasi Laravel: data ada di res.data.data.data
+        const list = Array.isArray(res.data.data) ? res.data.data : (res.data.data?.data ?? []);
+        setNotifications(list);
+        const unread = list.filter((n: any) => !n.is_read).length;
         setUnreadCount(unread);
       }
     } catch (err) {

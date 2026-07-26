@@ -21,6 +21,7 @@ use App\Http\Controllers\Seller\SellerDocumentController;
 use App\Http\Controllers\Seller\SellerOrderController;
 use App\Http\Controllers\Seller\ReviewController as SellerReviewController;
 use App\Http\Controllers\Seller\PromotionController as SellerPromotionController;
+use App\Http\Controllers\Seller\VoucherProgramController;
 use App\Http\Controllers\Seller\ShopStatusController;
 use App\Http\Controllers\Customers\ReviewController;
 use App\Http\Controllers\Admin\MitraPerformanceController;
@@ -116,6 +117,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/seller/promotions/{id}', [SellerPromotionController::class, 'update']);
     Route::delete('/seller/promotions/{id}', [SellerPromotionController::class, 'destroy']);
     Route::patch('/seller/promotions/{id}/toggle', [SellerPromotionController::class, 'toggle']);
+
+    // Seller voucher program management
+    Route::get('/seller/voucher-programs', [VoucherProgramController::class, 'index']);
+    Route::post('/seller/voucher-programs', [VoucherProgramController::class, 'store']);
+    Route::put('/seller/voucher-programs/{id}', [VoucherProgramController::class, 'update']);
+    Route::delete('/seller/voucher-programs/{id}', [VoucherProgramController::class, 'destroy']);
+    Route::patch('/seller/voucher-programs/{id}/toggle', [VoucherProgramController::class, 'toggle']);
+
+    // Buyer: cek voucher yang tersedia untuk cart dari toko tertentu (dipanggil saat checkout)
+    Route::get('/checkout/vouchers', [\App\Http\Controllers\Customers\VoucherController::class, 'available']);
 
     // Seller order management routes
     Route::get('/seller/orders', [SellerOrderController::class, 'index']);

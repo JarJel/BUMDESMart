@@ -9,58 +9,28 @@ use Exception;
 
 class NotificationController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    private function getUserId(Request $request): int
+    {
+        return $request->user()->id;
+    }
+
     public function index(Request $request)
     {
-        $user = $request->user();
-        if ($user->role !== 'customer' || !$user->customer) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hanya customer yang dapat mengakses notifikasi.'
-            ], 403);
-        }
-
-        $customerId = $user->customer->id;
+        $userId = $this->getUserId($request);
 
         try {
-            $count = Notification::where('customer_id', $customerId)->count();
-
-            if ($count === 0) {
-                // Auto-seed mock premium notifications
-                Notification::create([
-                    'customer_id' => $customerId,
-                    'title' => 'Pembayaran Terkonfirmasi',
-                    'content' => 'Pembayaran untuk pesanan #ORD-20260620001 Anda sebesar Rp 145.000 telah terkonfirmasi. Penjual sedang memproses pesanan Anda.',
-                    'type' => 'order',
-                    'is_read' => false,
-                ]);
-
-                Notification::create([
-                    'customer_id' => $customerId,
-                    'title' => 'Produk Wishlist Tersedia Kembali!',
-                    'content' => 'Kabar gembira! Produk \'Keripik Tempe Rejeki\' yang ada di wishlist Anda kini sudah ready stock kembali. Yuk checkout sekarang sebelum kehabisan!',
-                    'type' => 'promo',
-                    'is_read' => false,
-                ]);
-
-                Notification::create([
-                    'customer_id' => $customerId,
-                    'title' => 'Pembaruan Profil BUMDESMart',
-                    'content' => 'Selamat datang di platform BUMDESMart versi terbaru. Anda sekarang dapat menambahkan alamat pengiriman kustom, mengunggah foto profil, dan melihat riwayat belanja langsung dari halaman pengaturan.',
-                    'type' => 'info',
-                    'is_read' => true,
-                ]);
-            }
-
-            $notifications = Notification::where('customer_id', $customerId)
+            $notifications = Notification::where('user_id', $userId)
                 ->orderBy('created_at', 'desc')
-                ->get();
+                ->paginate(20);
+
+            $unreadCount = Notification::where('user_id', $userId)
+                ->where('is_read', false)
+                ->count();
 
             return response()->json([
-                'success' => true,
-                'data' => $notifications
+                'success'      => true,
+                'data'         => $notifications,
+                'unread_count' => $unreadCount,
             ]);
 
         } catch (Exception $e) {
@@ -71,115 +41,59 @@ class NotificationController extends Controller
         }
     }
 
-    /**
-     * Mark a specific notification as read.
-     */
     public function markAsRead(Request $request, $id)
     {
-        $user = $request->user();
-        if ($user->role !== 'customer' || !$user->customer) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hanya customer yang dapat mengubah status notifikasi.'
-            ], 403);
-        }
+        $userId = $this->getUserId($request);
 
         try {
             $notification = Notification::where('id', $id)
-                ->where('customer_id', $user->customer->id)
+                ->where('user_id', $userId)
                 ->first();
 
             if (!$notification) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Notifikasi tidak ditemukan.'
-                ], 404);
+                return response()->json(['success' => false, 'message' => 'Notifikasi tidak ditemukan.'], 404);
             }
 
             $notification->update(['is_read' => true]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Notifikasi ditandai sebagai terbaca.',
-                'data' => $notification
-            ]);
+            return response()->json(['success' => true, 'data' => $notification]);
 
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memperbarui notifikasi: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Mark all notifications of the customer as read.
-     */
     public function markAllAsRead(Request $request)
     {
-        $user = $request->user();
-        if ($user->role !== 'customer' || !$user->customer) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hanya customer yang dapat mengubah status notifikasi.'
-            ], 403);
-        }
+        $userId = $this->getUserId($request);
 
         try {
-            Notification::where('customer_id', $user->customer->id)
+            Notification::where('user_id', $userId)
                 ->where('is_read', false)
                 ->update(['is_read' => true]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Semua notifikasi ditandai sebagai terbaca.'
-            ]);
+            return response()->json(['success' => true, 'message' => 'Semua notifikasi ditandai sudah dibaca.']);
 
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memperbarui semua notifikasi: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Request $request, $id)
     {
-        $user = $request->user();
-        if ($user->role !== 'customer' || !$user->customer) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hanya customer yang dapat menghapus notifikasi.'
-            ], 403);
-        }
+        $userId = $this->getUserId($request);
 
         try {
             $notification = Notification::where('id', $id)
-                ->where('customer_id', $user->customer->id)
-                ->first();
-
-            if (!$notification) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Notifikasi tidak ditemukan.'
-                ], 404);
-            }
+                ->where('user_id', $userId)
+                ->firstOrFail();
 
             $notification->delete();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Notifikasi berhasil dihapus.'
-            ]);
+            return response()->json(['success' => true, 'message' => 'Notifikasi dihapus.']);
 
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menghapus notifikasi: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 }

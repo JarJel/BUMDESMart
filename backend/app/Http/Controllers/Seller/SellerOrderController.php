@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderHistory;
 use Illuminate\Http\Request;
@@ -84,6 +85,26 @@ class SellerOrderController extends Controller
         }
 
         $order->update(['status' => $newStatus]);
+
+        // Notifikasi ke pembeli saat status berubah
+        $order->load('customer.user');
+        $buyerUserId = $order->customer?->user?->id;
+        if ($buyerUserId) {
+            $buyerMessages = [
+                'confirmed'  => "Pesanan #{$order->order_code} sedang disiapkan oleh penjual.",
+                'cancelled'  => "Pesanan #{$order->order_code} dibatalkan oleh penjual.",
+            ];
+            if (isset($buyerMessages[$newStatus])) {
+                Notification::send(
+                    $buyerUserId,
+                    $newStatus === 'confirmed' ? 'Pesanan Sedang Disiapkan' : 'Pesanan Dibatalkan',
+                    $buyerMessages[$newStatus],
+                    'order_' . $newStatus,
+                    'order',
+                    $order->id
+                );
+            }
+        }
 
         $descriptions = [
             'confirmed'  => 'Pesanan dikonfirmasi oleh penjual.',

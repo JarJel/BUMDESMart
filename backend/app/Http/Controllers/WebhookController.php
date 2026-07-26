@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Disbursement;
+use App\Models\Notification;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\UmkmBalance;
@@ -67,6 +68,40 @@ class WebhookController extends Controller
             if ($bumdesFee > 0 && $order->umkmProfile?->bumdesProfile) {
                 $bumdesBalance = UmkmBalance::findOrCreateFor($order->umkmProfile->bumdesProfile->id, 'bumdes');
                 $bumdesBalance->increment('pending', $bumdesFee);
+            }
+
+            // Notifikasi ke UMKM: pesanan baru sudah dibayar
+            if ($order->umkmProfile?->user_id) {
+                $totalItems = $order->items->sum('quantity');
+                Notification::send(
+                    $order->umkmProfile->user_id,
+                    '🛍️ Pesanan Baru Masuk!',
+                    "Pesanan #{$order->order_code} sudah dibayar. {$totalItems} item perlu disiapkan. Segera proses pesanan ini.",
+                    'order_new',
+                    'order',
+                    $order->id
+                );
+
+                // Cek stok setelah pesanan: kirim notif kalau ada produk stok menipis
+                $order->load('items.product');
+                foreach ($order->items as $item) {
+                    $product = $item->product;
+                    if (!$product) continue;
+                    $newStock = $product->stock - $item->quantity;
+                    if ($newStock <= 5 && $newStock >= 0) {
+                        $msg = $newStock === 0
+                            ? "Stok produk \"{$product->name}\" sudah habis setelah pesanan #{$order->order_code}. Segera isi ulang agar pembeli bisa memesan lagi."
+                            : "Stok produk \"{$product->name}\" tinggal {$newStock} unit setelah pesanan #{$order->order_code}. Segera isi ulang sebelum kehabisan.";
+                        Notification::send(
+                            $order->umkmProfile->user_id,
+                            $newStock === 0 ? '❌ Stok Produk Habis!' : '⚠️ Stok Produk Hampir Habis',
+                            $msg,
+                            'stock_warning',
+                            'product',
+                            $product->id
+                        );
+                    }
+                }
             }
         }
 

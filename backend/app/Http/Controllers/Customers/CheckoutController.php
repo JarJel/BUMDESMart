@@ -15,7 +15,9 @@ use App\Models\Product;
 use App\Models\ProductDiscount;
 use App\Models\ProductVariant;
 use App\Models\ProductVariantOption;
+use App\Models\Promotion;
 use App\Models\UmkmProfile;
+use App\Models\UmkmVoucherProgram;
 use App\Models\BumdesProfile;
 use App\Models\Address;
 use Exception;
@@ -341,13 +343,16 @@ class CheckoutController extends Controller
         }
 
         $validated = $request->validate([
-            'address_id'    => 'required|integer|exists:addresses,id',
-            'delivery_type' => 'required|in:delivered,pickup',
-            'vehicle_type'  => 'nullable|in:motor,mobil',
-            'notes'         => 'nullable|string|max:500',
-            'product_id'    => 'nullable|integer|exists:products,id',
-            'quantity'      => 'nullable|integer|min:1',
-            'variant_id'    => 'nullable|integer',
+            'address_id'         => 'required|integer|exists:addresses,id',
+            'delivery_type'      => 'required|in:delivered,pickup',
+            'vehicle_type'       => 'nullable|in:motor,mobil',
+            'notes'              => 'nullable|string|max:500',
+            'product_id'         => 'nullable|integer|exists:products,id',
+            'quantity'           => 'nullable|integer|min:1',
+            'variant_id'         => 'nullable|integer',
+            // voucher_program_ids: {umkm_profile_id: voucher_program_id}
+            'voucher_program_ids'=> 'nullable|array',
+            'voucher_program_ids.*' => 'integer',
         ]);
 
         $deliveryType = $validated['delivery_type'];
@@ -439,7 +444,7 @@ class CheckoutController extends Controller
             $grouped[$item['umkm_profile_id']][] = $item;
         }
 
-        // Parse promotions
+        // Parse promotions (kode promo lama)
         $promotionCodes = $request->input('promotion_codes', []);
         $singlePromoCode = $request->input('promotion_code');
         if ($singlePromoCode && !is_array($singlePromoCode)) {
@@ -450,6 +455,9 @@ class CheckoutController extends Controller
                 $promotionCodes[$promo->umkm_profile_id] = $promo->code;
             }
         }
+
+        // Parse voucher program IDs (sistem baru tanpa kode)
+        $voucherProgramIds = $validated['voucher_program_ids'] ?? [];
 
         DB::beginTransaction();
         try {
@@ -471,7 +479,7 @@ class CheckoutController extends Controller
                     $code = $promotionCodes[$umkmId];
                     $subTotalAfterProductDiscount = $subTotal - $totalDiscount;
                     $promoResult = $this->validatePromotion($code, $umkmId, $subTotalAfterProductDiscount);
-                    
+
                     if (!$promoResult['valid']) {
                         DB::rollBack();
                         return response()->json([
@@ -484,6 +492,44 @@ class CheckoutController extends Controller
                     $orderPromotionId = $promo->id;
                     $orderDiscount += $promoResult['discount'];
                     $promo->increment('usage_count');
+                }
+
+                // Apply voucher program (tanpa kode, sistem baru)
+                $appliedVoucherProgramId = null;
+                if (isset($voucherProgramIds[$umkmId])) {
+                    $voucherProgram = UmkmVoucherProgram::where('id', (int) $voucherProgramIds[$umkmId])
+                        ->where('umkm_profile_id', $umkmId)
+                        ->where('is_active', true)
+                        ->first();
+
+                    if ($voucherProgram) {
+                        // Hitung frekuensi beli untuk validasi ulang di sisi server
+                        $orderFrequency = Order::where('customer_id', $customerId)
+                            ->where('umkm_profile_id', $umkmId)
+                            ->whereIn('status', ['confirmed', 'picking_up', 'shipped', 'delivered'])
+                            ->count();
+
+                        $itemCount   = collect($items)->sum('quantity');
+                        $netSubTotal = $subTotal - $totalDiscount;
+
+                        $context = [
+                            'item_count'      => $itemCount,
+                            'order_amount'    => $netSubTotal,
+                            'order_frequency' => $orderFrequency,
+                        ];
+
+                        // Cek belum pernah dipakai
+                        $alreadyUsed = Promotion::where('customer_id', $customerId)
+                            ->where('voucher_program_id', $voucherProgram->id)
+                            ->where('is_auto_generated', true)
+                            ->exists();
+
+                        if (!$alreadyUsed && $voucherProgram->isEligible($context)) {
+                            $voucherDiscount = $voucherProgram->calculateDiscount($netSubTotal);
+                            $orderDiscount  += $voucherDiscount;
+                            $appliedVoucherProgramId = $voucherProgram->id;
+                        }
+                    }
                 }
 
                 // Hitung ongkir: pickup = 0, delivered = Haversine
@@ -556,6 +602,25 @@ class CheckoutController extends Controller
                     'description' => 'Pesanan dibuat.',
                 ]);
 
+                // Catat pemakaian voucher program agar tidak bisa dipakai lagi
+                if ($appliedVoucherProgramId) {
+                    Promotion::create([
+                        'umkm_profile_id'    => $umkmId,
+                        'customer_id'        => $customerId,
+                        'voucher_program_id' => $appliedVoucherProgramId,
+                        'is_auto_generated'  => true,
+                        'name'               => 'Voucher Program #' . $appliedVoucherProgramId,
+                        'code'               => 'AUTO-' . $appliedVoucherProgramId . '-' . $customerId,
+                        'type'               => 'fixed_amount',
+                        'value'              => 0,
+                        'status'             => 'inactive',
+                        'usage_count'        => 1,
+                        'usage_limit'        => 1,
+                        'start_date'         => now(),
+                        'end_date'           => now()->addYears(10),
+                    ]);
+                }
+
                 $createdOrders[] = [
                     'order_id'   => $order->id,
                     'order_code' => $order->order_code,
@@ -595,12 +660,16 @@ class CheckoutController extends Controller
      */
     private function validatePromotion(string $code, int $umkmProfileId, float $subTotal): array
     {
+        $customerId = auth()->user()?->customer?->id;
+
         $promo = \App\Models\Promotion::where('code', strtoupper($code))
             ->where('umkm_profile_id', $umkmProfileId)
             ->where('status', 'active')
             ->where(fn($q) => $q->whereNull('start_date')->orWhere('start_date', '<=', now()))
             ->where(fn($q) => $q->whereNull('end_date')->orWhere('end_date', '>', now()))
             ->where(fn($q) => $q->whereNull('usage_limit')->orWhereColumn('usage_count', '<', 'usage_limit'))
+            // Voucher personal: harus milik pembeli ini, atau promo publik (customer_id null)
+            ->where(fn($q) => $q->whereNull('customer_id')->orWhere('customer_id', $customerId))
             ->first();
 
         if (!$promo) {

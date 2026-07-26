@@ -6,10 +6,23 @@ import { useSellerProfile } from "@/lib/context/sellerProfile";
 import { ProductData } from "@/lib/api/product";
 import api from "@/lib/api/axios";
 
+interface DiscountData {
+  id: number;
+  product_id: number;
+  product?: { id: number; name: string; stock: number; price: number; primary_image?: { file_path: string } };
+  discount_type: "percentage" | "fixed";
+  discount_value: number;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+}
+
 export default function SellerSummaryPage() {
   const profile = useSellerProfile();
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [todayOrders, setTodayOrders] = useState<number>(0);
+  const [activeDiscounts, setActiveDiscounts] = useState<DiscountData[]>([]);
 
   const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -22,16 +35,34 @@ export default function SellerSummaryPage() {
       .catch(() => setProducts([]))
       .finally(() => setLoadingProducts(false));
 
-    // Fetch berita dari BUMDes yang menaungi akun UMKM yang login
     api.get("/my/berita")
       .then(res => setAnnouncements(res.data.data?.data ?? []))
       .catch(() => setAnnouncements([]))
       .finally(() => setLoadingAnnouncements(false));
+
+    const today = new Date().toISOString().split("T")[0];
+    api.get(`/seller/orders?per_page=100&status=pending&date=${today}`)
+      .then(res => {
+        const orders = res.data.data?.data ?? [];
+        const newToday = orders.filter((o: any) => o.created_at?.startsWith(today)).length;
+        setTodayOrders(newToday > 0 ? newToday : orders.length);
+      })
+      .catch(() => setTodayOrders(0));
+
+    api.get("/seller/discounts")
+      .then(res => {
+        const all: DiscountData[] = res.data.data?.data ?? res.data.data ?? [];
+        const now = new Date();
+        const active = all.filter(d => d.is_active && new Date(d.end_date) >= now);
+        setActiveDiscounts(active);
+      })
+      .catch(() => setActiveDiscounts([]));
   }, []);
 
   const activeProducts = products.filter(p => p.status === "active").length;
   const lowStock = products.filter(p => p.stock > 0 && p.stock <= 5).length;
   const outOfStock = products.filter(p => p.stock === 0 && p.status === "active").length;
+  const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= 5);
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -41,17 +72,72 @@ export default function SellerSummaryPage() {
     return "Selamat malam";
   };
 
+  const discountedPrice = (d: DiscountData) => {
+    const base = Number(d.product?.price ?? 0);
+    if (d.discount_type === "percentage") return base - (base * d.discount_value) / 100;
+    return base - d.discount_value;
+  };
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       {/* Greeting */}
       <div>
         <h1 className="text-xl font-bold text-gray-900">
           {greeting()}, {profile?.owner_name ?? "Seller"}!
         </h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          {profile?.shop_name ? `Toko: ${profile.shop_name}` : "Selamat datang di dashboard seller"}
+          {profile?.shop_name ? `Toko: ${profile.shop_name}` : "Selamat datang di dashboard penjual"}
         </p>
       </div>
+
+      {/* Ringkasan Hari Ini */}
+      {!loadingProducts && (todayOrders > 0 || lowStock > 0 || outOfStock > 0) && (
+        <div className="rounded-2xl px-5 py-4 flex items-start gap-3" style={{ background: "var(--primary-muted)" }}>
+          <svg className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "var(--primary)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div className="text-sm" style={{ color: "var(--primary-dark)" }}>
+            <p className="font-semibold mb-1">Ringkasan hari ini</p>
+            <ul className="text-xs space-y-0.5 text-gray-600">
+              {todayOrders > 0 && <li>Ada <strong>{todayOrders} pesanan</strong> yang perlu diproses</li>}
+              {lowStock > 0 && <li><strong>{lowStock} produk</strong> stoknya mau habis (sisa ≤ 5)</li>}
+              {outOfStock > 0 && <li><strong>{outOfStock} produk</strong> stoknya sudah habis</li>}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Warning stok habis — banner merah */}
+      {!loadingProducts && outOfStock > 0 && (
+        <div className="rounded-2xl bg-red-50 border border-red-200 px-5 py-4 flex items-start gap-3">
+          <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-700">{outOfStock} produk stok habis!</p>
+            <p className="text-xs text-red-500 mt-0.5">Segera isi ulang agar pembeli bisa memesan.</p>
+          </div>
+          <Link href="/seller/produk" className="text-xs font-semibold text-red-600 hover:text-red-800 shrink-0 underline">
+            Cek produk
+          </Link>
+        </div>
+      )}
+
+      {/* Warning stok hampir habis */}
+      {!loadingProducts && lowStock > 0 && (
+        <div className="rounded-2xl bg-yellow-50 border border-yellow-200 px-5 py-4 flex items-start gap-3">
+          <svg className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-yellow-700">Stok hampir habis: {lowStockProducts.slice(0, 3).map(p => p.name).join(", ")}{lowStockProducts.length > 3 ? ` dan ${lowStockProducts.length - 3} lainnya` : ""}</p>
+            <p className="text-xs text-yellow-600 mt-0.5">Sisa stok ≤ 5 unit. Segera tambah sebelum kehabisan.</p>
+          </div>
+          <Link href="/seller/produk" className="text-xs font-semibold text-yellow-700 hover:text-yellow-900 shrink-0 underline">
+            Cek produk
+          </Link>
+        </div>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -60,6 +146,7 @@ export default function SellerSummaryPage() {
             label: "Total Produk",
             value: loadingProducts ? "..." : products.length.toString(),
             sub: `${activeProducts} aktif`,
+            color: false,
             icon: (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -69,7 +156,8 @@ export default function SellerSummaryPage() {
           {
             label: "Stok Hampir Habis",
             value: loadingProducts ? "..." : lowStock.toString(),
-            sub: "≤ 5 unit",
+            sub: "sisa ≤ 5 unit",
+            color: lowStock > 0 ? "yellow" : false,
             icon: (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -80,6 +168,7 @@ export default function SellerSummaryPage() {
             label: "Stok Habis",
             value: loadingProducts ? "..." : outOfStock.toString(),
             sub: "produk aktif",
+            color: outOfStock > 0 ? "red" : false,
             icon: (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -88,27 +177,89 @@ export default function SellerSummaryPage() {
           },
           {
             label: "Status Akun",
-            value: profile?.status === "active" ? "Aktif" : profile?.status === "rejected" ? "Ditolak" : "Pending",
-            sub: profile?.status === "active" ? "Terverifikasi BUMDes" : "Belum diverifikasi",
+            value: profile?.status === "active" ? "Aktif" : profile?.status === "rejected" ? "Ditolak" : "Menunggu",
+            sub: profile?.status === "active" ? "Sudah diverifikasi BUMDes" : "Belum diverifikasi",
+            color: false,
             icon: (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             ),
           },
-        ].map(card => (
-          <div key={card.label} className="bg-white rounded-2xl p-4 border border-gray-100">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs text-gray-500">{card.label}</p>
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "var(--primary-muted)", color: "var(--primary)" }}>
-                {card.icon}
+        ].map(card => {
+          const bgIcon = card.color === "red" ? "bg-red-50" : card.color === "yellow" ? "bg-yellow-50" : "";
+          const fgIcon = card.color === "red" ? "text-red-500" : card.color === "yellow" ? "text-yellow-600" : "";
+          const valueFg = card.color === "red" ? "text-red-600" : card.color === "yellow" ? "text-yellow-600" : "text-gray-900";
+          return (
+            <div key={card.label} className="bg-white rounded-2xl p-4 border border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-gray-500">{card.label}</p>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${bgIcon || ""}`}
+                  style={!card.color ? { background: "var(--primary-muted)", color: "var(--primary)" } : { color: fgIcon.replace("text-", "") }}>
+                  <span className={card.color ? fgIcon : ""}>{card.icon}</span>
+                </div>
               </div>
+              <p className={`text-xl font-bold ${valueFg}`}>{card.value}</p>
+              <p className="text-xs mt-1 text-gray-400">{card.sub}</p>
             </div>
-            <p className="text-xl font-bold text-gray-900">{card.value}</p>
-            <p className="text-xs mt-1 text-gray-400">{card.sub}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      {/* Promo Aktif Hari Ini */}
+      {activeDiscounts.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🏷️</span>
+              <h2 className="text-sm font-semibold text-gray-900">Diskon Aktif Hari Ini</h2>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700">{activeDiscounts.length} produk</span>
+            </div>
+            <Link href="/seller/diskon" className="text-xs font-medium" style={{ color: "var(--primary)" }}>
+              Kelola diskon
+            </Link>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {activeDiscounts.slice(0, 4).map((d) => {
+              const prodName = d.product?.name ?? `Produk #${d.product_id}`;
+              const basePrice = Number(d.product?.price ?? 0);
+              const finalPrice = discountedPrice(d);
+              const stock = d.product?.stock ?? 0;
+              const imgPath = d.product?.primary_image?.file_path;
+              const imgUrl = imgPath ? (imgPath.startsWith("http") ? imgPath : `http://localhost:8000/${imgPath}`) : null;
+              const endDate = new Date(d.end_date);
+              const daysLeft = Math.ceil((endDate.getTime() - Date.now()) / 86400000);
+              return (
+                <div key={d.id} className="flex items-center gap-4 px-5 py-3.5">
+                  <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
+                    {imgUrl ? (
+                      <img src={imgUrl} alt={prodName} className="w-full h-full object-cover" />
+                    ) : (
+                      <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-900 line-clamp-1">{prodName}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-xs text-gray-400 line-through">Rp {basePrice.toLocaleString("id")}</span>
+                      <span className="text-xs font-bold text-green-600">Rp {finalPrice.toLocaleString("id")}</span>
+                      <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-red-50 text-red-600">
+                        {d.discount_type === "percentage" ? `−${d.discount_value}%` : `−Rp ${Number(d.discount_value).toLocaleString("id")}`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`text-xs font-semibold ${stock === 0 ? "text-red-500" : stock <= 5 ? "text-yellow-600" : "text-gray-600"}`}>
+                      Stok: {stock}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{daysLeft <= 1 ? "Berakhir hari ini!" : `${daysLeft} hari lagi`}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Daftar Produk Terbaru */}
       <div className="bg-white rounded-2xl border border-gray-100">
@@ -156,14 +307,22 @@ export default function SellerSummaryPage() {
                               <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                             )}
                           </div>
-                          <span className="font-medium text-gray-900 line-clamp-1">{p.name}</span>
+                          <div className="min-w-0">
+                            <span className="font-medium text-gray-900 line-clamp-1">{p.name}</span>
+                            {p.stock <= 5 && p.stock > 0 && (
+                              <p className="text-[10px] text-yellow-600 font-medium">Stok menipis!</p>
+                            )}
+                            {p.stock === 0 && (
+                              <p className="text-[10px] text-red-500 font-medium">Stok habis</p>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-5 py-3 text-right font-semibold text-gray-900">
                         Rp {Number(p.price).toLocaleString("id")}
                       </td>
                       <td className="px-5 py-3 text-right hidden md:table-cell">
-                        <span className={p.stock === 0 ? "text-red-500 font-medium" : "text-gray-600"}>{p.stock}</span>
+                        <span className={p.stock === 0 ? "text-red-500 font-semibold" : p.stock <= 5 ? "text-yellow-600 font-semibold" : "text-gray-600"}>{p.stock}</span>
                       </td>
                       <td className="px-5 py-3 text-center">
                         <span className={`px-2 py-0.5 rounded-full font-medium ${badgeClass}`}>{statusLabel}</span>
@@ -214,7 +373,6 @@ export default function SellerSummaryPage() {
                   onClick={() => setSelectedAnnouncement(ann)}
                   className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50/70 transition-colors cursor-pointer"
                 >
-                  {/* Thumbnail */}
                   <div className="w-14 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
                     {photoUrl ? (
                       <img src={photoUrl} alt={ann.title} className="w-full h-full object-cover" />
@@ -226,7 +384,6 @@ export default function SellerSummaryPage() {
                       </div>
                     )}
                   </div>
-                  {/* Konten */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide ${catColors[ann.category] ?? "bg-gray-100 text-gray-600"}`}>
@@ -262,13 +419,13 @@ export default function SellerSummaryPage() {
             <p className="text-xs text-gray-400 mt-0.5">Upload produk dan mulai berjualan</p>
           </div>
         </Link>
-        <Link href="/seller/pengaturan" className="flex items-center gap-4 bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow group">
+        <Link href="/seller/pesanan" className="flex items-center gap-4 bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow group">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--primary-muted)" }}>
-            <svg className="w-5 h-5" style={{ color: "var(--primary)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <svg className="w-5 h-5" style={{ color: "var(--primary)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900 group-hover:text-green-700">Lengkapi Profil Toko</p>
-            <p className="text-xs text-gray-400 mt-0.5">Nama, deskripsi, dan info kontak</p>
+            <p className="text-sm font-semibold text-gray-900 group-hover:text-green-700">Lihat Pesanan</p>
+            <p className="text-xs text-gray-400 mt-0.5">Proses dan pantau pesanan masuk</p>
           </div>
         </Link>
       </div>
@@ -289,7 +446,6 @@ export default function SellerSummaryPage() {
               </button>
             </div>
             <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
-              {/* Slider Foto Pengumuman */}
               {selectedAnnouncement.photos && selectedAnnouncement.photos.length > 0 && (() => {
                 const AnnPhotoSlider = () => {
                   const [pidx, setPidx] = useState(0);
@@ -343,4 +499,3 @@ export default function SellerSummaryPage() {
     </div>
   );
 }
-
