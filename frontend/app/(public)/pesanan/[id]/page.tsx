@@ -358,10 +358,16 @@ export default function DetailPesananPage() {
                 <span>{formatRp(Number(order.shipping_cost))}</span>
               </div>
             )}
-            {Number(order.discount_amount) > 0 && (
-              <div className="flex justify-between text-green-600">
-                <span>Diskon</span>
-                <span>-{formatRp(Number(order.discount_amount))}</span>
+            {Number(order.service_fee) > 0 && (
+              <div className="flex justify-between text-gray-600">
+                <span>Biaya Layanan</span>
+                <span>{formatRp(Number(order.service_fee))}</span>
+              </div>
+            )}
+            {Number(order.discount) > 0 && (
+              <div className="flex justify-between text-green-600 font-medium">
+                <span className="flex items-center gap-1">🎟️ Diskon Voucher</span>
+                <span>-{formatRp(Number(order.discount))}</span>
               </div>
             )}
             <div className="flex justify-between font-bold text-gray-900 border-t border-gray-100 pt-2">

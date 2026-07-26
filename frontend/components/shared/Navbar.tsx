@@ -55,7 +55,6 @@ export default function Navbar() {
     try {
       const res = await notificationApi.list();
       if (res.data && res.data.success) {
-        // BE returns paginated: res.data.data.data is the array
         const items = Array.isArray(res.data.data)
           ? res.data.data
           : (res.data.data?.data ?? []);

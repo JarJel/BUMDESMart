@@ -611,11 +611,13 @@ class CheckoutController extends Controller
                         'is_auto_generated'  => true,
                         'name'               => 'Voucher Program #' . $appliedVoucherProgramId,
                         'code'               => 'AUTO-' . $appliedVoucherProgramId . '-' . $customerId,
-                        'type'               => 'flat',
+                        'type'               => 'fixed_amount',
                         'value'              => 0,
-                        'status'             => 'used',
+                        'status'             => 'inactive',
                         'usage_count'        => 1,
                         'usage_limit'        => 1,
+                        'start_date'         => now(),
+                        'end_date'           => now()->addYears(10),
                     ]);
                 }
 
