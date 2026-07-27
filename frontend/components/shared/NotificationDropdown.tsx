@@ -75,14 +75,14 @@ interface Notif {
 }
 
 const TYPE_ICON: Record<string, string> = {
-  order_new:       "🛍️",
+  order_new: "🛍️",
   order_confirmed: "✅",
   order_cancelled: "❌",
-  order_shipped:   "🚚",
+  order_shipped: "🚚",
   order_delivered: "📦",
-  stock_warning:   "⚠️",
-  info:            "ℹ️",
-  promo:           "🏷️",
+  stock_warning: "⚠️",
+  info: "ℹ️",
+  promo: "🏷️",
 };
 
 function timeAgo(dateStr: string) {
@@ -118,7 +118,7 @@ export default function NotificationDropdown() {
         setNotifs(items);
         setUnread(newUnread);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -138,13 +138,13 @@ export default function NotificationDropdown() {
   }, []);
 
   const markRead = (id: number) => {
-    api.put(`/notifications/${id}/read`).catch(() => {});
+    api.put(`/notifications/${id}/read`).catch(() => { });
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     setUnread(prev => Math.max(0, prev - 1));
   };
 
   const markAllRead = () => {
-    api.put("/notifications/read-all").catch(() => {});
+    api.put("/notifications/read-all").catch(() => { });
     setNotifs(prev => prev.map(n => ({ ...n, is_read: true })));
     setUnread(0);
   };
@@ -200,9 +200,8 @@ export default function NotificationDropdown() {
                 <div
                   key={n.id}
                   onClick={() => !n.is_read && markRead(n.id)}
-                  className={`flex gap-3 px-4 py-3 border-b border-gray-50 last:border-0 cursor-pointer transition-colors ${
-                    n.is_read ? "bg-white" : "bg-blue-50/40 hover:bg-blue-50"
-                  }`}
+                  className={`flex gap-3 px-4 py-3 border-b border-gray-50 last:border-0 cursor-pointer transition-colors ${n.is_read ? "bg-white" : "bg-blue-50/40 hover:bg-blue-50"
+                    }`}
                 >
                   <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-base shrink-0 mt-0.5">
                     {TYPE_ICON[n.type] ?? "🔔"}

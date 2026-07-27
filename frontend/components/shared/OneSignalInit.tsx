@@ -11,7 +11,7 @@ async function savePlayerId(id: string) {
       token: id,
       device_id: navigator.userAgent.slice(0, 100),
     });
-  } catch {}
+  } catch { }
 }
 
 export default function OneSignalInit() {
