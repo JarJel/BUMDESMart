@@ -50,7 +50,7 @@ class WebhookController extends Controller
 
         if ($newStatus === 'paid' && $order) {
             $order->update(['status' => 'pending']);
-            $order->load('items', 'umkmProfile.bumdesProfile');
+            $order->load('items', 'umkmProfile.bumdesProfile', 'umkmProfile.user');
 
             foreach ($order->items as $item) {
                 \App\Models\ProductDiscount::applyUsage($item->product_id);
@@ -81,6 +81,17 @@ class WebhookController extends Controller
                     'order',
                     $order->id
                 );
+
+                // Kirim notifikasi WhatsApp ke Seller via Fonnte
+                $sellerPhone = $order->umkmProfile->phone;
+                if (!$sellerPhone && $order->umkmProfile->user) {
+                    $sellerPhone = $order->umkmProfile->user->phone;
+                }
+                if ($sellerPhone) {
+                    $sellerName = $order->umkmProfile->owner_name ?? $order->umkmProfile->user->name ?? 'Mitra BUMDESMart';
+                    $waMessage = "Halo {$sellerName},\n\nAda pesanan baru masuk!\nKode Pesanan: #{$order->order_code}\nTotal Pembayaran: Rp " . number_format($order->total, 0, ',', '.') . "\n\nSilakan periksa detail pesanan dan konfirmasi pesanan ini melalui dashboard seller Anda.\n\nBUMDESMart";
+                    \App\Services\WhatsappService::send($sellerPhone, $waMessage);
+                }
 
                 // Cek stok setelah pesanan: kirim notif kalau ada produk stok menipis
                 $order->load('items.product');

@@ -33,6 +33,12 @@ class AuthService
             'phone' => $data['phone'] ?? null,
         ]);
 
+        // 3. Kirim notifikasi WhatsApp otomatis
+        if ($user->phone) {
+            $message = "Halo {$user->name},\n\nTerima kasih telah mendaftar di BUMDESMart!\nAkun Anda berhasil dibuat dengan email {$user->email}. Silakan masuk ke aplikasi untuk mulai berbelanja produk-produk UMKM terbaik.\n\nSelamat berbelanja!\nTim BUMDESMart";
+            WhatsappService::send($user->phone, $message);
+        }
+
         return $user->load('customer');
     }
 
@@ -65,6 +71,12 @@ class AuthService
             'agreed_at'         => now(),
             'status'            => 'pending',
         ]);
+
+        // 3. Kirim notifikasi WhatsApp otomatis
+        if ($user->phone) {
+            $message = "Halo {$user->name},\n\nTerima kasih telah mendaftar sebagai Mitra/UMKM di BUMDESMart!\nPendaftaran untuk toko \"{$data['shop_name']}\" telah kami terima dan saat ini sedang menunggu proses verifikasi oleh pihak BUMDes.\n\nKami akan segera memberikan informasi lebih lanjut jika akun toko Anda telah disetujui.\n\nSalam hangat,\nTim BUMDESMart";
+            WhatsappService::send($user->phone, $message);
+        }
 
         return $user->load('umkmProfile');
     }
@@ -100,6 +112,14 @@ class AuthService
             'is_available'        => false,
             'is_verified'         => false,
         ]);
+
+        // Kirim notifikasi WhatsApp otomatis
+        if ($user->phone) {
+            $vehicleBrand = $data['vehicle_brand'] ?? '-';
+            $vehiclePlate = $data['vehicle_plate'] ?? '-';
+            $message = "Halo {$user->name},\n\nTerima kasih telah mendaftar sebagai Kurir di BUMDESMart!\nPendaftaran Anda dengan kendaraan {$vehicleBrand} ({$vehiclePlate}) telah berhasil. Saat ini akun Anda sedang dalam proses peninjauan dan verifikasi oleh Admin.\n\nKami akan mengirimkan notifikasi setelah akun Anda aktif dan siap menerima pesanan.\n\nSalam hangat,\nTim BUMDESMart";
+            WhatsappService::send($user->phone, $message);
+        }
 
         return $user->fresh();
     }
