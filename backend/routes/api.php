@@ -38,6 +38,8 @@ use App\Http\Controllers\Admin\UmkmVerificationController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Driver\DriverController;
+use App\Http\Controllers\WhatsappController;
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
@@ -283,3 +285,5 @@ Route::get('/products/{idOrSlug}', [ProductController::class, 'show']);
 Route::get('/categories', function () {
     return response()->json(['data' => \App\Models\Category::orderBy('name')->get(['id', 'name', 'slug'])]);
 });
+
+Route::post('/send-whatsapp', [WhatsappController::class, 'sendWhatsapp']);
