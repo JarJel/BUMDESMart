@@ -117,7 +117,6 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState<AddressData[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [deliveryType, setDeliveryType] = useState<"delivered" | "pickup">("delivered");
-  const [vehicleType, setVehicleType] = useState<"motor" | "mobil">("motor");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -125,6 +124,9 @@ export default function CheckoutPage() {
   const [deletingAddr, setDeletingAddr] = useState(false);
   const [shippingCost, setShippingCost] = useState<number | null>(null);
   const [loadingShipping, setLoadingShipping] = useState(false);
+  const [shippingOptions, setShippingOptions] = useState<any[]>([]);
+  const [selectedShippingId, setSelectedShippingId] = useState<string>("kurir-lokal");
+  const [showAllShipping, setShowAllShipping] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null);
 
   // Address modal
@@ -191,14 +193,13 @@ export default function CheckoutPage() {
   const [selectedVouchers, setSelectedVouchers] = useState<Record<number, number>>({}); // umkm_id → voucher_program_id
   const [loadingVouchers, setLoadingVouchers] = useState<Record<number, boolean>>({});
 
-  const loadCheckoutPreview = useCallback(async (addressId: number | null, delType: string, vType: string = 'motor') => {
+  const loadCheckoutPreview = useCallback(async (addressId: number | null, delType: string) => {
     if (!addressId) return;
     setLoadingPreview(true);
     try {
       const params: any = {
         address_id: addressId,
         delivery_type: delType,
-        vehicle_type: vType,
       };
 
       const res = await checkoutApi.preview(params);
@@ -206,9 +207,14 @@ export default function CheckoutPage() {
         setPreviewData(res.data.data);
         const methods = res.data.data.shipping_methods;
         if (methods?.length) {
-          const opt = methods[0]?.options?.find((o: any) => o.id === "kurir-lokal");
-          setShippingCost(opt?.price ?? null);
+          const opts = (methods[0]?.options ?? []).filter((o: any) => o.type !== "pickup");
+          setShippingOptions(opts);
+          // Reset ke kurir-lokal, atau opsi pertama yang ada
+          const defaultOpt = opts.find((o: any) => o.id === selectedShippingId) ?? opts[0];
+          setSelectedShippingId(defaultOpt?.id ?? "kurir-lokal");
+          setShippingCost(defaultOpt?.price ?? null);
         } else {
+          setShippingOptions([]);
           setShippingCost(null);
         }
       }
@@ -237,9 +243,9 @@ export default function CheckoutPage() {
   // Pemicu preview saat data alamat atau metode pengiriman berubah
   useEffect(() => {
     if (selectedAddressId) {
-      loadCheckoutPreview(selectedAddressId, deliveryType, vehicleType);
+      loadCheckoutPreview(selectedAddressId, deliveryType);
     }
-  }, [selectedAddressId, deliveryType, vehicleType, loadCheckoutPreview]);
+  }, [selectedAddressId, deliveryType, loadCheckoutPreview]);
 
   // Fetch voucher saat cart items berubah
   useEffect(() => {
@@ -336,8 +342,11 @@ export default function CheckoutPage() {
       const payload: any = {
         address_id: selectedAddressId,
         delivery_type: deliveryType,
-        vehicle_type: deliveryType === 'delivered' ? vehicleType : undefined,
+        vehicle_type: undefined,
         notes: notes || undefined,
+        shipping_method_id: deliveryType === 'delivered' ? selectedShippingId : undefined,
+        shipping_cost_override: (deliveryType === 'delivered' && selectedShippingId?.startsWith('ekspedisi-') && shippingCost !== null)
+          ? shippingCost : undefined,
       };
       // Sertakan voucher yang dipilih per toko (format: { umkm_id: voucher_program_id })
       if (Object.keys(selectedVouchers).length > 0) {
@@ -692,51 +701,109 @@ export default function CheckoutPage() {
               ))}
             </div>
 
-            {/* Pilih kendaraan — hanya muncul saat dikirim */}
+            {/* Pilihan metode pengiriman */}
             {deliveryType === "delivered" && (
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                {([
-                  { id: "motor" as const, label: "Motor", desc: "Rp 2.000/km setelah 1 km", icon: "🛵" },
-                  { id: "mobil" as const, label: "Mobil",  desc: "Rp 3.000/km setelah 1 km", icon: "🚗" },
-                ] as const).map((v) => (
-                  <label
-                    key={v.id}
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition-all ${vehicleType === v.id ? "border-green-600 bg-green-50/40" : "border-gray-100 hover:border-gray-200"}`}
-                  >
-                    <input
-                      type="radio"
-                      name="vehicle_type"
-                      value={v.id}
-                      checked={vehicleType === v.id}
-                      onChange={() => setVehicleType(v.id)}
-                      className="accent-green-700"
-                    />
-                    <span className="text-lg">{v.icon}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{v.label}</p>
-                      <p className="text-[10px] text-gray-400">{v.desc}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )}
+              <div className="mt-3 space-y-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pilih Pengiriman</p>
+                {loadingPreview ? (
+                  <div className="text-xs text-gray-400 py-2">Menghitung opsi pengiriman...</div>
+                ) : shippingOptions.length === 0 ? (
+                  <div className="text-xs text-gray-400 py-2">Pilih alamat dulu untuk melihat opsi pengiriman</div>
+                ) : (() => {
+                  const logoMap: Record<string, string> = {
+                    "gosend": "/couriers/gosend.svg",
+                    "grabexpress": "/couriers/grab.svg",
+                    "lalamove": "/couriers/lalamove.svg",
+                    "sicepat-reg": "/couriers/sicepat.svg",
+                    "jnt-ez": "/couriers/jnt.svg",
+                    "anteraja-reg": "/couriers/anteraja.svg",
+                    "ninja-xpress": "/couriers/ninja.svg",
+                  };
+                  const extraLogoMap: Record<string, string> = {
+                    "jne": "/couriers/jne.svg",
+                    "tiki": "/couriers/tiki.svg",
+                    "pos": "/couriers/pos.svg",
+                  };
+                  const getLogo = (opt: any) => {
+                    const idKey = opt.id.startsWith("ekspedisi-jne") ? "jne"
+                      : opt.id.startsWith("ekspedisi-tiki") ? "tiki"
+                      : opt.id.startsWith("ekspedisi-pos") ? "pos"
+                      : opt.id;
+                    return logoMap[opt.id] ?? extraLogoMap[idKey] ?? null;
+                  };
 
-            {/* Estimasi ongkir */}
-            {deliveryType === "delivered" && (
-              <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-blue-700 font-medium">
-                    {activeAddress?.latitude ? "Ongkir estimasi (berdasarkan jarak)" : "Ongkir estimasi (flat)"}
-                  </span>
-                  <span className="text-sm font-bold text-blue-900">
-                    {loadingPreview ? "Menghitung..." : shippingCost !== null ? formatRupiah(shippingCost) : "Pilih alamat dulu"}
-                  </span>
-                </div>
-                {activeAddress && !activeAddress?.latitude && (
-                  <p className="text-[10px] text-blue-500 mt-1">
-                    Tambahkan pin lokasi di alamat untuk ongkir lebih akurat.
-                  </p>
-                )}
+                  const sorted = [...shippingOptions].sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
+                  const cheapest = sorted[0];
+                  const rest = sorted.slice(1);
+
+                  const renderOption = (opt: any) => {
+                    const logo = getLogo(opt);
+                    const isLokal = opt.type === "lokal";
+                    return (
+                      <label key={opt.id} className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors ${selectedShippingId === opt.id ? "border-orange-400 bg-orange-50" : "border-gray-200 bg-white"}`}>
+                        <div className="flex items-center gap-3">
+                          <input type="radio" name="shipping" value={opt.id} checked={selectedShippingId === opt.id}
+                            onChange={() => { setSelectedShippingId(opt.id); setShippingCost(opt.price); }} className="accent-orange-500" />
+                          {logo ? (
+                            <img src={logo} alt={opt.name} className="h-7 w-20 object-contain rounded" />
+                          ) : isLokal && opt.vehicle === 'mobil' ? (
+                            <svg viewBox="0 0 24 24" className="w-6 h-6 text-orange-500 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M5 17H3v-5l2-5h14l2 5v5h-2"/>
+                              <circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/>
+                              <path d="M5 17h3m8 0h-3M6 12h12"/>
+                            </svg>
+                          ) : isLokal ? (
+                            <svg viewBox="0 0 24 24" className="w-6 h-6 text-orange-500 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/>
+                              <path d="M8 17.5h7M15 17.5l-1-5h-3l-2-4H7l-1.5 2.5M15 12.5l2-3h2l1 3-2 2.5"/>
+                              <path d="M12 7.5h3"/>
+                            </svg>
+                          ) : (
+                            <svg viewBox="0 0 24 24" className="w-6 h-6 text-gray-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="1.5"/><circle cx="18.5" cy="18.5" r="1.5"/>
+                            </svg>
+                          )}
+                          <div>
+                            {isLokal && <p className="text-sm font-semibold text-gray-800">{opt.name}</p>}
+                            <p className="text-xs text-gray-500">{opt.estimation}{opt.distance_km ? ` · ${opt.distance_km} km` : ""}</p>
+                            {opt.note && <p className="text-[10px] text-orange-500">{opt.note}</p>}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-bold text-gray-800">{opt.price !== null ? formatRupiah(opt.price) : "Cek app"}</span>
+                          {opt.price === cheapest.price && rest.length > 0 && (
+                            <p className="text-[10px] text-green-600 font-semibold">Termurah</p>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  };
+
+                  return (
+                    <>
+                      {renderOption(cheapest)}
+                      {rest.length > 0 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setShowAllShipping(!showAllShipping)}
+                            className="w-full flex items-center justify-center gap-1 text-xs text-orange-600 font-semibold py-2 hover:text-orange-700 transition-colors"
+                          >
+                            {showAllShipping ? "Sembunyikan opsi lain" : `Lihat ${rest.length} opsi lain`}
+                            <svg className={`w-3.5 h-3.5 transition-transform ${showAllShipping ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          {showAllShipping && (
+                            <div className="space-y-2">
+                              {rest.map(renderOption)}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
 

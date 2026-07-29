@@ -14,6 +14,11 @@ return [
     |
     */
 
+    'rajaongkir' => [
+        'api_key'  => env('RAJAONGKIR_API_KEY'),
+        'base_url' => env('RAJAONGKIR_BASE_URL', 'https://api.rajaongkir.com/starter'),
+    ],
+
     'xendit' => [
         'secret_key'    => env('XENDIT_SECRET_KEY'),
         'public_key'    => env('XENDIT_PUBLIC_KEY'),

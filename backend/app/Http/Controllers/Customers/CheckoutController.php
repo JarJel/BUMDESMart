@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customers;
 
 use App\Http\Controllers\Controller;
 use App\Helpers\HaversineHelper;
+use App\Services\RajaOngkirService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Cart;
@@ -255,57 +256,161 @@ class CheckoutController extends Controller
             $umkmIds = collect($items)->pluck('product.umkm_profile.id')->unique()->filter()->values();
             $umkmProfiles = UmkmProfile::whereIn('id', $umkmIds)->get()->keyBy('id');
 
-            $vehicleType = in_array($request->input('vehicle_type'), ['motor', 'mobil'])
-                ? $request->input('vehicle_type')
-                : 'motor';
-
             $shippingMethods = [];
+            $rajaOngkir = app(RajaOngkirService::class);
+
             foreach ($umkmIds as $umkmId) {
-                $umkm          = $umkmProfiles[$umkmId] ?? null;
-                $distanceKm    = null;
-                $dynamicCost   = null; // null = belum bisa dihitung
+                $umkm        = $umkmProfiles[$umkmId] ?? null;
+                $distanceKm  = null;
 
                 if ($selectedAddress && $umkm && $umkm->latitude && $umkm->longitude
                     && $selectedAddress->latitude && $selectedAddress->longitude) {
-                    $distanceKm  = HaversineHelper::distanceKm(
+                    $distanceKm = HaversineHelper::distanceKm(
                         (float) $selectedAddress->latitude,
                         (float) $selectedAddress->longitude,
                         (float) $umkm->latitude,
                         (float) $umkm->longitude,
                     );
-                    $dynamicCost = HaversineHelper::shippingCost($distanceKm, $vehicleType);
-                } elseif ($selectedAddress) {
-                    $dynamicCost = HaversineHelper::shippingCost(0, $vehicleType); // fallback ≤1km = Rp 5.000
+                }
+
+                $distKm = $distanceKm ?? 0;
+                $costMotor = HaversineHelper::shippingCost($distKm, 'motor');
+                $costMobil = HaversineHelper::shippingCost($distKm, 'mobil');
+                $distDisplay = $distanceKm ? round($distanceKm, 2) : null;
+
+                // Opsi kurir lokal & ambil sendiri
+                $options = [
+                    [
+                        'id'          => 'kurir-lokal-motor',
+                        'name'        => 'Kurir Lokal - Motor',
+                        'description' => 'Diantar kurir desa (motor)',
+                        'estimation'  => 'Hari ini - 1 hari',
+                        'price'       => $costMotor,
+                        'distance_km' => $distDisplay,
+                        'type'        => 'lokal',
+                        'vehicle'     => 'motor',
+                    ],
+                    [
+                        'id'          => 'kurir-lokal-mobil',
+                        'name'        => 'Kurir Lokal - Mobil',
+                        'description' => 'Diantar kurir desa (mobil)',
+                        'estimation'  => 'Hari ini - 1 hari',
+                        'price'       => $costMobil,
+                        'distance_km' => $distDisplay,
+                        'type'        => 'lokal',
+                        'vehicle'     => 'mobil',
+                    ],
+                    [
+                        'id'          => 'pickup',
+                        'name'        => 'Ambil Sendiri',
+                        'description' => 'Ambil langsung ke toko',
+                        'estimation'  => 'Sesuai jadwal',
+                        'price'       => 0,
+                        'distance_km' => null,
+                        'type'        => 'pickup',
+                    ],
+                ];
+
+                // Tambah GoSend & ekspedisi jika jarak > 5km (luar desa) atau koordinat tidak ada
+                $showEkspedisi = false;
+                if ($selectedAddress && $umkm) {
+                    if ($distanceKm !== null) {
+                        $showEkspedisi = $distanceKm > 5;
+                    } else {
+                        // Koordinat tidak ada, tampilkan saja semua opsi
+                        $showEkspedisi = true;
+                    }
+                }
+
+                if ($showEkspedisi) {
+                    $km = $distanceKm ?? 10;
+
+                    // Kurir same-day (estimasi harga berdasarkan jarak)
+                    $sameDayCouriers = [
+                        ['id' => 'gosend',       'name' => 'GoSend',        'icon' => '🛵', 'base' => 14000, 'per_km' => 2500, 'est' => '1-3 jam'],
+                        ['id' => 'grabexpress',  'name' => 'Grab Express',  'icon' => '🟢', 'base' => 14000, 'per_km' => 2500, 'est' => '1-3 jam'],
+                        ['id' => 'lalamove',     'name' => 'Lalamove',      'icon' => '🟡', 'base' => 16000, 'per_km' => 3000, 'est' => '1-4 jam'],
+                    ];
+                    foreach ($sameDayCouriers as $c) {
+                        $options[] = [
+                            'id'          => $c['id'],
+                            'name'        => $c['icon'] . ' ' . $c['name'],
+                            'description' => 'Kurir instan',
+                            'estimation'  => $c['est'],
+                            'price'       => (int) ($c['base'] + ($km * $c['per_km'])),
+                            'distance_km' => round($km, 2),
+                            'type'        => 'ekspedisi',
+                            'note'        => 'Estimasi harga, harga final sesuai aplikasi kurir',
+                        ];
+                    }
+
+                    // Ekspedisi reguler via RajaOngkir (JNE/TIKI/POS)
+                    $originCity = $umkm->city ?? null;
+                    $destCity   = $selectedAddress->city ?? null;
+                    if ($originCity && $destCity) {
+                        try {
+                            $originId = $rajaOngkir->findCityId($originCity);
+                            $destId   = $rajaOngkir->findCityId($destCity);
+                            if ($originId && $destId) {
+                                $totalWeightGram = collect($items)
+                                    ->where('product.umkm_profile.id', $umkmId)
+                                    ->sum(fn($i) => ($i['product']['weight'] ?? 500) * $i['quantity']);
+
+                                $ekspedisi = $rajaOngkir->getAllCosts($originId, $destId, (int) $totalWeightGram);
+                                foreach ($ekspedisi as $eks) {
+                                    $options[] = [
+                                        'id'          => 'ekspedisi-' . strtolower($eks['courier']) . '-' . strtolower($eks['service']),
+                                        'name'        => '📦 ' . $eks['name'],
+                                        'description' => $eks['courier'],
+                                        'estimation'  => $eks['estimation'],
+                                        'price'       => $eks['price'],
+                                        'distance_km' => null,
+                                        'type'        => 'ekspedisi',
+                                        'note'        => null,
+                                    ];
+                                }
+                            }
+                        } catch (\Exception) {
+                            // RajaOngkir gagal — same-day tetap tampil
+                        }
+                    }
+
+                    // Kurir reguler estimasi (SiCepat, J&T, AnterAja) — fallback jika RajaOngkir tidak dapat kota
+                    $regularCouriers = [
+                        ['id' => 'sicepat-reg', 'name' => '📦 SiCepat REG', 'est' => '1-3 hari', 'price' => 10000],
+                        ['id' => 'jnt-ez',      'name' => '📦 J&T EZ',      'est' => '1-3 hari', 'price' => 9000],
+                        ['id' => 'anteraja-reg','name' => '📦 AnterAja REG', 'est' => '2-4 hari', 'price' => 8000],
+                        ['id' => 'ninja-xpress','name' => '📦 Ninja Xpress', 'est' => '2-4 hari', 'price' => 9000],
+                    ];
+                    $hasRajaOngkirResult = !empty(array_filter($options, fn($o) => str_starts_with($o['id'] ?? '', 'ekspedisi-')));
+                    if (!$hasRajaOngkirResult) {
+                        foreach ($regularCouriers as $c) {
+                            $options[] = [
+                                'id'          => $c['id'],
+                                'name'        => $c['name'],
+                                'description' => 'Reguler',
+                                'estimation'  => $c['est'],
+                                'price'       => $c['price'],
+                                'distance_km' => null,
+                                'type'        => 'ekspedisi',
+                                'note'        => 'Estimasi harga, harga final sesuai berat & lokasi',
+                            ];
+                        }
+                    }
                 }
 
                 $shippingMethods[] = [
                     'umkm_profile_id' => $umkmId,
-                    'options' => [
-                        [
-                            'id'          => 'kurir-lokal',
-                            'name'        => 'Kurir Lokal',
-                            'estimation'  => 'Hari ini - 1 hari',
-                            'price'       => $dynamicCost,
-                            'distance_km' => $distanceKm ? round($distanceKm, 2) : null,
-                        ],
-                        [
-                            'id'          => 'pickup',
-                            'name'        => 'Ambil Sendiri',
-                            'estimation'  => 'Sesuai jadwal',
-                            'price'       => 0,
-                            'distance_km' => null,
-                        ],
-                    ],
+                    'options'         => $options,
                 ];
             }
 
-            // Fallback flat list jika tidak ada address
             if (empty($shippingMethods)) {
                 $shippingMethods = [[
                     'umkm_profile_id' => null,
                     'options' => [
-                        ['id' => 'kurir-lokal', 'name' => 'Kurir Lokal',   'estimation' => 'Hari ini - 1 hari', 'price' => null],
-                        ['id' => 'pickup',      'name' => 'Ambil Sendiri', 'estimation' => 'Sesuai jadwal',     'price' => 0],
+                        ['id' => 'kurir-lokal', 'name' => 'Kurir Lokal',   'type' => 'lokal',  'estimation' => 'Hari ini - 1 hari', 'price' => null],
+                        ['id' => 'pickup',      'name' => 'Ambil Sendiri', 'type' => 'pickup', 'estimation' => 'Sesuai jadwal',     'price' => 0],
                     ],
                 ]];
             }
@@ -343,20 +448,27 @@ class CheckoutController extends Controller
         }
 
         $validated = $request->validate([
-            'address_id'         => 'required|integer|exists:addresses,id',
-            'delivery_type'      => 'required|in:delivered,pickup',
-            'vehicle_type'       => 'nullable|in:motor,mobil',
-            'notes'              => 'nullable|string|max:500',
-            'product_id'         => 'nullable|integer|exists:products,id',
-            'quantity'           => 'nullable|integer|min:1',
-            'variant_id'         => 'nullable|integer',
-            // voucher_program_ids: {umkm_profile_id: voucher_program_id}
-            'voucher_program_ids'=> 'nullable|array',
+            'address_id'            => 'required|integer|exists:addresses,id',
+            'delivery_type'         => 'required|in:delivered,pickup',
+            'shipping_method_id'    => 'nullable|string', // kurir-lokal | pickup | ekspedisi-jne-reg | dll
+            'shipping_cost_override'=> 'nullable|integer|min:0', // ongkir dari RajaOngkir (dikirim FE)
+            'vehicle_type'          => 'nullable|in:motor,mobil', // deprecated — dibaca dari shipping_method_id
+            'notes'                 => 'nullable|string|max:500',
+            'product_id'            => 'nullable|integer|exists:products,id',
+            'quantity'              => 'nullable|integer|min:1',
+            'variant_id'            => 'nullable|integer',
+            'voucher_program_ids'   => 'nullable|array',
             'voucher_program_ids.*' => 'integer',
         ]);
 
-        $deliveryType = $validated['delivery_type'];
-        $vehicleType  = $validated['vehicle_type'] ?? 'motor';
+        $deliveryType      = $validated['delivery_type'];
+        $shippingMethodId  = $validated['shipping_method_id'] ?? null;
+        // Baca vehicle_type dari shipping_method_id (kurir-lokal-motor / kurir-lokal-mobil)
+        $vehicleType = match(true) {
+            str_ends_with($shippingMethodId ?? '', '-mobil') => 'mobil',
+            default                                          => 'motor',
+        };
+        $shippingOverride  = isset($validated['shipping_cost_override']) ? (int) $validated['shipping_cost_override'] : null;
 
         $customerId = $user->customer->id;
         $isBuyNow   = $request->filled('product_id');
@@ -532,20 +644,25 @@ class CheckoutController extends Controller
                     }
                 }
 
-                // Hitung ongkir: pickup = 0, delivered = Haversine
+                // Hitung ongkir
                 $shippingCost = 0;
                 if ($deliveryType === 'delivered') {
-                    $umkm = UmkmProfile::find($umkmId);
-                    if ($umkm && $umkm->latitude && $umkm->longitude
-                        && $address->latitude && $address->longitude) {
-                        $km           = HaversineHelper::distanceKm(
-                            (float) $address->latitude, (float) $address->longitude,
-                            (float) $umkm->latitude,    (float) $umkm->longitude,
-                        );
-                        $shippingCost = HaversineHelper::shippingCost($km, $vehicleType);
+                    // Kalau FE kirim ongkir dari RajaOngkir (ekspedisi), pakai itu
+                    if ($shippingOverride !== null && str_starts_with($shippingMethodId ?? '', 'ekspedisi-')) {
+                        $shippingCost = $shippingOverride;
                     } else {
-                        // Fallback flat jika koordinat belum diisi
-                        $shippingCost = HaversineHelper::shippingCost(0, $vehicleType);
+                        // Default: hitung via Haversine (kurir lokal)
+                        $umkm = UmkmProfile::find($umkmId);
+                        if ($umkm && $umkm->latitude && $umkm->longitude
+                            && $address->latitude && $address->longitude) {
+                            $km           = HaversineHelper::distanceKm(
+                                (float) $address->latitude, (float) $address->longitude,
+                                (float) $umkm->latitude,    (float) $umkm->longitude,
+                            );
+                            $shippingCost = HaversineHelper::shippingCost($km, $vehicleType);
+                        } else {
+                            $shippingCost = HaversineHelper::shippingCost(0, $vehicleType);
+                        }
                     }
                 }
 
