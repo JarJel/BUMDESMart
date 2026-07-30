@@ -6,12 +6,56 @@ import api from "@/lib/api/axios";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { useToast } from "@/components/ui/Toast";
 
-interface Category { id: number; name: string; }
+interface Category { id: number; name: string; children?: Category[]; }
+
+// mapping business_category enum → slug kategori utama yang relevan
+const BUSINESS_CATEGORY_MAP: Record<string, string[]> = {
+  makanan_minuman:       ["makanan-minuman"],
+  fashion_kerajinan:     ["tekstil-fashion", "kerajinan-tangan"],
+  pertanian_peternakan:  ["pertanian-peternakan"],
+  jasa:                  ["jasa"],
+  perdagangan_umum:      [], // semua kategori
+};
+
+function buildCategoryOptions(tree: Category[], businessCategory: string | null): { id: number; name: string; group: string }[] {
+  const allowed = businessCategory ? (BUSINESS_CATEGORY_MAP[businessCategory] ?? []) : [];
+  const result: { id: number; name: string; group: string }[] = [];
+
+  for (const parent of tree) {
+    const include = allowed.length === 0 || allowed.includes(parent.slug as string ?? "");
+    if (!include) continue;
+
+    const children = parent.children ?? [];
+    if (children.length > 0) {
+      for (const child of children) {
+        result.push({ id: child.id, name: child.name, group: parent.name });
+      }
+    } else {
+      result.push({ id: parent.id, name: parent.name, group: "" });
+    }
+  }
+
+  // fallback: kalau tidak ada yang cocok, tampilkan semua sub-kategori
+  if (result.length === 0) {
+    for (const parent of tree) {
+      const children = parent.children ?? [];
+      if (children.length > 0) {
+        for (const child of children) {
+          result.push({ id: child.id, name: child.name, group: parent.name });
+        }
+      } else {
+        result.push({ id: parent.id, name: parent.name, group: "" });
+      }
+    }
+  }
+  return result;
+}
 
 export default function TambahProdukPage() {
   const router = useRouter();
   const toast = useToast();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryTree, setCategoryTree] = useState<Category[]>([]);
+  const [businessCategory, setBusinessCategory] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -32,10 +76,16 @@ export default function TambahProdukPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    api.get<{ data: Category[] }>("/categories")
-      .then(res => setCategories(res.data.data ?? []))
-      .catch(() => {});
+    Promise.all([
+      api.get<{ data: Category[] }>("/categories"),
+      api.get<{ data: { umkm_profile?: { business_category?: string } } }>("/profile"),
+    ]).then(([catRes, profileRes]) => {
+      setCategoryTree(catRes.data.data ?? []);
+      setBusinessCategory(profileRes.data.data?.umkm_profile?.business_category ?? null);
+    }).catch(() => {});
   }, []);
+
+  const categoryOptions = buildCategoryOptions(categoryTree, businessCategory);
 
   const setField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(prev => ({ ...prev, [field]: e.target.value }));
@@ -138,7 +188,17 @@ export default function TambahProdukPage() {
               <select value={form.category_id} onChange={setField("category_id")}
                 className={`w-full text-sm border rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:border-green-400 ${errors.category_id ? "border-red-300" : "border-gray-200"}`}>
                 <option value="">Pilih Kategori</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {Object.entries(
+                  categoryOptions.reduce<Record<string, typeof categoryOptions>>((acc, c) => {
+                    const g = c.group || "Lainnya";
+                    (acc[g] = acc[g] || []).push(c);
+                    return acc;
+                  }, {})
+                ).map(([group, opts]) => (
+                  <optgroup key={group} label={group}>
+                    {opts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </optgroup>
+                ))}
               </select>
               {errors.category_id && <p className="text-xs text-red-500 mt-1">{errors.category_id}</p>}
             </div>

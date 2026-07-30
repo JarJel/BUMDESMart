@@ -281,9 +281,18 @@ Route::get('/promotions/validate', [SellerPromotionController::class, 'validate'
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{idOrSlug}', [ProductController::class, 'show']);
 
-// Categories
+// Categories — return tree (parent + children) agar FE bisa filter per jenis usaha
 Route::get('/categories', function () {
-    return response()->json(['data' => \App\Models\Category::orderBy('name')->get(['id', 'name', 'slug'])]);
+    $parents = \App\Models\Category::with(['children' => function ($q) {
+        $q->where('is_active', true)->orderBy('sort_order')->orderBy('name')->select(['id', 'name', 'slug', 'parent_id']);
+    }])
+    ->whereNull('parent_id')
+    ->where('is_active', true)
+    ->orderBy('sort_order')
+    ->orderBy('name')
+    ->get(['id', 'name', 'slug', 'parent_id']);
+
+    return response()->json(['data' => $parents]);
 });
 
 Route::post('/send-whatsapp', [WhatsappController::class, 'sendWhatsapp']);

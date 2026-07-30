@@ -6,12 +6,41 @@ import api from "@/lib/api/axios";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { useToast } from "@/components/ui/Toast";
 
-interface Category { id: number; name: string; }
+interface Category { id: number; name: string; slug?: string; children?: Category[]; }
 
 interface ExistingImage {
   id: number;
   file_path: string;
   is_primary?: boolean;
+}
+
+const BUSINESS_CATEGORY_MAP: Record<string, string[]> = {
+  makanan_minuman:       ["makanan-minuman"],
+  fashion_kerajinan:     ["tekstil-fashion", "kerajinan-tangan"],
+  pertanian_peternakan:  ["pertanian-peternakan"],
+  jasa:                  ["jasa"],
+  perdagangan_umum:      [],
+};
+
+function buildCategoryOptions(tree: Category[], businessCategory: string | null) {
+  const allowed = businessCategory ? (BUSINESS_CATEGORY_MAP[businessCategory] ?? []) : [];
+  const result: { id: number; name: string; group: string }[] = [];
+
+  const fillFrom = (parents: Category[]) => {
+    for (const parent of parents) {
+      const children = parent.children ?? [];
+      if (children.length > 0) {
+        for (const child of children) result.push({ id: child.id, name: child.name, group: parent.name });
+      } else {
+        result.push({ id: parent.id, name: parent.name, group: "" });
+      }
+    }
+  };
+
+  const filtered = allowed.length > 0 ? tree.filter(p => allowed.includes(p.slug ?? "")) : tree;
+  fillFrom(filtered);
+  if (result.length === 0) fillFrom(tree);
+  return result;
 }
 
 export default function EditProdukPage() {
@@ -20,7 +49,8 @@ export default function EditProdukPage() {
   const id = params.id as string;
 
   const toast = useToast();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryTree, setCategoryTree] = useState<Category[]>([]);
+  const [businessCategory, setBusinessCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -48,8 +78,10 @@ export default function EditProdukPage() {
     Promise.all([
       api.get<{ data: Category[] }>("/categories"),
       api.get(`/seller/products/${id}`),
-    ]).then(([catRes, prodRes]) => {
-      setCategories(catRes.data.data ?? []);
+      api.get<{ data: { umkm_profile?: { business_category?: string } } }>("/profile"),
+    ]).then(([catRes, prodRes, profileRes]) => {
+      setCategoryTree(catRes.data.data ?? []);
+      setBusinessCategory(profileRes.data.data?.umkm_profile?.business_category ?? null);
 
       const p = prodRes.data.data ?? prodRes.data;
       setForm({
@@ -197,7 +229,17 @@ export default function EditProdukPage() {
               <select value={form.category_id} onChange={setField("category_id")}
                 className={`w-full text-sm border rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:border-green-400 ${errors.category_id ? "border-red-300" : "border-gray-200"}`}>
                 <option value="">Pilih Kategori</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {Object.entries(
+                  buildCategoryOptions(categoryTree, businessCategory).reduce<Record<string, { id: number; name: string; group: string }[]>>((acc, c) => {
+                    const g = c.group || "Lainnya";
+                    (acc[g] = acc[g] || []).push(c);
+                    return acc;
+                  }, {})
+                ).map(([group, opts]) => (
+                  <optgroup key={group} label={group}>
+                    {opts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </optgroup>
+                ))}
               </select>
               {errors.category_id && <p className="text-xs text-red-500 mt-1">{errors.category_id}</p>}
             </div>
