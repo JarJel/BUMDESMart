@@ -6,7 +6,7 @@ import api from "@/lib/api/axios";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { useToast } from "@/components/ui/Toast";
 
-interface Category { id: number; name: string; children?: Category[]; }
+interface Category { id: number; name: string; slug?: string; children?: Category[]; }
 
 // mapping business_category enum → slug kategori utama yang relevan
 const BUSINESS_CATEGORY_MAP: Record<string, string[]> = {
