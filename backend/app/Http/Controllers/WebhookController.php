@@ -49,7 +49,7 @@ class WebhookController extends Controller
         $order = $payment->order;
 
         if ($newStatus === 'paid' && $order) {
-            $order->update(['status' => 'pending']);
+            $order->update(['status' => 'confirmed']);
             $order->load('items', 'umkmProfile.bumdesProfile');
 
             foreach ($order->items as $item) {
