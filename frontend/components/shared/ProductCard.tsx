@@ -27,7 +27,8 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
     imageUrl = '/' + imageUrl;
   }
   if (imageUrl && !imageUrl.startsWith('http')) {
-    imageUrl = `http://localhost:8000${imageUrl}`;
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "");
+    imageUrl = `${base}${imageUrl}`;
   }
 
   const shopName = product.tokNama || product.umkm_profile?.shop_name || "BumdesMart";
