@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import api from "@/lib/api/axios";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { useToast } from "@/components/ui/Toast";
+import { compressImage } from "@/lib/utils/compressImage";
 
 interface Category { id: number; name: string; slug?: string; children?: Category[]; }
 
@@ -90,16 +91,22 @@ export default function TambahProdukPage() {
   const setField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(prev => ({ ...prev, [field]: e.target.value }));
 
-  const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     const remaining = 5 - photos.length;
     const toAdd = files.slice(0, remaining);
-    setPhotos(prev => [...prev, ...toAdd]);
-    toAdd.forEach(f => {
-      const reader = new FileReader();
-      reader.onload = ev => setPhotoPreviews(prev => [...prev, ev.target?.result as string]);
-      reader.readAsDataURL(f);
-    });
+
+    for (const f of toAdd) {
+      try {
+        const compressed = await compressImage(f);
+        setPhotos(prev => [...prev, compressed]);
+        const reader = new FileReader();
+        reader.onload = ev => setPhotoPreviews(prev => [...prev, ev.target?.result as string]);
+        reader.readAsDataURL(compressed);
+      } catch {
+        toast.error(`Gagal memproses gambar: ${f.name}`);
+      }
+    }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -254,7 +261,7 @@ export default function TambahProdukPage() {
               className="hidden"
               onChange={handleAddPhoto}
             />
-            <p className="text-xs text-gray-400">Rasio 1:1 (kotak) · Ideal 800×800px · Maks. 2MB per foto · JPG/PNG/WEBP · Foto pertama = foto utama.</p>
+            <p className="text-xs text-gray-400">Rasio 1:1 (kotak) · JPG/PNG/WEBP · Otomatis dikompres ke WebP · Foto pertama = foto utama.</p>
           </div>
 
           {/* Harga & Stok */}
