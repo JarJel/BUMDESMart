@@ -430,7 +430,7 @@ export default function Navbar() {
                   >
                     {user.avatar ? (
                       <img
-                        src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`}
+                        src={user.avatar.startsWith('http') ? user.avatar : getAssetUrl(user.avatar)}
                         alt={user.name}
                         className="w-full h-full object-cover"
                       />
@@ -446,7 +446,7 @@ export default function Navbar() {
                       <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 flex items-center justify-center shrink-0 bg-gray-50">
                         {user.avatar ? (
                           <img
-                            src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`}
+                            src={user.avatar.startsWith('http') ? user.avatar : getAssetUrl(user.avatar)}
                             alt={user.name}
                             className="w-full h-full object-cover"
                           />
@@ -575,7 +575,7 @@ export default function Navbar() {
                   <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 shrink-0 border border-gray-200">
                     {user.avatar ? (
                       <img
-                        src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`}
+                        src={user.avatar.startsWith('http') ? user.avatar : getAssetUrl(user.avatar)}
                         alt={user.name}
                         className="w-full h-full object-cover"
                       />

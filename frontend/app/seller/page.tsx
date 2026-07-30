@@ -226,7 +226,7 @@ export default function SellerSummaryPage() {
               const finalPrice = discountedPrice(d);
               const stock = d.product?.stock ?? 0;
               const imgPath = d.product?.primary_image?.file_path;
-              const imgUrl = imgPath ? (imgPath.startsWith("http") ? imgPath : `http://localhost:8000/${imgPath}`) : null;
+              const imgUrl = imgPath ? (imgPath.startsWith("http") ? imgPath : `${BASE_URL}/${imgPath}`) : null;
               const endDate = new Date(d.end_date);
               const daysLeft = Math.ceil((endDate.getTime() - Date.now()) / 86400000);
               return (
@@ -293,7 +293,7 @@ export default function SellerSummaryPage() {
               <tbody>
                 {products.slice(0, 5).map(p => {
                   const imgPath = p.primary_image?.file_path ?? p.images?.[0]?.file_path;
-                  const imgUrl = imgPath ? (imgPath.startsWith("http") ? imgPath : `http://localhost:8000/${imgPath}`) : null;
+                  const imgUrl = imgPath ? (imgPath.startsWith("http") ? imgPath : `${BASE_URL}/${imgPath}`) : null;
                   const statusLabel = { active: "Aktif", inactive: "Arsip", draft: "Draft" }[p.status] ?? p.status;
                   const badgeClass = { active: "bg-green-50 text-green-700", inactive: "bg-gray-100 text-gray-500", draft: "bg-yellow-50 text-yellow-700" }[p.status] ?? "bg-gray-100 text-gray-500";
                   return (
