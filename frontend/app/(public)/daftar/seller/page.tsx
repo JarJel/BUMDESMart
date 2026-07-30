@@ -112,6 +112,7 @@ export default function DaftarMerchantPage() {
       await axios.post(`${API}/register/umkm`, {
         ...form,
         bumdes_profile_id: selectedBumdes?.id,
+        agreed_to_terms: true,
       });
       setRegistered(true);
     } catch (err: any) {
