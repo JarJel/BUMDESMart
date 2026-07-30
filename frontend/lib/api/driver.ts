@@ -56,6 +56,8 @@ export interface DriverOrder {
   earning: number;
   notes: string | null;
   created_at: string;
+  service_fee?: number | string | null;
+  discount?: number | string | null;
   items: DriverOrderItem[];
   pickup_from: DriverPickupPoint;
   deliver_to: DriverDeliveryPoint;

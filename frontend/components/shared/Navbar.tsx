@@ -54,12 +54,13 @@ export default function Navbar() {
     if (!isCustomer) return;
     try {
       const res = await notificationApi.list();
-      if (res.data && res.data.success) {
-        const items = Array.isArray(res.data.data)
-          ? res.data.data
-          : (res.data.data?.data ?? []);
+      const payload = res.data as { success: boolean; data: any; unread_count?: number };
+      if (payload?.success) {
+        const items = Array.isArray(payload.data)
+          ? payload.data
+          : (payload.data?.data ?? []);
         setNotifications(items);
-        setUnreadCount(res.data.unread_count ?? items.filter((n: any) => !n.is_read).length);
+        setUnreadCount(payload.unread_count ?? items.filter((n: any) => !n.is_read).length);
       }
     } catch (err) {
       console.error("Failed to fetch notifications count in navbar:", err);

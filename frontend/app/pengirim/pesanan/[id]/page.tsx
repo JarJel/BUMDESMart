@@ -507,16 +507,16 @@ export default function OrderDetailPage() {
             <span>Ongkos Kirim</span>
             <span>{formatRp(order.shipping_cost)}</span>
           </div>
-          {Number(order.service_fee) > 0 && (
+          {Number(order.service_fee ?? 0) > 0 && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-600">
               <span>Biaya Layanan</span>
-              <span>{formatRp(order.service_fee)}</span>
+              <span>{formatRp(order.service_fee ?? 0)}</span>
             </div>
           )}
-          {Number(order.discount) > 0 && (
+          {Number(order.discount ?? 0) > 0 && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm text-green-600 font-medium">
               <span className="flex items-center gap-1">🎟️ Diskon Voucher</span>
-              <span>-{formatRp(order.discount)}</span>
+              <span>-{formatRp(order.discount ?? 0)}</span>
             </div>
           )}
           <div className="flex items-center justify-between px-4 py-3 font-bold">
