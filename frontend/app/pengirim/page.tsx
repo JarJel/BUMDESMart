@@ -219,7 +219,7 @@ export default function PengirimDashboard() {
               </div>
             </div>
             <button
-              onClick={fetchAll}
+              onClick={() => fetchAll()}
               className="rounded-xl bg-white/15 p-2 text-white transition-colors hover:bg-white/25"
               aria-label="Refresh data"
             >
