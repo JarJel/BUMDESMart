@@ -31,9 +31,27 @@ export default function BumdesKategoriPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [confirmSeed, setConfirmSeed] = useState(false);
   const [error, setError] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const toast = useToast();
+
+  const handleSeedDefaults = () => setConfirmSeed(true);
+
+  const executeSeedDefaults = async () => {
+    setSeeding(true);
+    setConfirmSeed(false);
+    try {
+      const res = await api.post("/admin/categories/seed-defaults");
+      toast.success(res.data.message);
+      fetchCategories();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? "Gagal memuat kategori standar.");
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -123,23 +141,37 @@ export default function BumdesKategoriPage() {
   return (
     <div className="p-6 space-y-6 max-w-3xl">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Kategori Produk</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Kelola kategori dan sub-kategori untuk produk mitra di marketplace.
           </p>
         </div>
-        <button
-          onClick={() => openAdd()}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shrink-0"
-          style={{ background: "#2D6A4F" }}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Tambah Kategori
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleSeedDefaults}
+            disabled={seeding}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+          >
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            <span className="hidden sm:inline">{seeding ? "Memuat..." : "Muat Kategori Standar"}</span>
+            <span className="sm:hidden">{seeding ? "Memuat..." : "Standar"}</span>
+          </button>
+          <button
+            onClick={() => openAdd()}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-white"
+            style={{ background: "#2D6A4F" }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="hidden sm:inline">Tambah Kategori</span>
+            <span className="sm:hidden">Tambah</span>
+          </button>
+        </div>
       </div>
 
       {/* Inline Form */}
@@ -284,6 +316,17 @@ export default function BumdesKategoriPage() {
           <span>{categories.length} kategori utama</span>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmSeed}
+        variant="warning"
+        title="Muat Kategori Standar?"
+        description="Akan memuat 8 kategori utama beserta sub-kategorinya (total ~36 kategori). Kategori yang sudah ada tidak akan diduplikat."
+        confirmLabel="Ya, Muat Sekarang"
+        loading={seeding}
+        onConfirm={executeSeedDefaults}
+        onClose={() => setConfirmSeed(false)}
+      />
 
       <ConfirmDialog
         open={deleteId !== null}

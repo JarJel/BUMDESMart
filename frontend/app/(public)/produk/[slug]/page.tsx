@@ -234,10 +234,11 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   if (error || !produk) return notFound();
 
   const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
+  const resolveImg = (p: string) => p.startsWith("http") || p.startsWith("data:") ? p : `${IMG_BASE}${p}`;
   const defaultMainImage = produk.primary_image?.file_path
-    ? `${IMG_BASE}${produk.primary_image.file_path}`
+    ? resolveImg(produk.primary_image.file_path)
     : produk.images?.[0]?.file_path
-      ? `${IMG_BASE}${produk.images[0].file_path}`
+      ? resolveImg(produk.images[0].file_path)
       : '/placeholder-product.jpg';
   const mainImageUrl = selectedImage || defaultMainImage;
 
@@ -371,7 +372,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
             {produk.images && produk.images.length > 0 && (
               <div className="hidden sm:flex gap-1.5 mb-2 overflow-x-auto">
                 {produk.images.map((img: any) => {
-                  const imgUrl = `${IMG_BASE}${img.file_path}`;
+                  const imgUrl = resolveImg(img.file_path);
                   const isActive = mainImageUrl === imgUrl;
                   return (
                     <div
@@ -476,9 +477,9 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
               className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl shrink-0"
               style={{
                 backgroundImage: toko.logo
-                  ? `url('${IMG_BASE}${toko.logo}')`
+                  ? `url('${resolveImg(toko.logo)}')`
                   : toko.banner
-                    ? `url('${IMG_BASE}${toko.banner}')`
+                    ? `url('${resolveImg(toko.banner)}')`
                     : `linear-gradient(135deg, var(--primary-dark), var(--primary))`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",

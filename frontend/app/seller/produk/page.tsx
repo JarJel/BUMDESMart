@@ -69,7 +69,7 @@ export default function ProdukPage() {
   const getImageUrl = (p: ProductData) => {
     const path = p.primary_image?.file_path ?? p.images?.[0]?.file_path;
     if (!path) return null;
-    if (path.startsWith("http")) return path;
+    if (path.startsWith("http") || path.startsWith("data:")) return path;
     return `${IMG_BASE}${path}`;
   };
 
