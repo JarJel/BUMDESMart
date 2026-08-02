@@ -43,7 +43,7 @@ const STATUS_LABEL: Record<string, string> = {
 function getFileUrl(path: string) {
   if (!path) return "";
   if (path.startsWith("http")) return path;
-  return `http://localhost:8000/storage/${path.replace(/^\/?(storage\/)?/, "")}`;
+  return `${(process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "")}/storage/${path.replace(/^\/?(storage\/)?/, "")}`;
 }
 
 function isPdf(path: string) {

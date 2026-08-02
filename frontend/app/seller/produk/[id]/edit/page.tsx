@@ -5,13 +5,43 @@ import { useRouter, useParams } from "next/navigation";
 import api from "@/lib/api/axios";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { useToast } from "@/components/ui/Toast";
+import { compressImage } from "@/lib/utils/compressImage";
 
-interface Category { id: number; name: string; }
+interface Category { id: number; name: string; slug?: string; children?: Category[]; }
 
 interface ExistingImage {
   id: number;
   file_path: string;
   is_primary?: boolean;
+}
+
+const BUSINESS_CATEGORY_MAP: Record<string, string[]> = {
+  makanan_minuman:       ["makanan-minuman"],
+  fashion_kerajinan:     ["tekstil-fashion", "kerajinan-tangan"],
+  pertanian_peternakan:  ["pertanian-peternakan"],
+  jasa:                  ["jasa"],
+  perdagangan_umum:      [],
+};
+
+function buildCategoryOptions(tree: Category[], businessCategory: string | null) {
+  const allowed = businessCategory ? (BUSINESS_CATEGORY_MAP[businessCategory] ?? []) : [];
+  const result: { id: number; name: string; group: string }[] = [];
+
+  const fillFrom = (parents: Category[]) => {
+    for (const parent of parents) {
+      const children = parent.children ?? [];
+      if (children.length > 0) {
+        for (const child of children) result.push({ id: child.id, name: child.name, group: parent.name });
+      } else {
+        result.push({ id: parent.id, name: parent.name, group: "" });
+      }
+    }
+  };
+
+  const filtered = allowed.length > 0 ? tree.filter(p => allowed.includes(p.slug ?? "")) : tree;
+  fillFrom(filtered);
+  if (result.length === 0) fillFrom(tree);
+  return result;
 }
 
 export default function EditProdukPage() {
@@ -20,7 +50,8 @@ export default function EditProdukPage() {
   const id = params.id as string;
 
   const toast = useToast();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryTree, setCategoryTree] = useState<Category[]>([]);
+  const [businessCategory, setBusinessCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -48,8 +79,10 @@ export default function EditProdukPage() {
     Promise.all([
       api.get<{ data: Category[] }>("/categories"),
       api.get(`/seller/products/${id}`),
-    ]).then(([catRes, prodRes]) => {
-      setCategories(catRes.data.data ?? []);
+      api.get<{ data: { umkm_profile?: { business_category?: string } } }>("/profile"),
+    ]).then(([catRes, prodRes, profileRes]) => {
+      setCategoryTree(catRes.data.data ?? []);
+      setBusinessCategory(profileRes.data.data?.umkm_profile?.business_category ?? null);
 
       const p = prodRes.data.data ?? prodRes.data;
       setForm({
@@ -83,17 +116,23 @@ export default function EditProdukPage() {
     setRemovedImageIds(prev => [...prev, imgId]);
   };
 
-  const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     const totalSlots = existingImages.length + newPhotos.length;
     const remaining = 5 - totalSlots;
     const toAdd = files.slice(0, remaining);
-    setNewPhotos(prev => [...prev, ...toAdd]);
-    toAdd.forEach(f => {
-      const reader = new FileReader();
-      reader.onload = ev => setNewPhotoPreviews(prev => [...prev, ev.target?.result as string]);
-      reader.readAsDataURL(f);
-    });
+
+    for (const f of toAdd) {
+      try {
+        const compressed = await compressImage(f);
+        setNewPhotos(prev => [...prev, compressed]);
+        const reader = new FileReader();
+        reader.onload = ev => setNewPhotoPreviews(prev => [...prev, ev.target?.result as string]);
+        reader.readAsDataURL(compressed);
+      } catch {
+        toast.error(`Gagal memproses gambar: ${f.name}`);
+      }
+    }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -153,7 +192,7 @@ export default function EditProdukPage() {
 
   const totalPhotos = existingImages.length + newPhotos.length;
   const primaryPreviewUrl = existingImages[0]
-    ? (existingImages[0].file_path.startsWith("http") ? existingImages[0].file_path : `http://localhost:8000/${existingImages[0].file_path}`)
+    ? (existingImages[0].file_path.startsWith("http") ? existingImages[0].file_path : `${(process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "")}/${existingImages[0].file_path}`)
     : newPhotoPreviews[0] ?? null;
 
   if (loading) {
@@ -197,7 +236,17 @@ export default function EditProdukPage() {
               <select value={form.category_id} onChange={setField("category_id")}
                 className={`w-full text-sm border rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:border-green-400 ${errors.category_id ? "border-red-300" : "border-gray-200"}`}>
                 <option value="">Pilih Kategori</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {Object.entries(
+                  buildCategoryOptions(categoryTree, businessCategory).reduce<Record<string, { id: number; name: string; group: string }[]>>((acc, c) => {
+                    const g = c.group || "Lainnya";
+                    (acc[g] = acc[g] || []).push(c);
+                    return acc;
+                  }, {})
+                ).map(([group, opts]) => (
+                  <optgroup key={group} label={group}>
+                    {opts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </optgroup>
+                ))}
               </select>
               {errors.category_id && <p className="text-xs text-red-500 mt-1">{errors.category_id}</p>}
             </div>
@@ -221,7 +270,7 @@ export default function EditProdukPage() {
             <div className="grid grid-cols-5 gap-3">
               {/* Foto existing */}
               {existingImages.map((img, i) => {
-                const url = img.file_path.startsWith("http") ? img.file_path : `http://localhost:8000/${img.file_path}`;
+                const url = img.file_path.startsWith("http") ? img.file_path : `${(process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "")}/${img.file_path}`;
                 return (
                   <div key={`ex-${img.id}`} className="aspect-square rounded-xl overflow-hidden relative group border border-gray-200">
                     <img src={url} alt="" className="w-full h-full object-cover" />
@@ -274,7 +323,7 @@ export default function EditProdukPage() {
               className="hidden"
               onChange={handleAddPhoto}
             />
-            <p className="text-xs text-gray-400">Rasio 1:1 (kotak) · Ideal 800×800px · Maks. 2MB per foto · JPG/PNG/WEBP · Foto pertama = foto utama.</p>
+            <p className="text-xs text-gray-400">Rasio 1:1 (kotak) · JPG/PNG/WEBP · Otomatis dikompres ke WebP · Foto pertama = foto utama.</p>
           </div>
 
           {/* Harga & Stok */}

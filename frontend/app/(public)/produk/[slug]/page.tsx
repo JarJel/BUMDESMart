@@ -237,10 +237,11 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   if (error || !produk) return notFound();
 
   const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
+  const resolveImg = (p: string) => p.startsWith("http") || p.startsWith("data:") ? p : `${IMG_BASE}${p}`;
   const defaultMainImage = produk.primary_image?.file_path
-    ? `${IMG_BASE}${produk.primary_image.file_path}`
+    ? resolveImg(produk.primary_image.file_path)
     : produk.images?.[0]?.file_path
-      ? `${IMG_BASE}${produk.images[0].file_path}`
+      ? resolveImg(produk.images[0].file_path)
       : '/placeholder-product.jpg';
   const mainImageUrl = selectedImage || defaultMainImage;
   const allImages = Array.from(new Set([
@@ -281,7 +282,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   };
 
   const price = Number(produk.price || 0);
-  const rating = produk.rating || "4.8";
+  const rating = produk.rating ?? null;
   const soldCount = produk.sold_count ?? 0;
   const activeDiscount = produk.active_discount ?? null;
   
@@ -502,13 +503,17 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
             <h1 className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900 mb-1.5 leading-snug">{produk.name}</h1>
 
             <div className="flex items-center gap-1 sm:gap-1.5 mb-2">
-              <div className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <StarIcon key={s} size="sm" className={s <= Math.round(Number(rating)) ? "fill-yellow-400" : "fill-gray-200"} />
-                ))}
-              </div>
-              <span className="text-xs text-gray-500">{rating}</span>
-              <span className="text-gray-300 text-xs hidden sm:inline">·</span>
+              {rating !== null && (
+                <>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <StarIcon key={s} size="sm" className={s <= Math.round(Number(rating)) ? "fill-yellow-400" : "fill-gray-200"} />
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-500">{rating}</span>
+                  <span className="text-gray-300 text-xs hidden sm:inline">·</span>
+                </>
+              )}
               <span className="text-xs text-gray-400 hidden sm:inline">{soldCount.toLocaleString("id")} terjual</span>
             </div>
 
@@ -576,9 +581,9 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
               className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl shrink-0"
               style={{
                 backgroundImage: toko.logo
-                  ? `url('${IMG_BASE}${toko.logo}')`
+                  ? `url('${resolveImg(toko.logo)}')`
                   : toko.banner
-                    ? `url('${IMG_BASE}${toko.banner}')`
+                    ? `url('${resolveImg(toko.banner)}')`
                     : `linear-gradient(135deg, var(--primary-dark), var(--primary))`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
@@ -591,7 +596,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
                   <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 leading-none">HALAL</span>
                 )}
               </div>
-              <p className="text-xs text-gray-400">{toko.owner_name || "-"} · {toko.city || "Sukamaju"}</p>
+              <p className="text-xs text-gray-400">{toko.owner_name || "-"} · {toko.city || "-"}</p>
             </div>
             <div className="flex gap-2 shrink-0">
               <Link

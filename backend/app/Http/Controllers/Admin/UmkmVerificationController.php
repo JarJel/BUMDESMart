@@ -22,7 +22,7 @@ class UmkmVerificationController extends Controller
         $query = UmkmProfile::with(['user', 'documents'])
             ->where('bumdes_profile_id', $bumdes->id);
 
-        if ($status && in_array($status, ['pending', 'active', 'rejected'])) {
+        if ($status && in_array($status, ['pending', 'active', 'rejected', 'suspended'])) {
             $query->where('status', $status);
         }
 
@@ -101,13 +101,14 @@ class UmkmVerificationController extends Controller
 
     public function reapply(Request $request, UmkmProfile $umkm)
     {
-        // Only the owner can re-apply
-        if ($umkm->user_id !== $request->user()->id) {
+        $bumdes = $this->getBumdesProfile($request);
+
+        if ($umkm->bumdes_profile_id !== $bumdes->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         if ($umkm->status !== 'rejected') {
-            return response()->json(['message' => 'Hanya akun yang ditolak yang bisa mengajukan ulang'], 422);
+            return response()->json(['message' => 'Hanya mitra yang ditolak yang bisa direset ke pending'], 422);
         }
 
         $umkm->update([
@@ -115,6 +116,6 @@ class UmkmVerificationController extends Controller
             'rejection_reason' => null,
         ]);
 
-        return response()->json(['message' => 'Pengajuan ulang berhasil dikirim', 'data' => $umkm]);
+        return response()->json(['message' => 'Mitra berhasil direset ke pending', 'data' => $umkm]);
     }
 }

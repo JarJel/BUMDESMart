@@ -124,7 +124,7 @@ class BalanceController extends Controller
             'account_name'   => $bankAccount->account_name,
             'amount'         => $validated['amount'],
             'reference_id'   => $referenceId,
-            'status'         => 'PENDING',
+            'status'         => 'pending',
         ]);
 
         // Kirim ke Xendit jika ada API key
@@ -145,7 +145,7 @@ class BalanceController extends Controller
                     $data = $response->json();
                     $disb->update([
                         'xendit_disbursement_id' => $data['id'] ?? null,
-                        'status'                 => $data['status'] ?? 'PENDING',
+                        'status'                 => strtolower($data['status'] ?? 'pending'),
                     ]);
                 }
             }

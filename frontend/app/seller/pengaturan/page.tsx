@@ -80,7 +80,7 @@ function MediaUpload({
   const displaySrc = preview
     ? preview
     : current
-    ? (current.startsWith("http") ? current : `${IMG_BASE}${current}`)
+    ? (current.startsWith("http") || current.startsWith("data:") ? current : `${IMG_BASE}${current}`)
     : null;
 
   const handleFile = async (file: File) => {

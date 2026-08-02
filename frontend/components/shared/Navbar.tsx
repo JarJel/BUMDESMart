@@ -11,7 +11,7 @@ import { NotificationData } from "@/lib/api/notification";
 
 const navLinks = [
   { href: "/", label: "Beranda" },
-  { href: "/produk", label: "Produk UMKM" },
+  { href: "/produk", label: "UMKM" },
   { href: "/mitra", label: "Mitra" },
   { href: "/tentang", label: "Tentang Kami" },
 ];
@@ -54,12 +54,13 @@ export default function Navbar() {
     if (!isCustomer) return;
     try {
       const res = await notificationApi.list();
-      if (res.data && res.data.success) {
-        const items = Array.isArray(res.data.data)
-          ? res.data.data
-          : (res.data.data?.data ?? []);
+      const payload = res.data as { success: boolean; data: any; unread_count?: number };
+      if (payload?.success) {
+        const items = Array.isArray(payload.data)
+          ? payload.data
+          : (payload.data?.data ?? []);
         setNotifications(items);
-        setUnreadCount(res.data.unread_count ?? items.filter((n: any) => !n.is_read).length);
+        setUnreadCount(payload.unread_count ?? items.filter((n: any) => !n.is_read).length);
       }
     } catch (err) {
       console.error("Failed to fetch notifications count in navbar:", err);
@@ -429,7 +430,7 @@ export default function Navbar() {
                   >
                     {user.avatar ? (
                       <img
-                        src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`}
+                        src={user.avatar.startsWith('http') ? user.avatar : getAssetUrl(user.avatar)}
                         alt={user.name}
                         className="w-full h-full object-cover"
                       />
@@ -445,7 +446,7 @@ export default function Navbar() {
                       <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 flex items-center justify-center shrink-0 bg-gray-50">
                         {user.avatar ? (
                           <img
-                            src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`}
+                            src={user.avatar.startsWith('http') ? user.avatar : getAssetUrl(user.avatar)}
                             alt={user.name}
                             className="w-full h-full object-cover"
                           />

@@ -4,7 +4,7 @@ import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
 import {
   Search, X, CheckCircle, XCircle, Package, MessageCircle,
-  MapPin, Phone, Clock, ChevronRight
+  MapPin, Phone, Clock
 } from "lucide-react";
 
 interface OrderItem {
@@ -38,7 +38,7 @@ interface Order {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  pending:     "Pesanan Baru",
+  pending:     "Perlu Dikonfirmasi",
   confirmed:   "Mencari Kurir",
   picking_up:  "Kurir Menuju Toko",
   shipped:     "Sedang Diantar",
@@ -57,7 +57,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 const TAB_STATUSES: Record<string, string[]> = {
   Semua: [],
-  "Baru": ["pending"],
+  "Perlu Konfirmasi": ["pending"],
   "Mencari Kurir": ["confirmed"],
   "Kurir OTW": ["picking_up"],
   "Diantar": ["shipped"],
@@ -302,7 +302,7 @@ export default function PesananPage() {
   const handleAction = async (id: number, status: "confirmed" | "cancelled") => {
     setActioning(id);
     const messages: Record<string, string> = {
-      confirmed: "Pesanan dikonfirmasi! Kurir akan segera mencari pesanan ini.",
+      confirmed: "Pesanan dikonfirmasi! Sistem akan segera mencarikan kurir untuk pesanan ini.",
       cancelled: "Pesanan berhasil dibatalkan.",
     };
     try {

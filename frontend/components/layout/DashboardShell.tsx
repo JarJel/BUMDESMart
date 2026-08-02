@@ -158,8 +158,8 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
 
         {/* Mobile navigation */}
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 grid border-t border-gray-100 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur lg:hidden"
-          style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
+          className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-gray-100 bg-white/95 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur lg:hidden"
+          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
         >
           {navItems.map((item) => {
             const active = isActive(pathname, item.href)
@@ -167,13 +167,13 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[11px] font-medium transition-colors ${
+                className={`flex shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-medium transition-colors ${
                   active ? 'text-white' : 'text-gray-500 hover:bg-gray-50'
                 }`}
-                style={active ? { background: accent } : {}}
+                style={{ minWidth: '60px', ...(active ? { background: accent } : {}) }}
               >
                 <span className={active ? 'text-white' : 'text-gray-400'}>{item.icon}</span>
-                <span className="max-w-full truncate">{item.label}</span>
+                <span className="w-full text-center leading-tight" style={{ maxWidth: '56px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
               </Link>
             )
           })}

@@ -221,6 +221,56 @@ export default function MitraPage() {
         </div>
       </section>
 
+      {/* ===== JADI PENGANTAR ===== */}
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, #E76F51 0%, #F4A261 100%)" }}>
+            <div className="flex flex-col md:flex-row items-center gap-8 p-8 md:p-12">
+              {/* Ilustrasi */}
+              <div className="shrink-0 flex items-center justify-center w-28 h-28 rounded-full bg-white/20">
+                <svg className="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1" />
+                </svg>
+              </div>
+
+              {/* Teks */}
+              <div className="flex-1 text-center md:text-left">
+                <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-2">Mitra Pengantar</p>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 leading-tight">
+                  Jadi Pengantar BUMDESMart
+                </h2>
+                <p className="text-sm text-white/80 leading-relaxed mb-6 max-w-lg">
+                  Bantu produk UMKM desa sampai ke tangan pembeli. Jadwal fleksibel, penghasilan harian, dan kamu bisa mulai dari kendaraan yang sudah kamu punya.
+                </p>
+                <div className="flex flex-wrap gap-3 justify-center md:justify-start mb-6">
+                  {[
+                    { label: "Penghasilan Harian", desc: "Bayaran per antar langsung masuk" },
+                    { label: "Jam Kerja Bebas", desc: "Aktif sesuai jadwalmu" },
+                    { label: "Mitra Resmi BUMDes", desc: "Terdaftar & terpercaya" },
+                  ].map((item) => (
+                    <div key={item.label} className="bg-white/15 rounded-xl px-4 py-2.5 text-left min-w-[140px]">
+                      <p className="text-xs font-bold text-white leading-none">{item.label}</p>
+                      <p className="text-[11px] text-white/70 mt-1">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href="/daftar/kurir"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm bg-white hover:bg-gray-50 transition-colors"
+                  style={{ color: "#E76F51" }}
+                >
+                  Daftar Jadi Pengantar
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ===== CTA BAWAH ===== */}
       <section
         className="py-16 px-4"

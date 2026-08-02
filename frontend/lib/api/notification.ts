@@ -12,7 +12,7 @@ export interface NotificationData {
 }
 
 export const notificationApi = {
-  list: () => api.get<{ success: boolean; data: NotificationData[] }>('/notifications'),
+  list: () => api.get<{ success: boolean; data: NotificationData[]; unread_count?: number }>('/notifications'),
   markAsRead: (id: number) => api.put<{ success: boolean; message: string; data: NotificationData }>(`/notifications/${id}/read`),
   markAllAsRead: () => api.put<{ success: boolean; message: string }>('/notifications/read-all'),
   delete: (id: number) => api.delete<{ success: boolean; message: string }>(`/notifications/${id}`),

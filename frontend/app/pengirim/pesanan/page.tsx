@@ -93,7 +93,7 @@ export default function PengirimPesananPage() {
     return (
       <div className="flex flex-col items-center justify-center h-64 px-6 text-center gap-4">
         <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center">
-          <svg fill="none" stroke="#F97316" strokeWidth={1.5} viewBox="0 0 24 24" className="w-8 h-8">
+          <svg fill="none" stroke="#F4A261" strokeWidth={1.5} viewBox="0 0 24 24" className="w-8 h-8">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
           </svg>
         </div>
@@ -113,7 +113,7 @@ export default function PengirimPesananPage() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-5 lg:p-6">
       <div className="overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm">
-        <div className="flex items-start justify-between gap-3 bg-gradient-to-br from-orange-600 to-orange-500 px-4 py-5 text-white sm:px-5">
+        <div className="flex items-start justify-between gap-3 bg-gradient-to-br from-[#E76F51] to-[#F4A261] px-4 py-5 text-white sm:px-5">
           <div className="min-w-0">
             <h1 className="text-xl font-bold">Daftar Pesanan</h1>
             <p className="mt-0.5 text-sm text-orange-50">Pilih dan kelola pengirimanmu</p>

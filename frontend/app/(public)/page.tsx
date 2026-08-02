@@ -388,7 +388,7 @@ export default function BerandaPage() {
               </div>
 
               {/* Stat dengan animasi count-up */}
-              <div className="hidden md:grid grid-cols-2 gap-4 shrink-0">
+              <div className="grid grid-cols-2 gap-4 shrink-0">
                 {([
                   { label: "UMKM Aktif",        value: stats.umkm_aktif,        suffix: "+", Icon: Store },
                   { label: "Produk Tersedia",    value: stats.produk_tersedia,   suffix: "+", Icon: Package },
@@ -414,7 +414,7 @@ export default function BerandaPage() {
             {/* Ilustrasi kiri */}
             <div className="w-full md:w-[420px] shrink-0">
               <div className="relative w-full h-72 rounded-2xl overflow-hidden flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg, #EA580C 0%, #F97316 50%, #FED7AA 100%)" }}>
+                style={{ background: "linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 60%, #FDE8D8 100%)" }}>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <svg className="w-32 h-32 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={0.8}
@@ -435,7 +435,7 @@ export default function BerandaPage() {
 
             {/* Teks kanan */}
             <div className="flex-1">
-              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#EA580C" }}>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--accent-dark)" }}>
                 Peluang Penghasilan
               </p>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
@@ -451,8 +451,8 @@ export default function BerandaPage() {
                   { Icon: Clock,      label: "Jam Kerja Bebas",     desc: "Aktif sesuai kesiapanmu, kapan saja" },
                   { Icon: BadgeCheck, label: "Mitra Resmi",         desc: "Terdaftar & dipercaya BUMDes" },
                 ] as const).map(b => (
-                  <div key={b.label} className="flex gap-3 items-start p-3 rounded-xl" style={{ background: "#FFF7ED" }}>
-                    <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center" style={{ background: "#EA580C" }}>
+                  <div key={b.label} className="flex gap-3 items-start p-3 rounded-xl" style={{ background: "#FEF3E8" }}>
+                    <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center" style={{ background: "var(--accent-dark)" }}>
                       <b.Icon className="w-4 h-4 text-white" strokeWidth={2} />
                     </div>
                     <div>
@@ -465,7 +465,7 @@ export default function BerandaPage() {
 
               <Link href="/daftar/kurir"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white hover:opacity-90 transition-all"
-                style={{ background: "#EA580C" }}>
+                style={{ background: "var(--accent-dark)" }}>
                 Daftar Jadi Pengirim
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

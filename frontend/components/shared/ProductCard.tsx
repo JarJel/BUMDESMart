@@ -12,7 +12,7 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
 }) {
   const name = product.name || product.nama || "Nama Produk";
   const price = Number(product.price || product.harga || 0);
-  const rating = product.rating || "4.8";
+  const rating = product.rating ?? null;
   
   let imageUrl = "";
   if (product.primary_image?.file_path) {
@@ -27,7 +27,8 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
     imageUrl = '/' + imageUrl;
   }
   if (imageUrl && !imageUrl.startsWith('http')) {
-    imageUrl = `http://localhost:8000${imageUrl}`;
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "");
+    imageUrl = `${base}${imageUrl}`;
   }
 
   const shopName = product.tokNama || product.umkm_profile?.shop_name || "BumdesMart";
@@ -81,10 +82,12 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
           <h3 className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1 group-hover:text-green-700 transition-colors leading-snug">
             {name}
           </h3>
-          <div className="flex items-center gap-0.5 mb-1">
-            <StarIcon size="sm" />
-            <span className="text-xs text-gray-500">{rating}</span>
-          </div>
+          {rating !== null && (
+            <div className="flex items-center gap-0.5 mb-1">
+              <StarIcon size="sm" />
+              <span className="text-xs text-gray-500">{rating}</span>
+            </div>
+          )}
           <div className="flex items-center gap-1 flex-wrap">
             <p className="text-xs font-bold" style={{ color: "var(--primary)" }}>
               Rp {Number(finalPrice).toLocaleString("id-ID")}

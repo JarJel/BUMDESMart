@@ -255,7 +255,7 @@ export default function ProfilPage() {
             <div className="relative w-16 h-16 mx-auto mb-3 group">
               {user?.avatar ? (
                 <img
-                  src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`}
+                  src={user.avatar.startsWith('http') ? user.avatar : `${(process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "")}${user.avatar}`}
                   alt={form.name}
                   className="w-16 h-16 rounded-full object-cover border border-gray-100"
                 />

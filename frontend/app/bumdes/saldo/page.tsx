@@ -182,7 +182,7 @@ export default function SaldoPage() {
   return (
     <div className="p-6 space-y-6 max-w-3xl">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Saldo BUMDes</h1>
           <p className="text-sm text-gray-500 mt-0.5">Pantau pemasukan dari fee dan ajukan pencairan ke rekening BUMDes.</p>

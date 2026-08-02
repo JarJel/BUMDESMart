@@ -2,7 +2,7 @@
 
 import DashboardShell, { NavItem } from "@/components/layout/DashboardShell"
 
-const ACCENT = "#ea580c"
+const ACCENT = "#E76F51"
 
 const S = (d: string) => (
   <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">

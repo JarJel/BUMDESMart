@@ -9,6 +9,7 @@ import { cartApi } from "@/lib/api/cart";
 import { checkoutApi } from "@/lib/api/checkout";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 const MapPicker = dynamic(() => import("@/components/shared/MapPicker"), { ssr: false });
 
@@ -112,6 +113,7 @@ const getProductPrice = (item: CartItem) => {
 export default function CheckoutPage() {
   const router = useRouter();
   const toast = useToast();
+  const { user, loading: authLoading } = useAuth();
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [addresses, setAddresses] = useState<AddressData[]>([]);
@@ -152,6 +154,12 @@ export default function CheckoutPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/login?redirect=/checkout");
+    }
+  }, [authLoading, user, router]);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -421,6 +429,8 @@ export default function CheckoutPage() {
 
   const finalSubtotal  = apiTenants.length > 0 ? apiSubtotal : subtotal;
   const grandTotal     = finalSubtotal - voucherDiscount + shippingDisplay + apiServiceFee;
+
+  if (authLoading || !user) return null;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
