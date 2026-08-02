@@ -1,12 +1,12 @@
 "use client";
 import { useState } from "react";
 
-export function QtyButtons({ 
-  stok, 
+export function QtyButtons({
+  stok,
   onAddToCart,
   onBuyNow  // tetap dipertahankan untuk kompatibilitas mundur, tidak dirender
-}: { 
-  stok: number; 
+}: {
+  stok: number;
   onAddToCart?: (qty: number) => void;
   onBuyNow?: (qty: number) => void;
 }) {

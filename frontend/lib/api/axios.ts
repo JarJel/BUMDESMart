@@ -24,8 +24,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && !error.config?.url?.endsWith('/login')) {
+      const hadToken = !!localStorage.getItem('token')
       localStorage.removeItem('token')
-      window.location.href = '/login'
+      if (typeof window !== 'undefined') {
+        const { clearAuthCookies } = require('@/lib/utils/auth')
+        clearAuthCookies()
+        if (hadToken) {
+          window.location.href = '/login'
+        }
+      }
     }
     return Promise.reject(error)
   }

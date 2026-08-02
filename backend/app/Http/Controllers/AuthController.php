@@ -114,10 +114,10 @@ class AuthController extends Controller
         try {
             $data = $request->except(['photo_profile', 'photo_ktp']);
             if ($request->hasFile('photo_profile')) {
-                $data['photo_profile'] = $request->file('photo_profile')->store('driver/photos', 'public');
+                $data['photo_profile'] = \App\Helpers\ImageHelper::uploadAsWebp($request->file('photo_profile'), 'driver/photos');
             }
             if ($request->hasFile('photo_ktp')) {
-                $data['photo_ktp'] = $request->file('photo_ktp')->store('driver/ktp', 'public');
+                $data['photo_ktp'] = \App\Helpers\ImageHelper::uploadAsWebp($request->file('photo_ktp'), 'driver/ktp');
             }
             $user = $this->authService->registerDriver($data);
             return response()->json([

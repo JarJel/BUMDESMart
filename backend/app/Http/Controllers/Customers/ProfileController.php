@@ -140,11 +140,10 @@ class ProfileController extends Controller
                 }
 
                 $file = $request->file('avatar');
-                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
                 $destinationPath = public_path('uploads/avatars');
                 if (!file_exists($destinationPath)) mkdir($destinationPath, 0755, true);
 
-                $file->move($destinationPath, $filename);
+                $filename = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $destinationPath);
                 $user->avatar = '/uploads/avatars/' . $filename;
                 $user->save();
             }
@@ -193,11 +192,10 @@ class ProfileController extends Controller
             }
 
             $file = $request->file('file');
-            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $dir = public_path('uploads/documents');
             if (!file_exists($dir)) mkdir($dir, 0755, true);
 
-            $file->move($dir, $filename);
+            $filename = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $dir);
             $path = '/uploads/documents/' . $filename;
             $profile->update(['halal_cert' => $path]);
 
@@ -232,11 +230,10 @@ class ProfileController extends Controller
             }
 
             $file = $request->file('file');
-            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $dir = public_path("uploads/shop/{$folder}");
             if (!file_exists($dir)) mkdir($dir, 0755, true);
 
-            $file->move($dir, $filename);
+            $filename = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $dir);
             $path = "/uploads/shop/{$folder}/{$filename}";
             $profile->update([$field => $path]);
 
