@@ -80,7 +80,7 @@ class SellerDocumentController extends Controller
             return response()->json(['error' => 'Dokumen tidak ditemukan atau tidak sesuai BUMDes.'], 404);
         }
 
-        $path = $request->file('file')->store('umkm-documents', 'public');
+        $path = \App\Helpers\ImageHelper::uploadAsWebp($request->file('file'), 'umkm-documents');
 
         $doc = UmkmDocument::updateOrCreate(
             [

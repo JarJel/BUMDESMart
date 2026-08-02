@@ -388,13 +388,13 @@ class DriverController extends Controller
 
         // Upload bukti jemput (pickup)
         if ($newStatus === 'shipped' && $request->hasFile('pickup_photo')) {
-            $path = $request->file('pickup_photo')->store('uploads/proofs', 'public');
+            $path = \App\Helpers\ImageHelper::uploadAsWebp($request->file('pickup_photo'), 'uploads/proofs');
             $updateData['pickup_photo'] = '/storage/' . $path;
         }
 
         // Upload bukti kirim (delivered)
         if ($newStatus === 'delivered' && $request->hasFile('delivered_photo')) {
-            $path = $request->file('delivered_photo')->store('uploads/proofs', 'public');
+            $path = \App\Helpers\ImageHelper::uploadAsWebp($request->file('delivered_photo'), 'uploads/proofs');
             $updateData['delivered_photo'] = '/storage/' . $path;
         }
 

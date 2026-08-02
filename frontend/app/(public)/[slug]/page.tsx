@@ -8,6 +8,8 @@ import { ProductCard } from "@/components/shared/ProductCard";
 import { sellerApi } from "@/lib/api/seller";
 import { productApi } from "@/lib/api/product";
 import { Dokumen } from "@/lib/data/dummy";
+import { cartApi } from "@/lib/api/cart";
+import { useToast } from "@/components/ui/Toast";
 
 function StarIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -66,12 +68,57 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const highlightSlug = searchParams?.get("p") ?? null;
+  const toast = useToast();
 
   const sortedProducts = highlightSlug
     ? [...products].sort((a, b) => (a.slug === highlightSlug ? -1 : b.slug === highlightSlug ? 1 : 0))
     : products;
 
   const [showLoginAlert, setShowLoginAlert] = useState(false);
+  const [showConflictAlert, setShowConflictAlert] = useState(false);
+  const [pendingProductId, setPendingProductId] = useState<number | null>(null);
+
+  const handleQuickAdd = async (productId: number) => {
+    try {
+      const res = await cartApi.add(productId, 1, null);
+      if (res.data?.success) {
+        const p = products.find(prod => prod.id === productId);
+        toast.success(`${p?.name || "Produk"} ditambahkan ke keranjang!`);
+        window.dispatchEvent(new Event("cart-updated"));
+      }
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        setShowLoginAlert(true);
+      } else if (
+        err.response?.data?.message?.toLowerCase().includes("toko lain") ||
+        err.response?.data?.message?.toLowerCase().includes("beda toko")
+      ) {
+        setPendingProductId(productId);
+        setShowConflictAlert(true);
+      } else {
+        toast.error(err.response?.data?.message || "Gagal menambahkan ke keranjang.");
+      }
+    }
+  };
+
+  const handleReplaceCart = async () => {
+    if (!pendingProductId) return;
+    try {
+      await cartApi.clear();
+      const res = await cartApi.add(pendingProductId, 1, null);
+      if (res.data?.success) {
+        const p = products.find(prod => prod.id === pendingProductId);
+        toast.success(`${p?.name || "Produk"} ditambahkan ke keranjang baru!`);
+        window.dispatchEvent(new Event("cart-updated"));
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Gagal mengganti keranjang.");
+    } finally {
+      setShowConflictAlert(false);
+      setPendingProductId(null);
+    }
+  };
+
   const starsArr = [1, 2, 3, 4, 5];
 
   const shopName = toko.shop_name || toko.nama || "Nama Toko";
@@ -110,7 +157,7 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
             </div>
             <h3 className="text-base font-bold text-gray-900 text-center mb-1">Login Dulu, Yuk!</h3>
             <p className="text-sm text-gray-500 text-center mb-5 leading-relaxed">
-              Detail dokumen legalitas toko hanya bisa dilihat oleh pembeli yang sudah masuk akun.
+              Kamu perlu login untuk menambahkan produk ke keranjang.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setShowLoginAlert(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50">
@@ -122,6 +169,36 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
                 style={{ background: "var(--primary)" }}
               >
                 Masuk Sekarang
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alert Konflik Beda Toko */}
+      {showConflictAlert && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => setShowConflictAlert(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center mb-4">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+                <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-1">Ganti Keranjang?</h3>
+            <p className="text-sm text-gray-500 text-center mb-5 leading-relaxed">
+              Keranjangmu berisi produk dari toko lain. Ingin menghapus keranjang lama dan mulai belanja di toko ini?
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowConflictAlert(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50">
+                Batal
+              </button>
+              <button
+                onClick={handleReplaceCart}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700"
+              >
+                Hapus & Ganti
               </button>
             </div>
           </div>
@@ -302,6 +379,7 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
                     product={{ ...p, tokoSlug: toko.slug, tokNama: shopName, tokoPemilik: owner }}
                     compact
                     highlighted={!!highlightSlug && p.slug === highlightSlug}
+                    onAddToCart={handleQuickAdd}
                   />
                 ))}
               </div>

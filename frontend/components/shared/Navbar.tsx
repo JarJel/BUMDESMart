@@ -569,26 +569,7 @@ export default function Navbar() {
               </Link>
             ))}
             {isLoggedIn ? (
-              <div className="pt-3 px-3 space-y-2">
-                <div className="flex items-center gap-3 px-3 py-2">
-                  <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 shrink-0 border border-gray-200">
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`}
-                        alt={user.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center font-bold text-white text-sm" style={{ background: "var(--primary)" }}>
-                        {user.name ? user.name.charAt(0).toUpperCase() : "?"}
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                  </div>
-                </div>
+              <div className="pt-3 space-y-2">
                 <Link href="/profil" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
                   Profil Saya
                 </Link>

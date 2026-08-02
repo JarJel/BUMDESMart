@@ -382,38 +382,74 @@ export default function PesananPage() {
             {filtered.map(o => {
               const produkLabel = o.items.map(i => `${i.product_name || i.product?.name} ×${i.quantity}`).join(", ");
               return (
-                <button
+                <div
                   key={o.id}
-                  onClick={() => setSelected(o)}
-                  className="w-full text-left px-5 py-4 hover:bg-gray-50/80 transition-colors flex items-center gap-4"
+                  className="px-5 py-4 hover:bg-gray-50/80 transition-colors border-b border-gray-50 last:border-0"
                 >
-                  {/* Status dot */}
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                    o.status === "pending" ? "bg-blue-500" :
-                    o.status === "confirmed" ? "bg-yellow-400" :
-                    o.status === "processing" ? "bg-orange-400" :
-                    o.status === "shipped" ? "bg-purple-400" :
-                    o.status === "delivered" ? "bg-green-500" : "bg-gray-300"
-                  }`} />
+                  <div
+                    onClick={() => setSelected(o)}
+                    className="cursor-pointer flex items-center gap-4"
+                  >
+                    {/* Status dot */}
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                      o.status === "pending" ? "bg-blue-500 animate-pulse" :
+                      o.status === "confirmed" ? "bg-yellow-400" :
+                      o.status === "picking_up" ? "bg-orange-400" :
+                      o.status === "shipped" ? "bg-purple-400" :
+                      o.status === "delivered" ? "bg-green-500" : "bg-gray-300"
+                    }`} />
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-bold text-gray-900">{o.order_code}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[o.status]}`}>
-                        {STATUS_LABEL[o.status]}
-                      </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-gray-900">{o.order_code}</span>
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${STATUS_COLOR[o.status]}`}>
+                          {STATUS_LABEL[o.status]}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-800 mt-1">{o.customer?.user?.name}</p>
+                      <p className="text-xs text-gray-400 truncate mt-0.5">{produkLabel}</p>
                     </div>
-                    <p className="text-sm font-medium text-gray-800 mt-0.5">{o.customer?.user?.name}</p>
-                    <p className="text-xs text-gray-400 truncate mt-0.5">{produkLabel}</p>
+
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-bold text-gray-900">{formatRp(o.total)}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(o.created_at).split(",")[0]}</p>
+                    </div>
+
+                    <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
                   </div>
 
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-gray-900">{formatRp(o.total)}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{formatDate(o.created_at).split(",")[0]}</p>
-                  </div>
-
-                  <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                </button>
+                  {/* Tombol Aksi Cepat Konfirmasi Pesanan jika Pending */}
+                  {o.status === "pending" && (
+                    <div className="mt-3 pt-3 border-t border-gray-100/80 flex items-center justify-between gap-3 bg-blue-50/50 p-3 rounded-xl">
+                      <p className="text-xs font-medium text-blue-700">
+                        ⚡ Pesanan baru masuk! Segera konfirmasi pesanan ini.
+                      </p>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAction(o.id, "cancelled");
+                          }}
+                          disabled={actioning === o.id}
+                          className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
+                        >
+                          Tolak
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAction(o.id, "confirmed");
+                          }}
+                          disabled={actioning === o.id}
+                          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          {actioning === o.id ? "Memproses..." : "Konfirmasi Pesanan"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

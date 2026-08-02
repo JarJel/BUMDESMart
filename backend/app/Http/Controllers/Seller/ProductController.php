@@ -210,8 +210,7 @@ class ProductController extends Controller
                 }
 
                 foreach ($request->file('images') as $index => $file) {
-                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $file->move($destinationPath, $filename);
+                    $filename = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $destinationPath);
 
                     ProductImage::create([
                         'product_id' => $product->id,
@@ -454,8 +453,7 @@ class ProductController extends Controller
                 $currentImagesCount = ProductImage::where('product_id', $product->id)->count();
 
                 foreach ($request->file('images') as $index => $file) {
-                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $file->move($destinationPath, $filename);
+                    $filename = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $destinationPath);
 
                     ProductImage::create([
                         'product_id' => $product->id,

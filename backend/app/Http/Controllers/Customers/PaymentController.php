@@ -98,7 +98,7 @@ class PaymentController extends Controller
     {
         $customer = $request->user()->customer;
 
-        $order = Order::with('payment')
+        $order = Order::with(['payment', 'umkmProfile.user'])
             ->where('id', $orderId)
             ->where('customer_id', $customer->id)
             ->firstOrFail();
@@ -142,7 +142,18 @@ class PaymentController extends Controller
             ]);
 
             if ($newStatus === 'paid') {
-                $order->update(['status' => 'confirmed']);
+                $order->update(['status' => 'pending']);
+
+                // Kirim notifikasi WhatsApp ke Seller via Fonnte
+                $sellerPhone = $order->umkmProfile->phone ?? null;
+                if (!$sellerPhone && $order->umkmProfile && $order->umkmProfile->user) {
+                    $sellerPhone = $order->umkmProfile->user->phone;
+                }
+                if ($sellerPhone) {
+                    $sellerName = $order->umkmProfile->owner_name ?? $order->umkmProfile->user->name ?? 'Mitra BUMDESMart';
+                    $waMessage = "Halo {$sellerName},\n\nAda pesanan baru masuk!\nKode Pesanan: #{$order->order_code}\nTotal Pembayaran: Rp " . number_format($order->total, 0, ',', '.') . "\n\nSilakan periksa detail pesanan dan konfirmasi pesanan ini melalui dashboard seller Anda.\n\nBUMDESMart";
+                    \App\Services\WhatsappService::send($sellerPhone, $waMessage);
+                }
             }
         }
 

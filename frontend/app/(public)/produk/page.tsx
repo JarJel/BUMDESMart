@@ -39,6 +39,7 @@ function ProdukContent() {
   const [cartShopName, setCartShopName] = useState<string>("");
 
   const loadCartData = async () => {
+    if (!localStorage.getItem('token')) return;
     try {
       const res = await cartApi.get();
       if (res.data?.success && res.data?.data?.items) {
@@ -309,7 +310,6 @@ function ProdukContent() {
                     key={p.id}
                     product={p}
                     compact
-                    storeHref={p.umkm_profile?.slug ? `/${p.umkm_profile.slug}?p=${p.slug}` : undefined}
                     onAddToCart={handleQuickAdd}
                   />
                 ))}

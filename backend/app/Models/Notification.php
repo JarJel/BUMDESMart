@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Services\PushNotificationService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -46,16 +45,6 @@ class Notification extends Model
         ]);
 
         // Kirim web push (fire-and-forget, tidak blok response)
-        try {
-            $pushData = ['type' => $type];
-            if ($refType && $refId) {
-                $pushData[$refType . '_id'] = $refId;
-            }
-            app(PushNotificationService::class)->sendToUser($userId, $title, $content, $pushData);
-        } catch (\Exception) {
-            // Push gagal tidak boleh gagalkan notifikasi in-app
-        }
-
         return $notif;
     }
 }

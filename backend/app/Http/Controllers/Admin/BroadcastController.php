@@ -54,8 +54,7 @@ class BroadcastController extends Controller
             if (!file_exists($dir)) mkdir($dir, 0755, true);
 
             foreach ($request->file('photos') as $file) {
-                $filename    = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->move($dir, $filename);
+                $filename    = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $dir);
                 $photoPaths[] = '/uploads/broadcasts/' . $filename;
             }
         }

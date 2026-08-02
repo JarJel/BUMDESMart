@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { StarIcon } from "@/components/ui/StarIcon";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { VariantSelector } from "@/components/produk/VariantSelector";
@@ -91,6 +91,8 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   const [error, setError] = useState("");
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const sliderRef = useRef<HTMLDivElement>(null);
   
   const [showLoginAlert, setShowLoginAlert] = useState(false);
   const [showConflictAlert, setShowConflictAlert] = useState(false);
@@ -98,6 +100,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   const [cartItems, setCartItems] = useState<LocalCartItem[]>([]);
 
   const syncCart = async (umkmId: number) => {
+    if (!localStorage.getItem('token')) return;
     try {
       const res = await cartApi.get();
       if (res.data?.success && res.data?.data?.items) {
@@ -240,10 +243,42 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
       ? `${IMG_BASE}${produk.images[0].file_path}`
       : '/placeholder-product.jpg';
   const mainImageUrl = selectedImage || defaultMainImage;
+  const allImages = Array.from(new Set([
+    defaultMainImage,
+    ...(produk.images || []).map((img: any) => `${IMG_BASE}${img.file_path}`)
+  ].filter(Boolean) as string[]));
 
-  const documents: Dokumen[] = [];
-  if (toko?.nib) documents.push({ type: 'nib', nomor: toko.nib, tanggalTerbit: '2026-01-01', berlakuHingga: 'Permanen' });
-  if (toko?.npwp) documents.push({ type: 'npwp', nomor: toko.npwp, tanggalTerbit: '2026-01-01', berlakuHingga: 'Permanen' });
+  const selectIndex = (idx: number) => {
+    setActiveIndex(idx);
+    if (sliderRef.current) {
+      const container = sliderRef.current;
+      const width = container.clientWidth;
+      container.scrollTo({
+        left: width * idx,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const handleScroll = () => {
+    if (sliderRef.current) {
+      const container = sliderRef.current;
+      const scrollLeft = container.scrollLeft;
+      const width = container.clientWidth;
+      const index = Math.round(scrollLeft / width);
+      setActiveIndex(index);
+    }
+  };
+
+  const slidePrev = () => {
+    const index = Math.max(0, activeIndex - 1);
+    selectIndex(index);
+  };
+
+  const slideNext = () => {
+    const index = Math.min(allImages.length - 1, activeIndex + 1);
+    selectIndex(index);
+  };
 
   const price = Number(produk.price || 0);
   const rating = produk.rating || "4.8";
@@ -353,30 +388,82 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
 
         {/* Grid utama: foto (kiri, fixed) + info (kanan, flex-1) */}
-        <div className="flex flex-row gap-3 sm:gap-6 lg:gap-8 mb-3 items-start">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 lg:gap-8 mb-3 items-start">
 
           {/* Kolom foto + varian di bawahnya */}
-          <div className="w-32 sm:w-52 lg:w-64 shrink-0">
-            <div className="aspect-square rounded-xl sm:rounded-2xl overflow-hidden mb-1.5 bg-gray-50 flex items-center justify-center">
-              <img
-                src={mainImageUrl}
-                alt={produk.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = 'https://placehold.co/600x600?text=No+Image';
-                }}
-              />
-            </div>
-            {/* Thumbnail — hanya sm+ */}
-            {produk.images && produk.images.length > 0 && (
-              <div className="hidden sm:flex gap-1.5 mb-2 overflow-x-auto">
-                {produk.images.map((img: any) => {
-                  const imgUrl = `${IMG_BASE}${img.file_path}`;
-                  const isActive = mainImageUrl === imgUrl;
+          <div className="w-full sm:w-52 lg:w-64 shrink-0">
+            {allImages.length > 1 ? (
+              <div className="relative aspect-square -mx-4 sm:mx-0 w-[calc(100%+2rem)] sm:w-full rounded-none sm:rounded-2xl overflow-hidden mb-1.5 bg-gray-50 group">
+                <div 
+                  ref={sliderRef}
+                  onScroll={handleScroll}
+                  className="flex w-full h-full overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-none"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {allImages.map((imgUrl, idx) => (
+                    <div key={idx} className="w-full h-full shrink-0 snap-center flex items-center justify-center">
+                      <img
+                        src={imgUrl}
+                        alt={`${produk.name} - ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://placehold.co/600x600?text=No+Image';
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Tombol Navigasi Kiri & Kanan (Desktop Only) */}
+                <button
+                  onClick={slidePrev}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-gray-800 shadow-md flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hidden sm:flex border-0 cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={slideNext}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-gray-800 shadow-md flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hidden sm:flex border-0 cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+
+                {/* Dots Indikator */}
+                <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 pointer-events-none">
+                  {allImages.map((_, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`h-1.5 rounded-full transition-all ${idx === activeIndex ? "w-4 bg-green-600" : "w-1.5 bg-gray-300/80"}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="aspect-square -mx-4 sm:mx-0 w-[calc(100%+2rem)] sm:w-full rounded-none sm:rounded-2xl overflow-hidden mb-1.5 bg-gray-50 flex items-center justify-center">
+                <img
+                  src={allImages[0]}
+                  alt={produk.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://placehold.co/600x600?text=No+Image';
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Thumbnail — ditampilkan di desktop dan mobile jika lebih dari 1 gambar */}
+            {allImages.length > 1 && (
+              <div className="flex gap-1.5 mb-2 overflow-x-auto px-4 sm:px-0 scrollbar-none">
+                {allImages.map((imgUrl, idx) => {
+                  const isActive = activeIndex === idx;
                   return (
                     <div
-                      key={img.id}
-                      onClick={() => setSelectedImage(imgUrl)}
+                      key={idx}
+                      onClick={() => selectIndex(idx)}
                       className={`w-11 h-11 rounded-lg overflow-hidden cursor-pointer border-2 transition-colors shrink-0 ${isActive ? "border-green-600" : "border-transparent hover:border-green-300"}`}
                       style={{
                         backgroundImage: `url('${imgUrl}')`,
@@ -390,11 +477,13 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
             )}
             {/* Varian di bawah gambar — mengisi ruang kosong */}
             {produk.variants && produk.variants.length > 0 && (
-              <VariantSelector 
-                variants={produk.variants}
-                selectedId={selectedVariantId}
-                onChange={setSelectedVariantId}
-              />
+              <div className="hidden sm:block">
+                <VariantSelector 
+                  variants={produk.variants}
+                  selectedId={selectedVariantId}
+                  onChange={setSelectedVariantId}
+                />
+              </div>
             )}
           </div>
 
@@ -463,6 +552,17 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
             </div>
 
             <p className="hidden sm:block text-xs text-gray-500 leading-relaxed mb-3 line-clamp-2">{produk.description}</p>
+
+            {/* Varian — hanya mobile */}
+            {produk.variants && produk.variants.length > 0 && (
+              <div className="block sm:hidden mb-4">
+                <VariantSelector 
+                  variants={produk.variants}
+                  selectedId={selectedVariantId}
+                  onChange={setSelectedVariantId}
+                />
+              </div>
+            )}
 
             {/* Qty + tombol */}
             <QtyButtons stok={produk.stock} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />
@@ -549,47 +649,6 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
                 ))}
               </div>
             </div>
-          </div>
-
-          {/* Legalitas toko (1/3) */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <svg className="w-3.5 h-3.5 text-green-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <h3 className="text-xs sm:text-sm font-bold text-gray-900">Legalitas Toko</h3>
-            </div>
-            <p className="text-xs text-gray-400 mb-3 leading-relaxed">
-              Dokumen resmi yang dimiliki {toko?.shop_name || "Toko"}.
-            </p>
-            {documents.length === 0 ? (
-              <p className="text-xs text-gray-400 italic">Belum ada dokumen terunggah.</p>
-            ) : (
-              <div className="space-y-1.5">
-                {documents.map((doc) => {
-                  const meta = DOKUMEN_META[doc.type];
-                  if (!meta) return null;
-                  return (
-                    <div key={doc.type} className="flex items-center gap-2 p-2 rounded-lg bg-green-50 border border-green-100">
-                      <svg className="w-3 h-3 text-green-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-gray-800 leading-tight">{meta.nama}</p>
-                        <p className="text-xs text-gray-400">{meta.penerbit}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {toko && (
-              <div className="mt-3 pt-3 border-t border-gray-50">
-                <Link href={`/${toko.slug}`} className="text-xs font-semibold cursor-pointer" style={{ color: "var(--primary)" }}>
-                  Lihat profil toko →
-                </Link>
-              </div>
-            )}
           </div>
         </div>
 

@@ -14,9 +14,9 @@ return [
     |
     */
 
-    'onesignal' => [
-        'app_id'   => env('ONESIGNAL_APP_ID'),
-        'api_key'  => env('ONESIGNAL_REST_API_KEY'),
+    'rajaongkir' => [
+        'api_key'  => env('RAJAONGKIR_API_KEY'),
+        'base_url' => env('RAJAONGKIR_BASE_URL', 'https://api.rajaongkir.com/starter'),
     ],
 
     'xendit' => [
@@ -44,6 +44,11 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    'fonnte' => [
+        'token' => env('FONTE_TOKEN'),
+        'endpoint' => env('FONTE_ENDPOINT', 'https://api.fonnte.com/send'),
     ],
 
 ];
