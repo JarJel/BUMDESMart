@@ -694,6 +694,7 @@ class CheckoutController extends Controller
                     'status'          => 'pending',
                     'notes'           => $validated['notes'] ?? null,
                     'delivery_type'   => $deliveryType,
+                    'shipping_method' => $shippingMethodId,
                     'promotion_id'    => $orderPromotionId,
                 ]);
 
