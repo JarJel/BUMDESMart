@@ -35,6 +35,11 @@ class UmkmDocument extends Model
         return $this->belongsTo(UmkmProfile::class, 'umkm_profile_id');
     }
 
+    public function requiredDocument(): BelongsTo
+    {
+        return $this->belongsTo(BumdesRequiredDocument::class, 'required_document_id');
+    }
+
     public function verifiedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');

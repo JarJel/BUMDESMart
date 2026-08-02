@@ -79,7 +79,7 @@ export default function PengirimRiwayatPage() {
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-sm font-bold" style={{ color: "#EA580C" }}>{formatRp(Number(order.total))}</p>
+                  <p className="text-sm font-bold" style={{ color: "#E76F51" }}>{formatRp(Number(order.total))}</p>
                   <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700">
                     Selesai
                   </span>

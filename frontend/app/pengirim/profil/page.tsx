@@ -96,7 +96,7 @@ export default function PengirimProfilPage() {
         {!editing && (
           <button onClick={() => setEditing(true)}
             className="w-full rounded-xl border-2 px-4 py-2 text-sm font-semibold transition-all sm:w-auto"
-            style={{ borderColor: "#EA580C", color: "#EA580C" }}>
+            style={{ borderColor: "#E76F51", color: "#E76F51" }}>
             Edit Profil
           </button>
         )}
@@ -105,7 +105,7 @@ export default function PengirimProfilPage() {
       {/* Status badge */}
       <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 min-[420px]:flex-row min-[420px]:items-center">
         <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold text-white"
-          style={{ background: "linear-gradient(135deg, #EA580C, #F97316)" }}>
+          style={{ background: "linear-gradient(135deg, #E76F51, #F4A261)" }}>
           {(profile.name ?? "?")[0].toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
@@ -164,7 +164,7 @@ export default function PengirimProfilPage() {
                     <button key={v.value} onClick={() => set("vehicle_type", v.value)}
                       className="py-2 px-3 rounded-xl text-sm font-medium border-2 transition-all"
                       style={form.vehicle_type === v.value
-                        ? { borderColor: "#EA580C", background: "#FFF7ED", color: "#EA580C" }
+                        ? { borderColor: "#E76F51", background: "#FEF3E8", color: "#E76F51" }
                         : { borderColor: "#E5E7EB", background: "white", color: "#6B7280" }}>
                       {v.label}
                     </button>
@@ -200,7 +200,7 @@ export default function PengirimProfilPage() {
                     <button key={s.value} onClick={() => set("sim_type", s.value)}
                       className="px-3 py-1.5 rounded-xl text-sm font-medium border-2 transition-all"
                       style={form.sim_type === s.value
-                        ? { borderColor: "#EA580C", background: "#FFF7ED", color: "#EA580C" }
+                        ? { borderColor: "#E76F51", background: "#FEF3E8", color: "#E76F51" }
                         : { borderColor: "#E5E7EB", background: "white", color: "#6B7280" }}>
                       {s.label}
                     </button>
@@ -221,7 +221,7 @@ export default function PengirimProfilPage() {
             </button>
             <button onClick={handleSave} disabled={saving}
               className="flex-1 py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-              style={{ background: "#EA580C" }}>
+              style={{ background: "#E76F51" }}>
               {saving ? "Menyimpan..." : "Simpan"}
             </button>
           </div>

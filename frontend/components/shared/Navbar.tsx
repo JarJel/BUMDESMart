@@ -11,7 +11,7 @@ import { NotificationData } from "@/lib/api/notification";
 
 const navLinks = [
   { href: "/", label: "Beranda" },
-  { href: "/produk", label: "Produk UMKM" },
+  { href: "/produk", label: "UMKM" },
   { href: "/mitra", label: "Mitra" },
   { href: "/tentang", label: "Tentang Kami" },
 ];

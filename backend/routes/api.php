@@ -167,10 +167,9 @@ Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('ad
 
     Route::get('/reports/mitra', [MitraPerformanceController::class, 'index']);
 
-    // Admin BUMDes - own profile & balance
+    // Admin BUMDes - own profile
     Route::get('/profile', [AdminProfileController::class, 'show']);
     Route::put('/profile', [AdminProfileController::class, 'update']);
-    Route::get('/balance', [AdminProfileController::class, 'balance']);
 
     // Admin BUMDes - category management
     Route::get('/categories', [AdminCategoryController::class, 'index']);

@@ -86,9 +86,9 @@ export default function AdminBumdesPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Kelola BUMDes</h1>
           <p className="text-sm text-gray-500 mt-0.5">Daftarkan dan kelola BUMDes yang tergabung di platform</p>
@@ -210,21 +210,21 @@ export default function AdminBumdesPage() {
         ) : (
           <div className="divide-y divide-gray-50">
             {list.map((b) => (
-              <div key={b.id} className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
-                <div>
+              <div key={b.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 hover:bg-gray-50 transition-colors">
+                <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-900">{b.name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {b.village}, {b.city}, {b.province}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">Admin: {b.user?.name} · {b.user?.email}</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${b.status === "active" ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                     {b.status === "active" ? "Aktif" : "Nonaktif"}
                   </span>
                   <button
                     onClick={() => handleToggleStatus(b)}
-                    className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium"
+                    className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium whitespace-nowrap"
                   >
                     {b.status === "active" ? "Nonaktifkan" : "Aktifkan"}
                   </button>

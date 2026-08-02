@@ -247,7 +247,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   if (toko?.npwp) documents.push({ type: 'npwp', nomor: toko.npwp, tanggalTerbit: '2026-01-01', berlakuHingga: 'Permanen' });
 
   const price = Number(produk.price || 0);
-  const rating = produk.rating || "4.8";
+  const rating = produk.rating ?? null;
   const soldCount = produk.sold_count ?? 0;
   const activeDiscount = produk.active_discount ?? null;
   
@@ -414,13 +414,17 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
             <h1 className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900 mb-1.5 leading-snug">{produk.name}</h1>
 
             <div className="flex items-center gap-1 sm:gap-1.5 mb-2">
-              <div className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <StarIcon key={s} size="sm" className={s <= Math.round(Number(rating)) ? "fill-yellow-400" : "fill-gray-200"} />
-                ))}
-              </div>
-              <span className="text-xs text-gray-500">{rating}</span>
-              <span className="text-gray-300 text-xs hidden sm:inline">·</span>
+              {rating !== null && (
+                <>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <StarIcon key={s} size="sm" className={s <= Math.round(Number(rating)) ? "fill-yellow-400" : "fill-gray-200"} />
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-500">{rating}</span>
+                  <span className="text-gray-300 text-xs hidden sm:inline">·</span>
+                </>
+              )}
               <span className="text-xs text-gray-400 hidden sm:inline">{soldCount.toLocaleString("id")} terjual</span>
             </div>
 
@@ -492,7 +496,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
                   <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 leading-none">HALAL</span>
                 )}
               </div>
-              <p className="text-xs text-gray-400">{toko.owner_name || "-"} · {toko.city || "Sukamaju"}</p>
+              <p className="text-xs text-gray-400">{toko.owner_name || "-"} · {toko.city || "-"}</p>
             </div>
             <div className="flex gap-2 shrink-0">
               <Link

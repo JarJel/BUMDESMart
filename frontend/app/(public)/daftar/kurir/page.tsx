@@ -50,7 +50,7 @@ function PhotoPicker({
         type="button"
         onClick={() => inputRef.current?.click()}
         className="w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-orange-400 hover:bg-orange-50"
-        style={value ? { borderColor: "#EA580C", background: "#FFF7ED" } : { borderColor: "#D1D5DB" }}
+        style={value ? { borderColor: "#E76F51", background: "#FEF3E8" } : { borderColor: "#D1D5DB" }}
       >
         {preview ? (
           <img src={preview} alt="preview" className="w-24 h-24 object-cover rounded-xl" />
@@ -179,7 +179,7 @@ export default function DaftarKurirPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: "#FFF7ED" }}>
+    <div className="min-h-screen" style={{ background: "#FEF3E8" }}>
 
       <div className="max-w-6xl mx-auto px-4 pb-16 pt-4">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
@@ -188,7 +188,7 @@ export default function DaftarKurirPage() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* Hero */}
-            <div className="rounded-2xl p-6 text-white" style={{ background: "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)" }}>
+            <div className="rounded-2xl p-6 text-white" style={{ background: "linear-gradient(135deg, #E76F51 0%, #F4A261 100%)" }}>
               <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
                 <Bike className="w-6 h-6 text-white" strokeWidth={1.5} />
               </div>
@@ -242,7 +242,7 @@ export default function DaftarKurirPage() {
                 ].map(s => (
                   <div key={s.n} className="flex gap-3 items-start">
                     <div className="w-6 h-6 rounded-full text-xs font-bold text-white flex items-center justify-center shrink-0 mt-0.5"
-                      style={{ background: "#EA580C" }}>
+                      style={{ background: "#E76F51" }}>
                       {s.n}
                     </div>
                     <div>
@@ -269,8 +269,8 @@ export default function DaftarKurirPage() {
                     <div key={s} className="flex items-center flex-1 last:flex-none">
                       <div className="flex flex-col items-center">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all"
-                          style={done   ? { background: "#EA580C", color: "white" }
-                               : active ? { background: "#FFF7ED", color: "#EA580C", border: "2px solid #EA580C" }
+                          style={done   ? { background: "#E76F51", color: "white" }
+                               : active ? { background: "#FEF3E8", color: "#E76F51", border: "2px solid #E76F51" }
                                :          { background: "#F3F4F6", color: "#9CA3AF" }}>
                           {done ? <CheckCircle className="w-4 h-4" /> : s}
                         </div>
@@ -280,7 +280,7 @@ export default function DaftarKurirPage() {
                       </div>
                       {i < STEPS.length - 1 && (
                         <div className="flex-1 h-0.5 mx-2 mb-4 rounded-full transition-all"
-                          style={{ background: step > s ? "#EA580C" : "#E5E7EB" }} />
+                          style={{ background: step > s ? "#E76F51" : "#E5E7EB" }} />
                       )}
                     </div>
                   );
@@ -371,7 +371,7 @@ export default function DaftarKurirPage() {
 
                   <button onClick={() => { if (validate(1)) setStep(2); }}
                     className="w-full py-3.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition mt-2 flex items-center justify-center gap-2"
-                    style={{ background: "#EA580C" }}>
+                    style={{ background: "#E76F51" }}>
                     Lanjut ke Foto & Dokumen <ChevronRight className="w-4 h-4" />
                   </button>
                   <p className="text-center text-xs text-gray-500 mt-3">
@@ -442,7 +442,7 @@ export default function DaftarKurirPage() {
                     </button>
                     <button onClick={() => { if (validate(2)) setStep(3); }}
                       className="flex-[2] py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 flex items-center justify-center gap-2"
-                      style={{ background: "#EA580C" }}>
+                      style={{ background: "#E76F51" }}>
                       Lanjut ke Kendaraan <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
@@ -465,12 +465,12 @@ export default function DaftarKurirPage() {
                         <button key={v.value} onClick={() => set("vehicle_type", v.value)}
                           className="flex items-center gap-3 py-3 px-4 rounded-xl border-2 transition-all text-left"
                           style={form.vehicle_type === v.value
-                            ? { borderColor: "#EA580C", background: "#FFF7ED" }
+                            ? { borderColor: "#E76F51", background: "#FEF3E8" }
                             : { borderColor: "#E5E7EB", background: "white" }}>
                           <v.Icon className="w-5 h-5 shrink-0" strokeWidth={1.8}
-                            style={{ color: form.vehicle_type === v.value ? "#EA580C" : "#9CA3AF" }} />
+                            style={{ color: form.vehicle_type === v.value ? "#E76F51" : "#9CA3AF" }} />
                           <div>
-                            <p className="text-sm font-bold leading-none" style={{ color: form.vehicle_type === v.value ? "#EA580C" : "#374151" }}>
+                            <p className="text-sm font-bold leading-none" style={{ color: form.vehicle_type === v.value ? "#E76F51" : "#374151" }}>
                               {v.label}
                             </p>
                             <p className="text-[10px] text-gray-400 mt-0.5">{v.desc}</p>
@@ -511,7 +511,7 @@ export default function DaftarKurirPage() {
                         <button key={s} onClick={() => set("sim_type", s)}
                           className="px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all"
                           style={form.sim_type === s
-                            ? { borderColor: "#EA580C", background: "#FFF7ED", color: "#EA580C" }
+                            ? { borderColor: "#E76F51", background: "#FEF3E8", color: "#E76F51" }
                             : { borderColor: "#E5E7EB", background: "white", color: "#6B7280" }}>
                           SIM {s}
                         </button>
@@ -529,7 +529,7 @@ export default function DaftarKurirPage() {
                     </button>
                     <button onClick={() => { if (validate(3)) setStep(4); }}
                       className="flex-[2] py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 flex items-center justify-center gap-2"
-                      style={{ background: "#EA580C" }}>
+                      style={{ background: "#E76F51" }}>
                       Lanjut ke Rekening <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
@@ -603,7 +603,7 @@ export default function DaftarKurirPage() {
                     </button>
                     <button onClick={handleSubmit} disabled={loading}
                       className="flex-[2] py-3.5 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-60 transition flex items-center justify-center gap-2"
-                      style={{ background: "#EA580C" }}>
+                      style={{ background: "#E76F51" }}>
                       <Rocket className="w-4 h-4" />
                       {loading ? "Mendaftar..." : "Daftar Sekarang"}
                     </button>

@@ -114,7 +114,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Dashboard Super Admin</h1>
         <p className="text-sm text-gray-500 mt-0.5">Pantau seluruh aktivitas platform BUMDESmart</p>
@@ -156,7 +156,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         <ApexChart type="area" series={[{ name: chart.label, data: chart.data }]} options={areaOptions} height={220} />
-        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-50">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-gray-50">
           <div>
             <p className="text-xs text-gray-400">Nilai Tertinggi</p>
             <p className="text-sm font-bold text-gray-900 mt-0.5">{Math.max(...chart.data).toLocaleString("id-ID")}{chart.unit}</p>
