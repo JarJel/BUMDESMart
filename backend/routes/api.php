@@ -37,6 +37,7 @@ use App\Http\Controllers\Admin\RequiredDocumentController;
 use App\Http\Controllers\Admin\UmkmVerificationController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Driver\DriverController;
 use App\Http\Controllers\WhatsappController;
 
@@ -158,6 +159,9 @@ Route::get('/sellers/{idOrSlug}', [SellerController::class, 'show']);
 
 // Admin BUMDes routes
 Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('admin')->group(function () {
+    // Dashboard stats
+    Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats']);
+
     // Verifikasi mitra
     Route::get('/umkm', [UmkmVerificationController::class, 'index']);
     Route::get('/umkm/{umkm}', [UmkmVerificationController::class, 'show']);
