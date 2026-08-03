@@ -52,8 +52,17 @@ class DashboardController extends Controller
 
     public function chartData(Request $request)
     {
-        $bumdes  = $this->getBumdesProfile($request);
-        $year    = (int) $request->query('year', now()->year);
+        $bumdes = BumdesProfile::where('user_id', $request->user()->id)->first();
+        $year   = (int) $request->query('year', now()->year);
+
+        if (!$bumdes) {
+            $empty = collect(range(1, 12))->map(fn ($m) => [
+                'label'   => self::MONTH_LABELS[$m - 1],
+                'umkm'    => 0,
+                'revenue' => 0.0,
+            ]);
+            return response()->json(['data' => $empty]);
+        }
         $umkmIds = UmkmProfile::where('bumdes_profile_id', $bumdes->id)->pluck('id');
 
         $umkmByMonth = UmkmProfile::where('bumdes_profile_id', $bumdes->id)
