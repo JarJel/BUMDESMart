@@ -288,6 +288,9 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   
   // Hitung harga dinamis berdasarkan varian (options) atau diskon
   let activeVariant: any = null;
+  const allVariantOptions = (produk.variants ?? []).flatMap((v: any) => v.options ?? []);
+  const isVariantProduct = produk.has_variant && allVariantOptions.length > 0;
+
   if (produk.variants) {
     for (const v of produk.variants) {
       const found = v.options?.find((opt: any) => opt.id === selectedVariantId);
@@ -298,9 +301,17 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
     }
   }
 
+  // Effective price & stock: use variant data when product has variants
+  const effectivePrice = isVariantProduct
+    ? (activeVariant ? Number(activeVariant.price) : Math.min(...allVariantOptions.map((o: any) => Number(o.price))))
+    : price;
+  const effectiveStock = isVariantProduct
+    ? (activeVariant ? Number(activeVariant.stock) : allVariantOptions.reduce((sum: number, o: any) => sum + Number(o.stock), 0))
+    : produk.stock;
+
   const finalPrice = activeVariant 
     ? Number(activeVariant.price) 
-    : (activeDiscount ? Number(activeDiscount.discounted_price) : price);
+    : (activeDiscount ? Number(activeDiscount.discounted_price) : effectivePrice);
     
   const totalCartQty = cartItems.reduce((s, i) => s + i.quantity, 0);
 
@@ -476,16 +487,6 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
                 })}
               </div>
             )}
-            {/* Varian di bawah gambar — mengisi ruang kosong */}
-            {produk.variants && produk.variants.length > 0 && (
-              <div className="hidden sm:block">
-                <VariantSelector 
-                  variants={produk.variants}
-                  selectedId={selectedVariantId}
-                  onChange={setSelectedVariantId}
-                />
-              </div>
-            )}
           </div>
 
           {/* Kolom info */}
@@ -494,7 +495,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
               <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "var(--primary-muted)", color: "var(--primary)" }}>
                 {produk.category?.name || "Produk"}
               </span>
-              {produk.stock > 0
+              {effectiveStock > 0
                 ? <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-50 text-green-700">Tersedia</span>
                 : <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-50 text-red-600">Habis</span>
               }
@@ -549,18 +550,38 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
                     </p>
                   )}
                 </div>
+              ) : isVariantProduct && !activeVariant ? (
+                <div>
+                  <p className="text-base sm:text-2xl lg:text-3xl font-bold" style={{ color: "var(--primary)" }}>
+                    {(() => {
+                      const prices = allVariantOptions.map((o: any) => Number(o.price));
+                      const min = Math.min(...prices);
+                      const max = Math.max(...prices);
+                      return min === max
+                        ? `Rp ${min.toLocaleString("id-ID")}`
+                        : `Rp ${min.toLocaleString("id-ID")} – ${max.toLocaleString("id-ID")}`;
+                    })()}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">Pilih varian untuk melihat harga</p>
+                </div>
               ) : (
                 <p className="text-base sm:text-2xl lg:text-3xl font-bold" style={{ color: "var(--primary)" }}>
-                  Rp {price.toLocaleString("id-ID")}
+                  Rp {effectivePrice.toLocaleString("id-ID")}
                 </p>
               )}
             </div>
 
-            <p className="hidden sm:block text-xs text-gray-500 leading-relaxed mb-3 line-clamp-2">{produk.description}</p>
+            <p className="hidden sm:block text-xs text-gray-500 leading-relaxed mb-4 line-clamp-2">{produk.description}</p>
 
-            {/* Varian — hanya mobile */}
+            {/* Pilihan Varian (Ditempatkan di atas Qty & Beli) */}
             {produk.variants && produk.variants.length > 0 && (
-              <div className="block sm:hidden mb-4">
+              <div className="py-3 mb-4 border-t border-b border-gray-100 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Variasi</span>
+                  {!activeVariant && (
+                    <span className="text-[11px] text-amber-600 font-semibold animate-pulse">Pilih varian untuk checkout</span>
+                  )}
+                </div>
                 <VariantSelector 
                   variants={produk.variants}
                   selectedId={selectedVariantId}
@@ -570,7 +591,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
             )}
 
             {/* Qty + tombol */}
-            <QtyButtons stok={produk.stock} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />
+            <QtyButtons stok={effectiveStock} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />
           </div>
         </div>
 

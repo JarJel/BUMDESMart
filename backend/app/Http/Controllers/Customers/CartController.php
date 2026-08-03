@@ -59,7 +59,7 @@ class CartController extends Controller
         $validator = Validator::make($request->all(), [
             'product_id' => 'required|integer|exists:products,id',
             'quantity' => 'nullable|integer|min:1',
-            'variant_id' => 'nullable|integer|exists:product_variants,id',
+            'variant_id' => 'nullable|integer|exists:product_variant_options,id',
         ]);
 
         if ($validator->fails()) {
@@ -167,7 +167,7 @@ class CartController extends Controller
         $validator = Validator::make($request->all(), [
             'cart_item_id' => 'nullable|integer|exists:cart_items,id',
             'product_id' => 'required_without:cart_item_id|integer|exists:products,id',
-            'variant_id' => 'nullable|integer|exists:product_variants,id',
+            'variant_id' => 'nullable|integer|exists:product_variant_options,id',
             'quantity' => 'required|integer|min:1',
         ]);
 
@@ -257,7 +257,7 @@ class CartController extends Controller
         $validator = Validator::make($request->all(), [
             'cart_item_id' => 'nullable|integer|exists:cart_items,id',
             'product_id' => 'nullable|integer|exists:products,id',
-            'variant_id' => 'nullable|integer|exists:product_variants,id',
+            'variant_id' => 'nullable|integer|exists:product_variant_options,id',
         ]);
 
         if ($validator->fails()) {

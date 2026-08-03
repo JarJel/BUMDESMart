@@ -535,7 +535,10 @@ export default function PesananPage() {
         ) : (
           <div className="divide-y divide-gray-50">
             {filtered.map(o => {
-              const produkLabel = o.items.map(i => `${i.product_name || i.product?.name} ×${i.quantity}`).join(", ");
+              const produkLabel = o.items.map(i => {
+                const varText = i.variant_option ? ` (${i.variant_option.value})` : "";
+                return `${i.product_name || i.product?.name}${varText} ×${i.quantity}`;
+              }).join(", ");
               const mode = deliveryMode(o);
               return (
                 <div key={o.id} className="px-5 py-4 hover:bg-gray-50/80 transition-colors border-b border-gray-50 last:border-0">

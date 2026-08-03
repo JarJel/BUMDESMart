@@ -44,7 +44,7 @@ interface CartItem {
       value: string | number;
     } | null;
   };
-  variant?: { id: number; name: string; price: number | string; stock: number } | null;
+  variant?: { id: number; name?: string; value?: string; price: number | string; stock: number } | null;
   quantity: number;
 }
 
@@ -537,7 +537,7 @@ export default function CheckoutPage() {
                             </div>
                             <div className="min-w-0">
                               <p className="text-xs font-semibold text-gray-800 truncate">{item.product?.name}</p>
-                              {item.variant && <p className="text-[10px] text-gray-400 mt-0.5">Varian: {item.variant.name}</p>}
+                              {item.variant && <p className="text-[10px] text-gray-400 mt-0.5">Varian: {item.variant.value || item.variant.name}</p>}
                               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                 <p className="text-xs font-bold text-green-600">{formatRupiah(price)}</p>
                                 {hasDiscount && (
@@ -843,7 +843,9 @@ export default function CheckoutPage() {
             <div className="space-y-1 mb-4 text-xs text-gray-500">
               {cartItems.map((item) => (
                 <div key={item.id} className="flex justify-between">
-                  <span className="line-clamp-1 flex-1 mr-1">{item.product?.name} ×{item.quantity}</span>
+                  <span className="line-clamp-1 flex-1 mr-1">
+                    {item.product?.name} {item.variant && `(${item.variant.value || item.variant.name})`} ×{item.quantity}
+                  </span>
                   <span className="shrink-0">{formatRupiah(getProductPrice(item) * item.quantity)}</span>
                 </div>
               ))}

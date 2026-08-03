@@ -144,6 +144,7 @@ class DriverController extends Controller
             })
             ->with([
                 'items.product',
+                'items.variantOption',
                 'address',
                 'umkmProfile:id,shop_name,logo,address,latitude,longitude,phone',
                 'customer.user:id,name,phone',
@@ -241,6 +242,7 @@ class DriverController extends Controller
             })
             ->with([
                 'items.product.images',
+                'items.variantOption',
                 'address',
                 'umkmProfile:id,shop_name,logo,address,latitude,longitude,phone',
                 'customer.user:id,name,phone',
@@ -295,6 +297,7 @@ class DriverController extends Controller
             ->whereNotIn('status', ['delivered', 'cancelled'])
             ->with([
                 'items.product.primaryImage',
+                'items.variantOption',
                 'address',
                 'customer.user:id,name,phone',
                 'umkmProfile:id,shop_name,address,phone,latitude,longitude',
@@ -346,7 +349,7 @@ class DriverController extends Controller
                 $q->whereNull('shipping_method')
                   ->orWhere('shipping_method', 'not like', 'ekspedisi-%');
             })
-            ->with('items.product')
+            ->with(['items.product', 'items.variantOption'])
             ->findOrFail($id);
 
         $totalWeight = $order->items->sum(fn($i) => ($i->product?->weight ?? 0) * $i->quantity);
@@ -373,7 +376,7 @@ class DriverController extends Controller
 
         return response()->json([
             'message' => 'Pesanan berhasil diambil. Segera menuju toko!',
-            'data'    => $order->fresh(['items.product', 'address', 'umkmProfile']),
+            'data'    => $order->fresh(['items.product', 'items.variantOption', 'address', 'umkmProfile']),
         ]);
     }
 
@@ -483,7 +486,7 @@ class DriverController extends Controller
         $userId = $request->user()->id;
         $orders = Order::where('driver_id', $userId)
             ->whereIn('status', ['delivered', 'cancelled'])
-            ->with(['items.product', 'address', 'customer.user'])
+            ->with(['items.product', 'items.variantOption', 'address', 'customer.user'])
             ->latest()
             ->paginate(20);
         return response()->json(['data' => $orders]);

@@ -316,7 +316,7 @@ class ProductController extends Controller
         try {
             $product = Product::where('id', $id)
                 ->where('umkm_profile_id', $umkmProfile->id)
-                ->with(['category', 'images', 'primaryImage'])
+                ->with(['category', 'images', 'primaryImage', 'variants.options'])
                 ->first();
 
             if (!$product) {

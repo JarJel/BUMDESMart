@@ -321,8 +321,8 @@ export default function DetailPesananPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 line-clamp-1">{item.product_name}</p>
-                    {item.variant_option?.name && (
-                      <p className="text-xs text-gray-400">{item.variant_option.name}</p>
+                    {item.variant_option?.value && (
+                      <p className="text-xs text-gray-400">Varian: {item.variant_option.value}</p>
                     )}
                     <p className="text-xs text-gray-500">
                       {item.quantity}× {formatRp(Number(item.product_price ?? item.price))}

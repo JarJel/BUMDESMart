@@ -28,7 +28,8 @@ export interface CartItemData {
   }
   variant?: {
     id: number
-    name: string
+    name?: string
+    value?: string
     stock: number
     price: string | number
   } | null

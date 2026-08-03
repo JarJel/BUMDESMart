@@ -486,7 +486,12 @@ export default function OrderDetailPage() {
                 <Package className="h-5 w-5 text-orange-400" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-gray-900 truncate">{item.product_name}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">
+                  {item.product_name}
+                  {item.variant_option && (
+                    <span className="text-gray-500 font-normal"> — {item.variant_option.value}</span>
+                  )}
+                </p>
                 <p className="text-xs text-gray-400">
                   {formatRp(item.product_price)} × {item.quantity}
                   {item.product?.weight ? ` · ${item.product.weight}g` : ""}

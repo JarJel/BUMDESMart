@@ -28,11 +28,12 @@ class ProductController extends Controller
             }
 
             $products = $query
-                ->select(['id', 'name', 'slug', 'price', 'stock', 'weight', 'category_id', 'umkm_profile_id', 'sold_count', 'status', 'created_at'])
+                ->select(['id', 'name', 'slug', 'price', 'stock', 'weight', 'category_id', 'umkm_profile_id', 'sold_count', 'status', 'has_variant', 'created_at'])
                 ->with([
                     'primaryImage:id,product_id,file_path,is_primary',
                     'umkmProfile:id,shop_name,slug',
                     'activeDiscount:id,product_id,type,value,end_date,is_active,max_uses,used_count',
+                    'variants.options',
                 ])->paginate(12);
 
             // Halal cert status per UMKM — satu query untuk semua produk
