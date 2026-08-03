@@ -50,7 +50,7 @@ class BumdesController extends Controller
         ]);
 
         // Buat user admin_bumdes
-        $user = User::create([
+        $user = User::forceCreate([
             'name'              => $validated['admin_name'],
             'email'             => $validated['admin_email'],
             'password'          => $validated['admin_password'],

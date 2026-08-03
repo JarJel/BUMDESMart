@@ -239,13 +239,13 @@ class AuthController extends Controller
         }
 
         // 1. Generate 6-digit OTP
-        $otp = (string) rand(100000, 999999);
+        $otp = (string) random_int(100000, 999999);
 
-        // 2. Simpan OTP ke tabel password_reset_tokens
+        // 2. Simpan OTP ke tabel password_reset_tokens (tersimpan sebagai hash)
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $request->email],
             [
-                'token' => $otp,
+                'token' => Hash::make($otp),
                 'created_at' => now(),
             ]
         );
@@ -284,7 +284,7 @@ class AuthController extends Controller
             ->first();
 
         // 2. Validasi kecocokan OTP dan masa berlaku (15 menit)
-        if (!$resetRecord || $resetRecord->token !== $request->otp) {
+        if (!$resetRecord || !Hash::check($request->otp, $resetRecord->token)) {
             return response()->json([
                 'errors' => [
                     'otp' => ['Kode OTP salah atau tidak valid.']
@@ -395,10 +395,10 @@ class AuthController extends Controller
 
             if (!$user) {
                 // Buat user baru (Customer)
-                $user = \App\Models\User::create([
+                $user = \App\Models\User::forceCreate([
                     'name' => $name,
                     'email' => $email,
-                    'password' => Hash::make(Str::random(24)), // Password acak
+                    'password' => Hash::make(Str::random(24)),
                     'role' => 'customer',
                     'phone' => '',
                     'avatar' => $avatar,

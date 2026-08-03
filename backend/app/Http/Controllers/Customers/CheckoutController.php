@@ -451,7 +451,7 @@ class CheckoutController extends Controller
             'address_id'            => 'required|integer|exists:addresses,id',
             'delivery_type'         => 'required|in:delivered,pickup',
             'shipping_method_id'    => 'nullable|string', // kurir-lokal | pickup | ekspedisi-jne-reg | dll
-            'shipping_cost_override'=> 'nullable|integer|min:0', // ongkir dari RajaOngkir (dikirim FE)
+            'shipping_cost_override'=> 'nullable|integer|min:1000|max:2000000', // ongkir ekspedisi dari FE (batas wajar)
             'vehicle_type'          => 'nullable|in:motor,mobil', // deprecated — dibaca dari shipping_method_id
             'notes'                 => 'nullable|string|max:500',
             'product_id'            => 'nullable|integer|exists:products,id',

@@ -145,13 +145,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/seller/products/{id}', [SellerProductController::class, 'destroy']);
 });
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/register/umkm', [AuthController::class, 'registerUmkm']);
-Route::post('/register/pengirim', [AuthController::class, 'registerDriver']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::middleware('throttle:10,1')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/register/umkm', [AuthController::class, 'registerUmkm']);
+    Route::post('/register/pengirim', [AuthController::class, 'registerDriver']);
+});
 
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::middleware('throttle:5,1')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+});
 Route::post('/auth/google', [AuthController::class, 'loginWithGoogle']);
 
 // Seller/UMKM public routes for customers
@@ -306,4 +310,4 @@ Route::get('/categories', function () {
     return response()->json(['data' => $parents]);
 });
 
-Route::post('/send-whatsapp', [WhatsappController::class, 'sendWhatsapp']);
+Route::middleware('auth:sanctum')->post('/send-whatsapp', [WhatsappController::class, 'sendWhatsapp']);

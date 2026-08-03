@@ -17,13 +17,13 @@ class AuthService
     public function registerCustomer(array $data)
     {
         // 1. Buat User utama di tabel 'users' dengan role 'customer'
-        $user = User::create([
+        $user = User::forceCreate([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
             'role' => 'customer',
             'phone' => $data['phone'] ?? '',
-            'status' => 'active', // Langsung aktif
+            'status' => 'active',
         ]);
 
         // 2. Buat profil Customer di tabel 'customers'
@@ -48,13 +48,13 @@ class AuthService
     public function registerUmkm(array $data)
     {
         // 1. Buat User utama di tabel 'users' dengan role 'umkm'
-        $user = User::create([
+        $user = User::forceCreate([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
             'role' => 'umkm',
             'phone' => $data['phone'] ?? '',
-            'status' => 'active', // Aktif agar bisa login ke dashboard untuk verifikasi
+            'status' => 'active',
         ]);
 
         // 2. Buat profil UMKM di tabel 'umkm_profiles'
@@ -86,7 +86,7 @@ class AuthService
      */
     public function registerDriver(array $data)
     {
-        $user = User::create([
+        $user = User::forceCreate([
             'name'     => $data['name'],
             'email'    => $data['email'],
             'password' => $data['password'],
