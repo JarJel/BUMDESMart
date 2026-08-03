@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\WebhookController;
 use App\Models\DriverProfile;
 use App\Models\Notification;
 use App\Models\Order;
@@ -111,6 +112,11 @@ class SellerOrderController extends Controller
         }
 
         $order->update(['status' => $newStatus]);
+
+        // Pickup selesai diambil pembeli — langsung cairkan ke seller & BUMDes
+        if ($newStatus === 'completed' && $mode === 'pickup') {
+            app(WebhookController::class)->triggerDisbursement($order->fresh(['payment', 'umkmProfile.bumdesProfile']));
+        }
 
         // Buat record Shipment saat ekspedisi di-shipped
         if ($newStatus === 'shipped' && $mode === 'ekspedisi') {

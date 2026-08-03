@@ -78,10 +78,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/{orderId}/reviews', [ReviewController::class, 'store']);
     Route::get('/orders/{orderId}/reviews', [ReviewController::class, 'showByOrder']);
 
-    // Seller bank account & balance
+    // Seller bank account & withdraw
     Route::get('/seller/bank-accounts', [BankAccountController::class, 'index']);
     Route::post('/seller/bank-accounts', [BankAccountController::class, 'store']);
     Route::delete('/seller/bank-accounts/{id}', [BankAccountController::class, 'destroy']);
+    Route::post('/seller/withdraw', [BankAccountController::class, 'withdraw']);
 
     // Wishlist management routes
     Route::get('/wishlist', [WishlistController::class, 'index']);
@@ -261,6 +262,12 @@ Route::middleware(['auth:sanctum', 'role:pengirim'])->prefix('driver')->group(fu
     Route::patch('/orders/{id}/status', [DriverController::class, 'updateOrderStatus']);
     Route::get('/history', [DriverController::class, 'orderHistory']);
     Route::get('/stats', [DriverController::class, 'stats']);
+
+    // Driver bank account & withdraw (pakai controller yang sama dengan seller)
+    Route::get('/bank-accounts', [BankAccountController::class, 'index']);
+    Route::post('/bank-accounts', [BankAccountController::class, 'store']);
+    Route::delete('/bank-accounts/{id}', [BankAccountController::class, 'destroy']);
+    Route::post('/withdraw', [BankAccountController::class, 'withdraw']);
 });
 
 // Public stats (landing page counter)

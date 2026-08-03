@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Models\Disbursement;
 use App\Models\UmkmBankAccount;
 use App\Models\UmkmBalance;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 
 class BankAccountController extends Controller
@@ -84,5 +88,79 @@ class BankAccountController extends Controller
         $account->delete();
 
         return response()->json(['message' => 'Rekening berhasil dihapus.']);
+    }
+
+    public function withdraw(Request $request)
+    {
+        ['id' => $ownerId, 'type' => $ownerType] = $this->getOwnerId($request);
+
+        $validated = $request->validate([
+            'amount' => 'required|integer|min:10000',
+        ]);
+
+        $balance   = UmkmBalance::where('owner_id', $ownerId)->where('owner_type', $ownerType)->first();
+        $available = (float) ($balance?->available ?? 0);
+
+        if ($validated['amount'] > $available) {
+            return response()->json([
+                'message' => 'Saldo tidak cukup. Saldo tersedia: Rp ' . number_format($available, 0, ',', '.'),
+            ], 422);
+        }
+
+        $bankAccount = UmkmBankAccount::where('owner_id', $ownerId)
+            ->where('owner_type', $ownerType)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$bankAccount) {
+            return response()->json(['message' => 'Rekening bank belum terdaftar.'], 422);
+        }
+
+        $balance->decrement('available', $validated['amount']);
+        $balance->increment('withdrawn', $validated['amount']);
+
+        $referenceId = 'DISB-' . strtoupper($ownerType) . '-' . $ownerId . '-' . Str::random(8);
+
+        $disb = Disbursement::create([
+            'order_id'       => null,
+            'owner_id'       => $ownerId,
+            'owner_type'     => $ownerType,
+            'channel_code'   => $bankAccount->channel_code,
+            'account_number' => $bankAccount->account_number,
+            'account_name'   => $bankAccount->account_name,
+            'amount'         => $validated['amount'],
+            'reference_id'   => $referenceId,
+            'status'         => 'pending',
+        ]);
+
+        try {
+            $xenditKey = config('services.xendit.secret_key');
+            if ($xenditKey) {
+                $response = Http::withBasicAuth($xenditKey, '')
+                    ->post('https://api.xendit.co/disbursements', [
+                        'external_id'         => $referenceId,
+                        'bank_code'           => $bankAccount->channel_code,
+                        'account_holder_name' => $bankAccount->account_name,
+                        'account_number'      => $bankAccount->account_number,
+                        'description'         => 'Pencairan saldo ' . $ownerType,
+                        'amount'              => $validated['amount'],
+                    ]);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $disb->update([
+                        'xendit_disbursement_id' => $data['id'] ?? null,
+                        'status'                 => strtolower($data['status'] ?? 'pending'),
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Xendit disbursement gagal: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'Permintaan pencairan berhasil diajukan.',
+            'data'    => $disb,
+        ], 201);
     }
 }
