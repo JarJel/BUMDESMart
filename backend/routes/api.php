@@ -259,6 +259,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('super-admin')->
 Route::middleware(['auth:sanctum', 'role:pengirim'])->prefix('driver')->group(function () {
     Route::get('/profile', [DriverController::class, 'profile']);
     Route::put('/profile', [DriverController::class, 'updateProfile']);
+    Route::post('/profile/photo', [DriverController::class, 'uploadPhoto']);
     Route::patch('/profile/availability', [DriverController::class, 'toggleAvailability']);
     Route::get('/orders/available', [DriverController::class, 'availableOrders']);
     Route::get('/orders/active', [DriverController::class, 'activeOrders']);

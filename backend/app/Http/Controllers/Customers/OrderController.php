@@ -16,6 +16,7 @@ class OrderController extends Controller
 
         $query = Order::with([
             'items.product:id,name,slug',
+            'items.product.primaryImage:id,product_id,file_path',
             'umkmProfile:id,shop_name,logo,slug',
             'payment:id,order_id,status,xendit_data',
         ])->where('customer_id', $customerId);
@@ -39,8 +40,9 @@ class OrderController extends Controller
             'umkmProfile:id,shop_name,logo,slug,phone',
             'address',
             'payment',
+            'items.product.primaryImage:id,product_id,file_path',
             'driver:id,name,phone',
-            'driver.driverProfile:user_id,vehicle_type,vehicle_brand,vehicle_plate,rating',
+            'driver.driverProfile:user_id,vehicle_type,vehicle_brand,vehicle_plate,rating,photo_profile',
             'histories' => fn($q) => $q->latest(),
         ])->where('customer_id', $customerId)->findOrFail($id);
 

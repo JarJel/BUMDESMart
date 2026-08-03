@@ -90,6 +90,25 @@ class DriverController extends Controller
         return response()->json(['message' => 'Profil berhasil diperbarui.', 'data' => $profile->fresh()]);
     }
 
+    public function uploadPhoto(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'photo_profile' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $profile  = $this->getProfile($request);
+        $filePath = \App\Helpers\ImageHelper::uploadAsWebp($request->file('photo_profile'), 'driver/photos');
+        $profile->update(['photo_profile' => $filePath]);
+
+        return response()->json([
+            'message'       => 'Foto profil berhasil diperbarui.',
+            'photo_profile' => $filePath,
+        ]);
+    }
+
     public function toggleAvailability(Request $request)
     {
         $profile = $this->getProfile($request);

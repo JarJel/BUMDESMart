@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
+
+const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
+
+function getPhotoUrl(rawPath: string | null | undefined): string | null {
+  if (!rawPath) return null;
+  if (rawPath.startsWith("http")) return rawPath;
+  return `${IMG_BASE}/storage/${rawPath}`;
+}
 
 const VEHICLE_TYPES = [
   { value: "motor",  label: "Motor" },
@@ -26,6 +34,8 @@ export default function PengirimProfilPage() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<any>({});
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -76,6 +86,23 @@ export default function PengirimProfilPage() {
 
   const set = (field: string, val: string) => setForm((p: any) => ({ ...p, [field]: val }));
 
+  const handlePhotoUpload = async (file: File) => {
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append("photo_profile", file);
+      await api.post("/driver/profile/photo", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success("Foto profil berhasil diperbarui.");
+      fetchProfile();
+    } catch {
+      toast.error("Gagal upload foto. Pastikan ukuran ≤ 5MB.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -104,13 +131,48 @@ export default function PengirimProfilPage() {
 
       {/* Status badge */}
       <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 min-[420px]:flex-row min-[420px]:items-center">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold text-white"
-          style={{ background: "linear-gradient(135deg, #E76F51, #F4A261)" }}>
-          {(profile.name ?? "?")[0].toUpperCase()}
+        {/* Avatar + upload button */}
+        <div className="relative shrink-0 self-start min-[420px]:self-center">
+          <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-xl font-bold text-white"
+            style={{ background: "linear-gradient(135deg, #E76F51, #F4A261)" }}>
+            {getPhotoUrl(profile.photo_profile) ? (
+              <img
+                src={getPhotoUrl(profile.photo_profile)!}
+                alt={profile.name}
+                className="w-full h-full object-cover"
+                onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : (
+              (profile.name ?? "?")[0].toUpperCase()
+            )}
+          </div>
+          <label
+            htmlFor="photo-profile-input"
+            className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center cursor-pointer hover:bg-orange-50 shadow-sm"
+            title="Ganti foto profil"
+          >
+            {uploadingPhoto ? (
+              <div className="w-3 h-3 rounded-full border-t-2 border-orange-500 animate-spin" />
+            ) : (
+              <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            )}
+          </label>
+          <input
+            id="photo-profile-input"
+            ref={photoInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
+            className="sr-only"
+            onChange={e => { if (e.target.files?.[0]) handlePhotoUpload(e.target.files[0]); }}
+          />
         </div>
         <div className="min-w-0 flex-1">
           <p className="break-words text-sm font-bold text-gray-900">{profile.name}</p>
           <p className="break-all text-xs text-gray-500">{profile.email}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">Klik ikon kamera untuk ganti foto profil</p>
         </div>
         <div className="min-[420px]:text-right">
           <span className={`text-xs font-semibold px-2 py-1 rounded-full ${profile.is_verified ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>

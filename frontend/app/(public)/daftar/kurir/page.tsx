@@ -32,24 +32,29 @@ const BENEFITS = [
 const STEPS = ["Data Diri", "Foto & Dokumen", "Kendaraan", "Rekening"];
 
 // ─── Photo uploader ───────────────────────────────────────────────────────────
+let _pickerIdCounter = 0;
+
 function PhotoPicker({
-  label, hint, Icon: IconComp, value, onChange,
+  label, hint, Icon: IconComp, value, onChange, required = false,
 }: {
   label: string; hint: string;
   Icon: React.ElementType;
   value: File | null;
   onChange: (f: File) => void;
+  required?: boolean;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const id = useRef(`photo-picker-${++_pickerIdCounter}`).current;
   const preview = value ? URL.createObjectURL(value) : null;
 
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1.5">{label}</label>
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className="w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-orange-400 hover:bg-orange-50"
+      <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+        {label}
+        {required ? <span className="text-red-500 ml-1">*</span> : <span className="text-gray-400 ml-1">(opsional)</span>}
+      </label>
+      <label
+        htmlFor={id}
+        className="w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-orange-400 hover:bg-orange-50 cursor-pointer"
         style={value ? { borderColor: "#E76F51", background: "#FEF3E8" } : { borderColor: "#D1D5DB" }}
       >
         {preview ? (
@@ -67,13 +72,13 @@ function PhotoPicker({
             {value.name.length > 28 ? value.name.slice(0, 25) + "..." : value.name}
           </p>
         )}
-        <p className="text-[10px] text-gray-400">Tap untuk {value ? "ganti" : "pilih"} foto · JPG/PNG maks 5MB</p>
-      </button>
+        <p className="text-[10px] text-gray-400">Klik/tap untuk {value ? "ganti" : "pilih"} foto · JPG/PNG/WebP maks 5MB</p>
+      </label>
       <input
-        ref={inputRef}
+        id={id}
         type="file"
         accept="image/jpeg,image/jpg,image/png,image/webp"
-        className="hidden"
+        className="sr-only"
         onChange={e => { if (e.target.files?.[0]) onChange(e.target.files[0]); }}
       />
     </div>
@@ -128,8 +133,7 @@ export default function DaftarKurirPage() {
       if (form.password !== form.password_confirmation)        { toast.error("Password tidak cocok.");         return false; }
     }
     if (s === 2) {
-      if (!photoProfile) { toast.error("Foto profil wajib diupload."); return false; }
-      if (!photoKtp)     { toast.error("Foto selfie dengan KTP wajib diupload."); return false; }
+      // Foto opsional — bisa dilengkapi nanti dari halaman profil
     }
     if (s === 3) {
       if (!form.vehicle_brand.trim()) { toast.error("Merek kendaraan wajib diisi."); return false; }
@@ -419,6 +423,18 @@ export default function DaftarKurirPage() {
                       onChange={setPhotoKtp}
                     />
                   </div>
+
+                  {/* Info bahwa foto opsional */}
+                  {(!photoProfile || !photoKtp) && (
+                    <div className="flex gap-2 p-3 rounded-xl bg-yellow-50 border border-yellow-100">
+                      <svg className="w-4 h-4 text-yellow-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                      </svg>
+                      <p className="text-xs text-yellow-700">
+                        Foto bisa dilewati dulu. Namun, admin BUMDes mungkin meminta foto sebelum memverifikasi akun kamu.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="p-4 rounded-xl bg-orange-50 border border-orange-100 space-y-1.5">
                     <p className="text-xs font-bold text-orange-800 mb-2">Tips foto yang diterima:</p>
