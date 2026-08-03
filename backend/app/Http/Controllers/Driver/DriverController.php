@@ -137,6 +137,11 @@ class DriverController extends Controller
 
         $orders = Order::where('status', 'confirmed')
             ->whereNull('driver_id')
+            ->where('delivery_type', 'delivered')
+            ->where(function ($q) {
+                $q->whereNull('shipping_method')
+                  ->orWhere('shipping_method', 'not like', 'ekspedisi-%');
+            })
             ->with([
                 'items.product',
                 'address',
@@ -223,7 +228,15 @@ class DriverController extends Controller
         $userId = $request->user()->id;
 
         $order = Order::where(function ($q) use ($userId) {
-                $q->where('status', 'confirmed')->whereNull('driver_id')
+                $q->where(function ($q2) {
+                        $q2->where('status', 'confirmed')
+                           ->whereNull('driver_id')
+                           ->where('delivery_type', 'delivered')
+                           ->where(function ($q3) {
+                               $q3->whereNull('shipping_method')
+                                  ->orWhere('shipping_method', 'not like', 'ekspedisi-%');
+                           });
+                    })
                   ->orWhere('driver_id', $userId);
             })
             ->with([
@@ -328,6 +341,11 @@ class DriverController extends Controller
 
         $order = Order::whereNull('driver_id')
             ->where('status', 'confirmed')
+            ->where('delivery_type', 'delivered')
+            ->where(function ($q) {
+                $q->whereNull('shipping_method')
+                  ->orWhere('shipping_method', 'not like', 'ekspedisi-%');
+            })
             ->with('items.product')
             ->findOrFail($id);
 

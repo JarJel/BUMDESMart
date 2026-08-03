@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Seller;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Models\ProductVariant;
+use App\Models\ProductVariantOption;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -74,7 +76,7 @@ class ProductController extends Controller
 
         try {
             $query = Product::where('umkm_profile_id', $umkmProfile->id)
-                ->with(['category', 'images', 'primaryImage']);
+                ->with(['category', 'images', 'primaryImage', 'variants.options']);
 
             if ($request->has('search')) {
                 $query->where('name', 'like', '%' . $request->search . '%');
@@ -165,17 +167,27 @@ class ProductController extends Controller
             ], 404);
         }
 
+        $hasVariant = $request->boolean('has_variant', false);
+
         $validator = Validator::make($request->all(), [
-            'category_id' => 'required|exists:categories,id',
-            'name'        => 'required|string|max:255',
-            'description' => 'required|string',
-            'price'       => 'required|numeric|min:0',
-            'stock'       => 'required|integer|min:0',
-            'weight'      => 'required|integer|min:0',
-            'is_digital'  => 'sometimes|boolean',
-            'status'      => 'sometimes|in:active,inactive,draft',
-            'images'      => 'sometimes|array',
-            'images.*'    => 'image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'category_id'               => 'required|exists:categories,id',
+            'name'                      => 'required|string|max:255',
+            'description'               => 'required|string',
+            'price'                     => 'required_without:has_variant|nullable|numeric|min:0',
+            'stock'                     => 'required_without:has_variant|nullable|integer|min:0',
+            'weight'                    => 'required|integer|min:0',
+            'is_digital'                => 'sometimes|boolean',
+            'has_variant'               => 'sometimes|boolean',
+            'status'                    => 'sometimes|in:active,inactive,draft',
+            'images'                    => 'sometimes|array',
+            'images.*'                  => 'image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'variant'                   => 'required_if:has_variant,true|nullable|array',
+            'variant.name'              => 'required_if:has_variant,true|string|max:100',
+            'variant.options'           => 'required_if:has_variant,true|array|min:1',
+            'variant.options.*.value'   => 'required|string|max:100',
+            'variant.options.*.price'   => 'required|numeric|min:0',
+            'variant.options.*.stock'   => 'required|integer|min:0',
+            'variant.options.*.weight'  => 'sometimes|integer|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -195,13 +207,33 @@ class ProductController extends Controller
                 'name'            => $request->name,
                 'slug'            => $slug,
                 'description'     => $request->description,
-                'price'           => $request->price,
-                'stock'           => $request->stock,
+                'price'           => $hasVariant ? 0 : (float) $request->price,
+                'stock'           => $hasVariant ? 0 : (int) $request->stock,
                 'weight'          => $request->weight ?? 0,
                 'is_digital'      => $request->is_digital ?? false,
-                'has_variant'     => false,
+                'has_variant'     => $hasVariant,
                 'status'          => $request->status ?? 'draft',
             ]);
+
+            if ($hasVariant && $request->has('variant')) {
+                $variantData = $request->input('variant');
+                $pv = ProductVariant::create([
+                    'product_id' => $product->id,
+                    'name'       => $variantData['name'],
+                    'sort_order' => 0,
+                ]);
+                foreach ($variantData['options'] as $i => $opt) {
+                    ProductVariantOption::create([
+                        'product_variant_id' => $pv->id,
+                        'value'              => $opt['value'],
+                        'price'              => (float) $opt['price'],
+                        'stock'              => (int) $opt['stock'],
+                        'weight'             => (int) ($opt['weight'] ?? $request->weight ?? 0),
+                        'is_active'          => true,
+                        'sort_order'         => $i,
+                    ]);
+                }
+            }
 
             if ($request->hasFile('images')) {
                 $destinationPath = public_path('uploads/products');
@@ -226,7 +258,7 @@ class ProductController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Produk berhasil ditambahkan.',
-                'data' => $product->load(['category', 'images'])
+                'data' => $product->load(['category', 'images', 'variants.options'])
             ], 201);
         } catch (Exception $e) {
             DB::rollBack();
@@ -394,18 +426,30 @@ class ProductController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'category_id'       => 'sometimes|required|exists:categories,id',
-            'name'              => 'sometimes|required|string|max:255',
-            'description'       => 'sometimes|required|string',
-            'price'             => 'sometimes|required|numeric|min:0',
-            'stock'             => 'sometimes|required|integer|min:0',
-            'weight'            => 'sometimes|required|integer|min:0',
-            'is_digital'        => 'sometimes|boolean',
-            'status'            => 'sometimes|in:active,inactive,draft',
-            'images'            => 'sometimes|array',
-            'images.*'          => 'image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'delete_image_ids'  => 'sometimes|array',
-            'delete_image_ids.*'=> 'exists:product_images,id',
+            'category_id'                    => 'sometimes|required|exists:categories,id',
+            'name'                           => 'sometimes|required|string|max:255',
+            'description'                    => 'sometimes|required|string',
+            'price'                          => 'sometimes|numeric|min:0',
+            'stock'                          => 'sometimes|integer|min:0',
+            'weight'                         => 'sometimes|integer|min:0',
+            'is_digital'                     => 'sometimes|boolean',
+            'has_variant'                    => 'sometimes|boolean',
+            'status'                         => 'sometimes|in:active,inactive,draft',
+            'images'                         => 'sometimes|array',
+            'images.*'                       => 'image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'delete_image_ids'               => 'sometimes|array',
+            'delete_image_ids.*'             => 'exists:product_images,id',
+            'variant'                        => 'sometimes|array',
+            'variant.name'                   => 'sometimes|string|max:100',
+            'variant.options'                => 'sometimes|array',
+            'variant.options.*.id'           => 'sometimes|integer',
+            'variant.options.*.value'        => 'required_without:variant.options.*.id|string|max:100',
+            'variant.options.*.price'        => 'sometimes|numeric|min:0',
+            'variant.options.*.stock'        => 'sometimes|integer|min:0',
+            'variant.options.*.weight'       => 'sometimes|integer|min:0',
+            'variant.options.*.is_active'    => 'sometimes|boolean',
+            'variant.delete_option_ids'      => 'sometimes|array',
+            'variant.delete_option_ids.*'    => 'integer',
         ]);
 
         if ($validator->fails()) {
@@ -414,9 +458,21 @@ class ProductController extends Controller
 
         DB::beginTransaction();
         try {
+            $hasVariant = $request->has('has_variant')
+                ? $request->boolean('has_variant')
+                : $product->has_variant;
+
             $updateData = $request->only([
-                'category_id', 'name', 'description', 'price', 'stock', 'weight', 'is_digital', 'status'
+                'category_id', 'name', 'description', 'weight', 'is_digital', 'status'
             ]);
+            $updateData['has_variant'] = $hasVariant;
+            if (!$hasVariant) {
+                if ($request->has('price')) $updateData['price'] = $request->price;
+                if ($request->has('stock')) $updateData['stock'] = $request->stock;
+            } else {
+                $updateData['price'] = 0;
+                $updateData['stock'] = 0;
+            }
 
             if ($request->has('name') && $request->name !== $product->name) {
                 $slug = Str::slug($request->name);
@@ -471,12 +527,66 @@ class ProductController extends Controller
                 }
             }
 
+            // Handle variant update
+            if ($request->has('variant')) {
+                $variantData = $request->input('variant');
+
+                $pv = ProductVariant::firstOrCreate(
+                    ['product_id' => $product->id],
+                    ['name' => $variantData['name'] ?? 'Varian', 'sort_order' => 0]
+                );
+                if (isset($variantData['name'])) {
+                    $pv->update(['name' => $variantData['name']]);
+                }
+
+                // Hapus opsi yang diminta
+                if (!empty($variantData['delete_option_ids'])) {
+                    ProductVariantOption::where('product_variant_id', $pv->id)
+                        ->whereIn('id', $variantData['delete_option_ids'])
+                        ->delete();
+                }
+
+                // Tambah / update opsi
+                $existingCount = ProductVariantOption::where('product_variant_id', $pv->id)->count();
+                foreach ($variantData['options'] ?? [] as $i => $opt) {
+                    if (!empty($opt['id'])) {
+                        ProductVariantOption::where('id', $opt['id'])
+                            ->where('product_variant_id', $pv->id)
+                            ->update(array_filter([
+                                'value'     => $opt['value'] ?? null,
+                                'price'     => isset($opt['price']) ? (float) $opt['price'] : null,
+                                'stock'     => isset($opt['stock']) ? (int) $opt['stock'] : null,
+                                'weight'    => isset($opt['weight']) ? (int) $opt['weight'] : null,
+                                'is_active' => $opt['is_active'] ?? null,
+                            ], fn($v) => $v !== null));
+                    } else {
+                        ProductVariantOption::create([
+                            'product_variant_id' => $pv->id,
+                            'value'              => $opt['value'],
+                            'price'              => (float) $opt['price'],
+                            'stock'              => (int) $opt['stock'],
+                            'weight'             => (int) ($opt['weight'] ?? $product->weight ?? 0),
+                            'is_active'          => true,
+                            'sort_order'         => $existingCount + $i,
+                        ]);
+                    }
+                }
+            }
+
+            // Hapus semua variant kalau has_variant dimatikan
+            if ($request->has('has_variant') && !$hasVariant) {
+                ProductVariant::where('product_id', $product->id)->each(function ($pv) {
+                    $pv->options()->delete();
+                    $pv->delete();
+                });
+            }
+
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Produk berhasil diperbarui.',
-                'data' => $product->load(['category', 'images'])
+                'data' => $product->load(['category', 'images', 'variants.options'])
             ]);
         } catch (Exception $e) {
             DB::rollBack();
