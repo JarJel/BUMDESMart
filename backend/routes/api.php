@@ -162,6 +162,7 @@ Route::get('/sellers/{idOrSlug}', [SellerController::class, 'show']);
 Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('admin')->group(function () {
     // Dashboard stats
     Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats']);
+    Route::get('/dashboard/chart', [AdminDashboardController::class, 'chartData']);
 
     // Verifikasi mitra
     Route::get('/umkm', [UmkmVerificationController::class, 'index']);

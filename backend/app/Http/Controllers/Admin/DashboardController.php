@@ -16,6 +16,8 @@ class DashboardController extends Controller
         return BumdesProfile::where('user_id', $request->user()->id)->firstOrFail();
     }
 
+    private const MONTH_LABELS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
     public function stats(Request $request)
     {
         $bumdes = $this->getBumdesProfile($request);
@@ -46,5 +48,35 @@ class DashboardController extends Controller
                 'total_produk'         => $totalProduk,
             ],
         ]);
+    }
+
+    public function chartData(Request $request)
+    {
+        $bumdes  = $this->getBumdesProfile($request);
+        $year    = (int) $request->query('year', now()->year);
+        $umkmIds = UmkmProfile::where('bumdes_profile_id', $bumdes->id)->pluck('id');
+
+        $umkmByMonth = UmkmProfile::where('bumdes_profile_id', $bumdes->id)
+            ->selectRaw('MONTH(created_at) as month, COUNT(*) as count')
+            ->whereYear('created_at', $year)
+            ->groupBy('month')
+            ->get()
+            ->keyBy('month');
+
+        $revenueByMonth = Order::whereIn('umkm_profile_id', $umkmIds)
+            ->whereIn('status', ['completed', 'delivered'])
+            ->whereYear('created_at', $year)
+            ->selectRaw('MONTH(created_at) as month, SUM(bumdes_fee) as total')
+            ->groupBy('month')
+            ->get()
+            ->keyBy('month');
+
+        $data = collect(range(1, 12))->map(fn ($m) => [
+            'label'   => self::MONTH_LABELS[$m - 1],
+            'umkm'    => $umkmByMonth->get($m)?->count ?? 0,
+            'revenue' => (float) ($revenueByMonth->get($m)?->total ?? 0),
+        ]);
+
+        return response()->json(['data' => $data]);
     }
 }

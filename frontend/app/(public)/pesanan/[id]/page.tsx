@@ -277,6 +277,57 @@ export default function DetailPesananPage() {
           </div>
         )}
 
+        {/* Nomor Resi (Ekspedisi) */}
+        {order.shipment && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <p className="text-sm font-semibold text-gray-800">Info Pengiriman</p>
+            </div>
+            <div className="space-y-2">
+              {order.shipment.courier_name && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Kurir</span>
+                  <span className="text-xs font-semibold text-gray-900">
+                    {order.shipment.courier_name}
+                    {order.shipment.service_name ? ` · ${order.shipment.service_name}` : ""}
+                  </span>
+                </div>
+              )}
+              {order.shipment.tracking_number && (
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-xs text-gray-500 shrink-0">No. Resi</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs font-mono font-semibold text-gray-900 truncate">
+                      {order.shipment.tracking_number}
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(order.shipment.tracking_number);
+                        toast.success("Nomor resi disalin.");
+                      }}
+                      className="shrink-0 p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
+                      title="Salin nomor resi"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+              {order.shipment.status && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Status</span>
+                  <span className="text-xs font-semibold capitalize text-gray-700">{order.shipment.status}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Alamat Pengiriman */}
         {order.address && (
           <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4">

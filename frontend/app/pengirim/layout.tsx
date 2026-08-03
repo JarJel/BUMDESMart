@@ -27,6 +27,11 @@ const NAV: NavItem[] = [
     icon: S("M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"),
   },
   {
+    href: "/pengirim/saldo",
+    label: "Saldo",
+    icon: S("M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"),
+  },
+  {
     href: "/pengirim/profil",
     label: "Profil",
     icon: S("M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"),
