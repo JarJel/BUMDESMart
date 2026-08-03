@@ -50,9 +50,9 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
   }
 
   return (
-    <div className="flex min-h-dvh bg-gray-50 lg:h-screen lg:overflow-hidden">
+    <div className="flex min-h-dvh bg-gray-50 md:h-screen md:overflow-hidden">
       {/* ── Sidebar ── */}
-      <aside className="hidden w-56 shrink-0 bg-white border-r border-gray-100 lg:flex lg:flex-col">
+      <aside className="hidden w-56 shrink-0 bg-white border-r border-gray-100 md:flex md:flex-col">
         {/* Logo */}
         <div className="px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-1.5">
@@ -115,9 +115,9 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
       </aside>
 
       {/* ── Main ── */}
-      <div className="flex min-h-dvh flex-1 flex-col min-w-0 lg:min-h-0">
+      <div className="flex min-h-dvh flex-1 flex-col min-w-0 md:min-h-0">
         {/* Mobile topbar */}
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-gray-100 bg-white/95 px-4 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-gray-100 bg-white/95 px-4 backdrop-blur md:hidden">
           <div className="flex min-w-0 items-center gap-2">
             <img src="/logo.png" alt="BUMDESmart" className="h-8 w-auto shrink-0" />
             <div className="min-w-0">
@@ -137,7 +137,7 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
         </header>
 
         {/* Topbar */}
-        <header className="hidden h-14 bg-white border-b border-gray-100 items-center gap-4 px-5 shrink-0 lg:flex">
+        <header className="hidden h-14 bg-white border-b border-gray-100 items-center gap-4 px-5 shrink-0 md:flex">
           <div className="flex-1 relative">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,11 +154,11 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">{children}</main>
+        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">{children}</main>
 
         {/* Mobile navigation */}
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-gray-100 bg-white/95 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-gray-100 bg-white/95 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur md:hidden"
           style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
         >
           {navItems.map((item) => {
