@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
+import { getFileUrl } from "@/lib/storage";
 import {
   Search, CheckCircle, XCircle, ShieldOff, ShieldCheck,
   Bike, Car, Truck, Package, Eye, ChevronLeft, ChevronRight, X
@@ -57,6 +58,7 @@ function StatusBadge({ driver }: { driver: Driver }) {
 
 function KtpPhoto({ url }: { url?: string }) {
   const [broken, setBroken] = useState(false);
+  const resolved = getFileUrl(url) ?? undefined;
   const placeholder = (
     <div className="w-full h-32 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-sm">
       Tidak ada foto KTP
@@ -65,10 +67,10 @@ function KtpPhoto({ url }: { url?: string }) {
   return (
     <div>
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Selfie + KTP (Verifikasi)</p>
-      {url && !broken ? (
-        <a href={url} target="_blank" rel="noopener noreferrer">
+      {resolved && !broken ? (
+        <a href={resolved} target="_blank" rel="noopener noreferrer">
           <img
-            src={url}
+            src={resolved}
             alt="Foto KTP"
             onError={() => setBroken(true)}
             className="w-full rounded-xl border border-gray-200 object-cover hover:opacity-90 transition-opacity cursor-zoom-in"
@@ -249,8 +251,8 @@ export default function AdminKurirPage() {
                 <tr key={driver.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      {driver.photo_profile_url ? (
-                        <img src={driver.photo_profile_url} alt="" className="w-9 h-9 rounded-full object-cover border border-gray-200" />
+                      {getFileUrl(driver.photo_profile_url) ? (
+                        <img src={getFileUrl(driver.photo_profile_url)!} alt="" className="w-9 h-9 rounded-full object-cover border border-gray-200" />
                       ) : (
                         <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-semibold text-sm">
                           {driver.user.name.charAt(0).toUpperCase()}
@@ -322,8 +324,8 @@ export default function AdminKurirPage() {
             <div className="p-6 space-y-6 flex-1">
               {/* Profile photo + name */}
               <div className="flex items-center gap-4">
-                {selected.photo_profile_url ? (
-                  <img src={selected.photo_profile_url} alt="" className="w-16 h-16 rounded-2xl object-cover border border-gray-200" />
+                {getFileUrl(selected.photo_profile_url) ? (
+                  <img src={getFileUrl(selected.photo_profile_url)!} alt="" className="w-16 h-16 rounded-2xl object-cover border border-gray-200" />
                 ) : (
                   <div className="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-2xl">
                     {selected.user.name.charAt(0).toUpperCase()}

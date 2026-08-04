@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
+import { getFileUrl } from "@/lib/storage";
 import {
   Search, X, CheckCircle, XCircle, AlertTriangle,
   Phone, Clock, Car, CreditCard, MapPin
@@ -58,7 +59,8 @@ function StatusBadge({ driver }: { driver: Driver }) {
 
 function KtpPhoto({ url }: { url: string | null }) {
   const [broken, setBroken] = useState(false);
-  if (!url || broken) {
+  const resolved = getFileUrl(url);
+  if (!resolved || broken) {
     return (
       <div className="w-full h-40 rounded-xl bg-gray-100 border border-dashed border-gray-300 flex items-center justify-center">
         <p className="text-xs text-gray-400">Tidak ada foto KTP</p>
@@ -67,7 +69,7 @@ function KtpPhoto({ url }: { url: string | null }) {
   }
   return (
     <img
-      src={url} alt="KTP"
+      src={resolved} alt="KTP"
       className="w-full h-40 object-cover rounded-xl border border-gray-200"
       onError={() => setBroken(true)}
     />
@@ -157,8 +159,8 @@ function DriverDrawer({
         <div className="p-6 space-y-5 flex-1">
           {/* Photo + Status */}
           <div className="flex items-center gap-4">
-            {driver.photo_profile_url ? (
-              <img src={driver.photo_profile_url} alt="" className="w-16 h-16 rounded-full object-cover border border-gray-200" />
+            {getFileUrl(driver.photo_profile_url) ? (
+              <img src={getFileUrl(driver.photo_profile_url)!} alt="" className="w-16 h-16 rounded-full object-cover border border-gray-200" />
             ) : (
               <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-xl font-bold text-gray-400">
                 {driver.name?.[0]?.toUpperCase()}
@@ -421,8 +423,8 @@ export default function BumdesKurirPage() {
                 onClick={() => setSelected(d)}
                 className="w-full text-left px-5 py-4 hover:bg-gray-50/80 transition-colors flex items-center gap-4"
               >
-                {d.photo_profile_url ? (
-                  <img src={d.photo_profile_url} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+                {getFileUrl(d.photo_profile_url) ? (
+                  <img src={getFileUrl(d.photo_profile_url)!} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200 flex-shrink-0" />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-400 flex-shrink-0">
                     {d.name?.[0]?.toUpperCase()}
