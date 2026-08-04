@@ -84,7 +84,7 @@ class ProductController extends Controller
                     'images',
                     'variants.options',
                     'category',
-                    'umkmProfile:id,shop_name,slug,logo,description',
+                    'umkmProfile:id,shop_name,slug,logo,banner,description,owner_name,city,rating',
                     'activeDiscount',
                 ])
                 ->first();

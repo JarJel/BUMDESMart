@@ -150,7 +150,7 @@ export default function DaftarKurirPage() {
       fd.append("name",                 form.name);
       fd.append("email",                form.email);
       fd.append("phone",                form.phone);
-      fd.append("id_number",            form.id_number);
+      if (form.id_number)   fd.append("id_number",            form.id_number);
       fd.append("password",             form.password);
       fd.append("password_confirmation",form.password_confirmation);
       fd.append("vehicle_type",         form.vehicle_type);
@@ -170,10 +170,28 @@ export default function DaftarKurirPage() {
       toast.success("Pendaftaran berhasil! Akun kamu sedang diverifikasi.");
       router.push("/login?registered=kurir");
     } catch (err: any) {
-      const errs = err.response?.data?.errors;
+      const errs = err.response?.data?.errors as Record<string, string[]> | undefined;
       if (errs) {
-        const first = Object.values(errs)[0] as string[];
-        toast.error(first[0]);
+        const fieldMessages: Record<string, string> = {
+          email:              "Email sudah terdaftar, gunakan email lain.",
+          bumdes_profile_id:  "BUMDes tidak valid, silakan pilih ulang.",
+          name:               "Nama lengkap tidak valid.",
+          phone:              "Nomor HP tidak valid.",
+          id_number:          "Nomor KTP harus 16 digit angka.",
+          password:           "Password minimal 8 karakter.",
+          password_confirmation: "Konfirmasi password tidak cocok.",
+          vehicle_brand:      "Merek kendaraan wajib diisi.",
+          vehicle_plate:      "Nomor plat tidak valid.",
+          vehicle_year:       "Tahun kendaraan tidak valid.",
+          sim_type:           "Jenis SIM tidak valid.",
+        };
+        const step1Fields = ["email","bumdes_profile_id","name","phone","id_number","password","password_confirmation"];
+        const step3Fields = ["vehicle_brand","vehicle_plate","vehicle_year","sim_type","vehicle_type"];
+        const failedField = Object.keys(errs)[0];
+        if (step1Fields.includes(failedField)) setStep(1);
+        else if (step3Fields.includes(failedField)) setStep(3);
+        const msg = fieldMessages[failedField] ?? (Object.values(errs)[0] as string[])[0];
+        toast.error(msg);
       } else {
         toast.error(err.response?.data?.message ?? "Pendaftaran gagal. Coba lagi.");
       }
