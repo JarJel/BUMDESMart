@@ -86,6 +86,7 @@ class ProductController extends Controller
                     'category',
                     'umkmProfile:id,shop_name,slug,logo,banner,description,owner_name,city,rating',
                     'activeDiscount',
+                    'reviews.customer.user:id,name',
                 ])
                 ->first();
 
