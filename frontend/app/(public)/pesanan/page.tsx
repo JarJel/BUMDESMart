@@ -2,18 +2,19 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { orderApi } from "@/lib/api/checkout";
 
-function formatRupiah(n: number) { return "Rp " + n.toLocaleString("id-ID"); }
+function formatRupiah(n: number) { return "Rp " + Math.round(n).toLocaleString("id-ID"); }
 
 const STATUS_TABS = [
-  { label: "Semua", value: "" },
+  { label: "Semua",         value: "" },
   { label: "Menunggu Bayar", value: "pending" },
-  { label: "Dikonfirmasi", value: "confirmed" },
-  { label: "Diproses", value: "processing" },
-  { label: "Dikirim", value: "shipped" },
-  { label: "Selesai", value: "delivered" },
-  { label: "Dibatalkan", value: "cancelled" },
+  { label: "Dikonfirmasi",  value: "confirmed" },
+  { label: "Diproses",      value: "processing" },
+  { label: "Dikirim",       value: "shipped" },
+  { label: "Selesai",       value: "delivered" },
+  { label: "Dibatalkan",    value: "cancelled" },
 ];
 
 const STATUS_COLOR: Record<string, { bg: string; text: string; label: string }> = {
@@ -26,17 +27,13 @@ const STATUS_COLOR: Record<string, { bg: string; text: string; label: string }> 
   cancelled:  { bg: "#FEE2E2", text: "#991B1B", label: "Dibatalkan" },
 };
 
-const getAssetUrl = (path: string | undefined) => {
-  if (!path) return "";
-  if (path.startsWith("http")) return path;
-  const base = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1").replace("/api/v1", "");
-  return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
-};
+import { getProductImgUrl as getImgUrl } from "@/lib/storage";
 
 export default function PesananPage() {
-  const [orders, setOrders] = useState<any[]>([]);
+  const router = useRouter();
+  const [orders, setOrders]     = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]   = useState(true);
 
   const fetchOrders = async (status?: string) => {
     setLoading(true);
@@ -53,18 +50,36 @@ export default function PesananPage() {
   useEffect(() => { fetchOrders(activeTab || undefined); }, [activeTab]);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Pesanan Saya</h1>
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+
+      {/* Header dengan tombol kembali */}
+      <div className="flex items-center gap-3 mb-5">
+        <button
+          onClick={() => router.back()}
+          className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-white border border-gray-100 transition-colors shrink-0"
+          aria-label="Kembali"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h1 className="text-lg font-bold text-gray-900 flex-1">Pesanan Saya</h1>
+        <Link href="/" className="text-xs text-gray-400 hover:text-green-700 transition-colors">
+          Beranda
+        </Link>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
+      {/* Filter tabs — scroll horizontal di mobile */}
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-5 scrollbar-hide">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
-            className={`shrink-0 text-xs font-medium px-4 py-2 rounded-full border transition-colors ${activeTab === tab.value ? "text-white border-transparent" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+            className={`shrink-0 text-xs font-medium px-4 py-2 rounded-full border transition-colors ${
+              activeTab === tab.value
+                ? "text-white border-transparent"
+                : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
+            }`}
             style={activeTab === tab.value ? { background: "var(--primary)" } : {}}
           >
             {tab.label}
@@ -73,56 +88,87 @@ export default function PesananPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
+        <div className="flex justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-green-600" />
         </div>
       ) : orders.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-gray-400 text-sm">Tidak ada pesanan.</p>
-          <Link href="/produk" className="mt-4 inline-block px-5 py-2 rounded-xl text-white text-sm font-semibold" style={{ background: "var(--primary)" }}>
+        <div className="text-center py-20">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center">
+            <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <p className="text-gray-500 text-sm font-medium">Tidak ada pesanan</p>
+          <p className="text-gray-400 text-xs mt-1 mb-5">
+            {activeTab ? "Coba pilih status lain" : "Mulai belanja produk UMKM desa"}
+          </p>
+          <Link
+            href="/produk"
+            className="inline-block px-6 py-2.5 rounded-xl text-white text-sm font-semibold"
+            style={{ background: "var(--primary)" }}
+          >
             Mulai Belanja
           </Link>
         </div>
       ) : (
         <div className="space-y-3">
           {orders.map((order: any) => {
-            const sc = STATUS_COLOR[order.status] || { bg: "#F3F4F6", text: "#6B7280", label: order.status };
+            const sc        = STATUS_COLOR[order.status] || { bg: "#F3F4F6", text: "#6B7280", label: order.status };
             const firstItem = order.items?.[0];
-            const imgUrl = getAssetUrl(firstItem?.product?.images?.[0]?.image_path);
+            const imgUrl    = getImgUrl(firstItem?.product);
             const moreItems = (order.items?.length || 0) - 1;
 
             return (
-              <Link key={order.id} href={`/pesanan/${order.id}`} className="block">
-                <div className="bg-white rounded-xl border border-gray-100 p-4 hover:border-gray-200 transition-all">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-xs text-gray-500">#{order.order_code}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{order.umkm_profile?.shop_name}</p>
+              <Link key={order.id} href={`/pesanan/${order.id}`} className="block group">
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:border-gray-200 hover:shadow-sm transition-all">
+                  {/* Order header */}
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-gray-600 truncate">#{order.order_code}</p>
+                      {order.umkm_profile?.shop_name && (
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">{order.umkm_profile.shop_name}</p>
+                      )}
                     </div>
-                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: sc.bg, color: sc.text }}>
+                    <span
+                      className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                      style={{ background: sc.bg, color: sc.text }}
+                    >
                       {sc.label}
                     </span>
                   </div>
 
+                  {/* Produk preview */}
                   <div className="flex items-center gap-3 mb-3">
-                    {firstItem && (
-                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0">
-                        {imgUrl ? (
-                          <img src={imgUrl} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-gray-200" />
-                        )}
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{firstItem?.product?.name}</p>
-                      {moreItems > 0 && <p className="text-xs text-gray-400">+{moreItems} produk lainnya</p>}
+                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
+                      {imgUrl ? (
+                        <img
+                          src={imgUrl}
+                          alt={firstItem?.product?.name ?? ""}
+                          className="w-full h-full object-cover"
+                          onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                        />
+                      ) : (
+                        <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {firstItem?.product?.name ?? firstItem?.product_name ?? "Produk"}
+                      </p>
+                      {moreItems > 0 && (
+                        <p className="text-xs text-gray-400">+{moreItems} produk lainnya</p>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                    <p className="text-xs text-gray-500">{order.items?.length || 0} produk</p>
-                    <p className="text-sm font-bold" style={{ color: "var(--primary)" }}>{formatRupiah(Number(order.total))}</p>
+                  {/* Footer */}
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+                    <p className="text-xs text-gray-400">{order.items?.length || 0} produk</p>
+                    <p className="text-sm font-bold" style={{ color: "var(--primary)" }}>
+                      {formatRupiah(Number(order.total))}
+                    </p>
                   </div>
                 </div>
               </Link>

@@ -13,8 +13,11 @@ export interface ProductVariantOption {
   id: number
   variant_id: number
   value: string
-  price_adjustment: string | number
+  price: string | number
+  price_adjustment?: string | number
   stock: number
+  weight?: number | null
+  is_active?: boolean
 }
 
 export interface ProductVariant {

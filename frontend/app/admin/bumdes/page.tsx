@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
@@ -218,10 +219,16 @@ export default function AdminBumdesPage() {
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">Admin: {b.user?.name} · {b.user?.email}</p>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${b.status === "active" ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                     {b.status === "active" ? "Aktif" : "Nonaktif"}
                   </span>
+                  <Link
+                    href={`/admin/bumdes/${b.id}`}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-medium whitespace-nowrap"
+                  >
+                    Detail
+                  </Link>
                   <button
                     onClick={() => handleToggleStatus(b)}
                     className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium whitespace-nowrap"

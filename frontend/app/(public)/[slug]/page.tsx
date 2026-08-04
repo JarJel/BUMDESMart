@@ -10,6 +10,7 @@ import { productApi } from "@/lib/api/product";
 import { Dokumen } from "@/lib/data/dummy";
 import { cartApi } from "@/lib/api/cart";
 import { useToast } from "@/components/ui/Toast";
+import { getFileUrl } from "@/lib/storage";
 
 function StarIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -207,13 +208,7 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
       {/* Banner */}
       <div className="relative overflow-hidden bg-gray-50 flex items-center justify-center" style={{ height: "clamp(160px, 25vw, 320px)" }}>
         <img
-          src={
-            banner
-              ? (banner.startsWith('http')
-                  ? banner
-                  : `${(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "")}${banner.startsWith('/') ? banner : `/${banner}`}`)
-              : 'https://placehold.co/1200x400?text=No+Banner'
-          }
+          src={getFileUrl(banner) ?? 'https://placehold.co/1200x400?text=No+Banner'}
           alt={shopName}
           className="w-full h-full object-cover"
           onError={(e) => {
@@ -237,13 +232,7 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
           <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 flex items-end gap-4">
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-2 border-white/30 overflow-hidden shrink-0 flex items-center justify-center bg-gray-100">
               <img
-                src={
-                  toko.logo
-                    ? (toko.logo.startsWith('http')
-                        ? toko.logo
-                        : `${(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "")}${toko.logo.startsWith('/') ? toko.logo : `/${toko.logo}`}`)
-                    : 'https://placehold.co/150x150?text=Shop'
-                }
+                src={getFileUrl(toko.logo) ?? 'https://placehold.co/150x150?text=Shop'}
                 alt={shopName}
                 className="w-full h-full object-cover"
                 onError={(e) => {

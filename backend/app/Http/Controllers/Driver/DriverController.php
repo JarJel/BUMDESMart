@@ -90,6 +90,25 @@ class DriverController extends Controller
         return response()->json(['message' => 'Profil berhasil diperbarui.', 'data' => $profile->fresh()]);
     }
 
+    public function uploadPhoto(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'photo_profile' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $profile  = $this->getProfile($request);
+        $filePath = \App\Helpers\ImageHelper::uploadAsWebp($request->file('photo_profile'), 'driver/photos');
+        $profile->update(['photo_profile' => $filePath]);
+
+        return response()->json([
+            'message'       => 'Foto profil berhasil diperbarui.',
+            'photo_profile' => $filePath,
+        ]);
+    }
+
     public function toggleAvailability(Request $request)
     {
         $profile = $this->getProfile($request);
@@ -137,8 +156,14 @@ class DriverController extends Controller
 
         $orders = Order::where('status', 'confirmed')
             ->whereNull('driver_id')
+            ->where('delivery_type', 'delivered')
+            ->where(function ($q) {
+                $q->whereNull('shipping_method')
+                  ->orWhere('shipping_method', 'not like', 'ekspedisi-%');
+            })
             ->with([
                 'items.product',
+                'items.variantOption',
                 'address',
                 'umkmProfile:id,shop_name,logo,address,latitude,longitude,phone',
                 'customer.user:id,name,phone',
@@ -223,11 +248,20 @@ class DriverController extends Controller
         $userId = $request->user()->id;
 
         $order = Order::where(function ($q) use ($userId) {
-                $q->where('status', 'confirmed')->whereNull('driver_id')
+                $q->where(function ($q2) {
+                        $q2->where('status', 'confirmed')
+                           ->whereNull('driver_id')
+                           ->where('delivery_type', 'delivered')
+                           ->where(function ($q3) {
+                               $q3->whereNull('shipping_method')
+                                  ->orWhere('shipping_method', 'not like', 'ekspedisi-%');
+                           });
+                    })
                   ->orWhere('driver_id', $userId);
             })
             ->with([
                 'items.product.images',
+                'items.variantOption',
                 'address',
                 'umkmProfile:id,shop_name,logo,address,latitude,longitude,phone',
                 'customer.user:id,name,phone',
@@ -282,6 +316,7 @@ class DriverController extends Controller
             ->whereNotIn('status', ['delivered', 'cancelled'])
             ->with([
                 'items.product.primaryImage',
+                'items.variantOption',
                 'address',
                 'customer.user:id,name,phone',
                 'umkmProfile:id,shop_name,address,phone,latitude,longitude',
@@ -328,7 +363,12 @@ class DriverController extends Controller
 
         $order = Order::whereNull('driver_id')
             ->where('status', 'confirmed')
-            ->with('items.product')
+            ->where('delivery_type', 'delivered')
+            ->where(function ($q) {
+                $q->whereNull('shipping_method')
+                  ->orWhere('shipping_method', 'not like', 'ekspedisi-%');
+            })
+            ->with(['items.product', 'items.variantOption'])
             ->findOrFail($id);
 
         $totalWeight = $order->items->sum(fn($i) => ($i->product?->weight ?? 0) * $i->quantity);
@@ -355,7 +395,7 @@ class DriverController extends Controller
 
         return response()->json([
             'message' => 'Pesanan berhasil diambil. Segera menuju toko!',
-            'data'    => $order->fresh(['items.product', 'address', 'umkmProfile']),
+            'data'    => $order->fresh(['items.product', 'items.variantOption', 'address', 'umkmProfile']),
         ]);
     }
 
@@ -465,7 +505,7 @@ class DriverController extends Controller
         $userId = $request->user()->id;
         $orders = Order::where('driver_id', $userId)
             ->whereIn('status', ['delivered', 'cancelled'])
-            ->with(['items.product', 'address', 'customer.user'])
+            ->with(['items.product', 'items.variantOption', 'address', 'customer.user'])
             ->latest()
             ->paginate(20);
         return response()->json(['data' => $orders]);

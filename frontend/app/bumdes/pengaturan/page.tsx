@@ -361,6 +361,62 @@ export default function BumdesPengaturanPage() {
         </div>
       </form>
 
+      {/* Editable: Biaya Layanan Pembeli */}
+      <form onSubmit={handleSaveServiceFee}>
+        <div className="bg-white rounded-2xl border border-green-100 shadow-sm p-6 space-y-5">
+          <div>
+            <SectionHeader title="Biaya Layanan Pembeli" />
+            <p className="text-xs text-gray-500 mt-1">
+              Dibebankan ke pembeli saat checkout (bukan ke seller). Maksimal Rp 50.000. Isi 0 untuk tidak membebankan biaya.
+            </p>
+          </div>
+
+          {profile && profile.buyer_service_fee > 0 && (
+            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
+              <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-xs text-blue-700">
+                Aktif: pembeli dikenakan biaya layanan <span className="font-semibold">{rupiah(profile.buyer_service_fee)}</span> per transaksi.
+              </p>
+            </div>
+          )}
+
+          {serviceFeeError && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">{serviceFeeError}</div>
+          )}
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Nominal Biaya Layanan (Rp)</label>
+            <div className="relative w-48">
+              <input
+                type="number"
+                value={serviceFeeValue}
+                onChange={e => setServiceFeeValue(e.target.value)}
+                min={0}
+                max={50000}
+                step={500}
+                placeholder="0"
+                className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
+              />
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">Rp</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Contoh: isi 2000 → pembeli bayar +Rp 2.000 di setiap checkout.</p>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={savingServiceFee}
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+              style={{ background: "#2D6A4F" }}
+            >
+              {savingServiceFee ? "Menyimpan..." : "Simpan Biaya Layanan"}
+            </button>
+          </div>
+        </div>
+      </form>
+
     </div>
   );
 }

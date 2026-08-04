@@ -42,14 +42,9 @@ class DriverController extends Controller
 
         $drivers = $query->latest()->paginate(20);
 
-        // Prefix storage URL for photos
         $drivers->getCollection()->transform(function ($driver) {
-            if ($driver->photo_profile) {
-                $driver->photo_profile_url = asset('storage/' . $driver->photo_profile);
-            }
-            if ($driver->photo_ktp) {
-                $driver->photo_ktp_url = asset('storage/' . $driver->photo_ktp);
-            }
+            $driver->photo_profile_url = $driver->photo_profile ?: null;
+            $driver->photo_ktp_url     = $driver->photo_ktp     ?: null;
             return $driver;
         });
 
@@ -61,12 +56,8 @@ class DriverController extends Controller
         $driver = DriverProfile::with('user:id,name,email,phone,created_at')
             ->findOrFail($id);
 
-        if ($driver->photo_profile) {
-            $driver->photo_profile_url = asset('storage/' . $driver->photo_profile);
-        }
-        if ($driver->photo_ktp) {
-            $driver->photo_ktp_url = asset('storage/' . $driver->photo_ktp);
-        }
+        $driver->photo_profile_url = $driver->photo_profile ?: null;
+        $driver->photo_ktp_url     = $driver->photo_ktp     ?: null;
 
         return response()->json(['data' => $driver]);
     }

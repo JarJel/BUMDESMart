@@ -451,7 +451,7 @@ class CheckoutController extends Controller
             'address_id'            => 'required|integer|exists:addresses,id',
             'delivery_type'         => 'required|in:delivered,pickup',
             'shipping_method_id'    => 'nullable|string', // kurir-lokal | pickup | ekspedisi-jne-reg | dll
-            'shipping_cost_override'=> 'nullable|integer|min:0', // ongkir dari RajaOngkir (dikirim FE)
+            'shipping_cost_override'=> 'nullable|integer|min:1000|max:2000000', // ongkir ekspedisi dari FE (batas wajar)
             'vehicle_type'          => 'nullable|in:motor,mobil', // deprecated — dibaca dari shipping_method_id
             'notes'                 => 'nullable|string|max:500',
             'product_id'            => 'nullable|integer|exists:products,id',
@@ -493,8 +493,15 @@ class CheckoutController extends Controller
             $disc           = $product->activeDiscount;
             $discountAmount = $disc ? ($basePrice - $disc->calculateDiscountedPrice($basePrice)) : 0;
 
-            if ($product->stock < $qty) {
-                return response()->json(['success' => false, 'message' => "Stok {$product->name} tidak mencukupi."], 422);
+            if ($product->has_variant && isset($validated['variant_id'])) {
+                $variant = ProductVariantOption::find($validated['variant_id']);
+                if (!$variant || $variant->stock < $qty) {
+                    return response()->json(['success' => false, 'message' => "Stok {$product->name} tidak mencukupi."], 422);
+                }
+            } else {
+                if ($product->stock < $qty) {
+                    return response()->json(['success' => false, 'message' => "Stok {$product->name} tidak mencukupi."], 422);
+                }
             }
 
             $rawItems[] = [
@@ -529,7 +536,8 @@ class CheckoutController extends Controller
                 $disc           = $product->activeDiscount;
                 $discountAmount = $disc ? ($basePrice - $disc->calculateDiscountedPrice($basePrice)) : 0;
 
-                if ($product->stock < $ci->quantity) {
+                $availableStock = $ci->variant ? $ci->variant->stock : $product->stock;
+                if ($availableStock < $ci->quantity) {
                     return response()->json(['success' => false, 'message' => "Stok {$product->name} tidak mencukupi."], 422);
                 }
 
@@ -694,6 +702,7 @@ class CheckoutController extends Controller
                     'status'          => 'pending',
                     'notes'           => $validated['notes'] ?? null,
                     'delivery_type'   => $deliveryType,
+                    'shipping_method' => $shippingMethodId,
                     'promotion_id'    => $orderPromotionId,
                 ]);
 

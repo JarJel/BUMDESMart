@@ -105,6 +105,30 @@ class AuthController extends Controller
             'bank_account_name'   => 'nullable|string|max:100',
             'photo_profile'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'photo_ktp'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ], [
+            'email.unique'             => 'Email sudah terdaftar, gunakan email lain.',
+            'email.required'           => 'Email wajib diisi.',
+            'email.email'              => 'Format email tidak valid.',
+            'password.min'             => 'Password minimal 8 karakter.',
+            'password.confirmed'       => 'Konfirmasi password tidak cocok.',
+            'name.required'            => 'Nama lengkap wajib diisi.',
+            'phone.required'           => 'Nomor HP wajib diisi.',
+            'bumdes_profile_id.required' => 'BUMDes wajib dipilih.',
+            'bumdes_profile_id.exists'   => 'BUMDes yang dipilih tidak valid.',
+            'vehicle_type.required'    => 'Jenis kendaraan wajib dipilih.',
+            'vehicle_type.in'          => 'Jenis kendaraan tidak valid.',
+            'vehicle_brand.required'   => 'Merek kendaraan wajib diisi.',
+            'vehicle_plate.required'   => 'Nomor plat wajib diisi.',
+            'vehicle_year.integer'     => 'Tahun kendaraan harus berupa angka.',
+            'vehicle_year.min'         => 'Tahun kendaraan minimal 1990.',
+            'vehicle_year.max'         => 'Tahun kendaraan tidak valid.',
+            'sim_type.required'        => 'Jenis SIM wajib dipilih.',
+            'sim_type.in'              => 'Jenis SIM tidak valid.',
+            'id_number.digits'         => 'Nomor KTP harus tepat 16 digit angka.',
+            'photo_profile.image'      => 'File foto profil harus berupa gambar.',
+            'photo_profile.max'        => 'Ukuran foto profil maksimal 5MB.',
+            'photo_ktp.image'          => 'File foto KTP harus berupa gambar.',
+            'photo_ktp.max'            => 'Ukuran foto KTP maksimal 5MB.',
         ]);
 
         if ($validator->fails()) {
@@ -239,13 +263,13 @@ class AuthController extends Controller
         }
 
         // 1. Generate 6-digit OTP
-        $otp = (string) rand(100000, 999999);
+        $otp = (string) random_int(100000, 999999);
 
-        // 2. Simpan OTP ke tabel password_reset_tokens
+        // 2. Simpan OTP ke tabel password_reset_tokens (tersimpan sebagai hash)
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $request->email],
             [
-                'token' => $otp,
+                'token' => Hash::make($otp),
                 'created_at' => now(),
             ]
         );
@@ -284,7 +308,7 @@ class AuthController extends Controller
             ->first();
 
         // 2. Validasi kecocokan OTP dan masa berlaku (15 menit)
-        if (!$resetRecord || $resetRecord->token !== $request->otp) {
+        if (!$resetRecord || !Hash::check($request->otp, $resetRecord->token)) {
             return response()->json([
                 'errors' => [
                     'otp' => ['Kode OTP salah atau tidak valid.']
@@ -395,10 +419,10 @@ class AuthController extends Controller
 
             if (!$user) {
                 // Buat user baru (Customer)
-                $user = \App\Models\User::create([
+                $user = \App\Models\User::forceCreate([
                     'name' => $name,
                     'email' => $email,
-                    'password' => Hash::make(Str::random(24)), // Password acak
+                    'password' => Hash::make(Str::random(24)),
                     'role' => 'customer',
                     'phone' => '',
                     'avatar' => $avatar,

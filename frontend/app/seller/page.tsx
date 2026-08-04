@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSellerProfile } from "@/lib/context/sellerProfile";
 import { ProductData } from "@/lib/api/product";
 import api from "@/lib/api/axios";
+import { getFileUrl } from "@/lib/storage";
 
 interface DiscountData {
   id: number;
@@ -24,7 +25,6 @@ export default function SellerSummaryPage() {
   const [todayOrders, setTodayOrders] = useState<number>(0);
   const [activeDiscounts, setActiveDiscounts] = useState<DiscountData[]>([]);
 
-  const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<any | null>(null);
@@ -226,7 +226,7 @@ export default function SellerSummaryPage() {
               const finalPrice = discountedPrice(d);
               const stock = d.product?.stock ?? 0;
               const imgPath = d.product?.primary_image?.file_path;
-              const imgUrl = imgPath ? (imgPath.startsWith("http") ? imgPath : `${BASE_URL}/${imgPath}`) : null;
+              const imgUrl = imgPath ? (getFileUrl(imgPath)) : null;
               const endDate = new Date(d.end_date);
               const daysLeft = Math.ceil((endDate.getTime() - Date.now()) / 86400000);
               return (
@@ -293,7 +293,7 @@ export default function SellerSummaryPage() {
               <tbody>
                 {products.slice(0, 5).map(p => {
                   const imgPath = p.primary_image?.file_path ?? p.images?.[0]?.file_path;
-                  const imgUrl = imgPath ? (imgPath.startsWith("http") ? imgPath : `${BASE_URL}/${imgPath}`) : null;
+                  const imgUrl = imgPath ? (getFileUrl(imgPath)) : null;
                   const statusLabel = { active: "Aktif", inactive: "Arsip", draft: "Draft" }[p.status] ?? p.status;
                   const badgeClass = { active: "bg-green-50 text-green-700", inactive: "bg-gray-100 text-gray-500", draft: "bg-yellow-50 text-yellow-700" }[p.status] ?? "bg-gray-100 text-gray-500";
                   return (
@@ -355,7 +355,7 @@ export default function SellerSummaryPage() {
             {announcements.slice(0, 5).map((ann) => {
               const firstPhoto = ann.photos?.[0];
               const photoUrl = firstPhoto
-                ? (firstPhoto.startsWith("http") ? firstPhoto : `${BASE_URL}${firstPhoto}`)
+                ? (getFileUrl(firstPhoto))
                 : null;
               const catColors: Record<string, string> = {
                 pengumuman: "bg-blue-50 text-blue-700", pelatihan: "bg-purple-50 text-purple-700",
@@ -450,7 +450,7 @@ export default function SellerSummaryPage() {
                 const AnnPhotoSlider = () => {
                   const [pidx, setPidx] = useState(0);
                   const photoUrls = (selectedAnnouncement.photos as string[]).map((p) =>
-                    p.startsWith("http") ? p : `${BASE_URL}${p}`
+                    getFileUrl(p) ?? ""
                   );
                   return (
                     <div className="relative w-full aspect-video bg-gray-100 rounded-xl overflow-hidden">

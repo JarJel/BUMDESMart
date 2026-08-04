@@ -119,7 +119,7 @@ class WebhookController extends Controller
         return response()->json(['message' => 'ok']);
     }
 
-    // Dipanggil saat seller/driver mengupdate order ke 'delivered'
+    // Dipanggil saat order selesai (delivered, completed pickup)
     public function triggerDisbursement(Order $order): void
     {
         $payment = $order->payment;

@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { addressApi, AddressData } from "@/lib/api/address";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { getFileUrl } from "@/lib/storage";
 
 const tabs = ["Profil Saya", "Alamat", "Keamanan"];
 
@@ -255,7 +256,7 @@ export default function ProfilPage() {
             <div className="relative w-16 h-16 mx-auto mb-3 group">
               {user?.avatar ? (
                 <img
-                  src={user.avatar.startsWith('http') ? user.avatar : `${(process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "")}${user.avatar}`}
+                  src={getFileUrl(user.avatar) ?? ""}
                   alt={form.name}
                   className="w-16 h-16 rounded-full object-cover border border-gray-100"
                 />

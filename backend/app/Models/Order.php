@@ -26,6 +26,7 @@ class Order extends Model
         'status',
         'notes',
         'delivery_type',
+        'shipping_method',
         'driver_id',
         'pickup_photo',
         'delivered_photo',

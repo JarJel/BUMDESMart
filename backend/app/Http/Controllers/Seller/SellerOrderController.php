@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\WebhookController;
 use App\Models\DriverProfile;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderHistory;
+use App\Models\Shipment;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class SellerOrderController extends Controller
 {
@@ -21,6 +22,13 @@ class SellerOrderController extends Controller
         return $umkm;
     }
 
+    private function deliveryMode(Order $order): string
+    {
+        if ($order->delivery_type === 'pickup') return 'pickup';
+        if (str_starts_with($order->shipping_method ?? '', 'ekspedisi-')) return 'ekspedisi';
+        return 'kurir_lokal';
+    }
+
     public function index(Request $request)
     {
         $umkm = $this->getUmkm($request);
@@ -31,6 +39,7 @@ class SellerOrderController extends Controller
             'customer.user:id,name,email,phone',
             'address:id,label,address,city,province,postal_code,recipient_name,phone',
             'driver:id,name,phone',
+            'shipment:id,order_id,tracking_number,status',
         ])->where('umkm_profile_id', $umkm->id);
 
         if ($request->filled('status')) {
@@ -55,6 +64,7 @@ class SellerOrderController extends Controller
             'items.variantOption:id,value',
             'customer.user:id,name,email,phone',
             'address',
+            'shipment:id,order_id,tracking_number,status,shipped_at',
             'histories' => fn($q) => $q->latest(),
         ])->where('umkm_profile_id', $umkm->id)->findOrFail($id);
 
@@ -65,21 +75,37 @@ class SellerOrderController extends Controller
     {
         $umkm  = $this->getUmkm($request);
         $order = Order::where('umkm_profile_id', $umkm->id)->findOrFail($id);
+        $mode  = $this->deliveryMode($order);
 
-        // Seller hanya bisa konfirmasi atau batalkan (kurir yang handle sisanya)
-        $allowed = [
-            'pending' => ['confirmed', 'cancelled'],
-        ];
+        // Transisi yang diizinkan per mode pengiriman
+        $allowed = match($mode) {
+            'pickup' => [
+                'pending'          => ['confirmed', 'cancelled'],
+                'confirmed'        => ['ready_for_pickup'],
+                'ready_for_pickup' => ['completed'],
+            ],
+            'ekspedisi' => [
+                'pending'   => ['confirmed', 'cancelled'],
+                'confirmed' => ['shipped'],
+            ],
+            default => [ // kurir_lokal — kurir yang handle setelah confirmed
+                'pending' => ['confirmed', 'cancelled'],
+            ],
+        };
+
+        $validNext = $allowed[$order->status] ?? [];
 
         $validated = $request->validate([
-            'status' => ['required', 'string', Rule::in(['confirmed', 'cancelled'])],
-            'note'   => 'nullable|string|max:300',
+            'status'          => ['required', 'string', 'in:' . implode(',', array_merge(
+                ['confirmed', 'cancelled', 'ready_for_pickup', 'completed', 'shipped']
+            ))],
+            'tracking_number' => 'required_if:status,shipped|nullable|string|max:100',
+            'note'            => 'nullable|string|max:300',
         ]);
 
-        $newStatus    = $validated['status'];
-        $canTransition = in_array($newStatus, $allowed[$order->status] ?? []);
+        $newStatus = $validated['status'];
 
-        if (!$canTransition) {
+        if (!in_array($newStatus, $validNext)) {
             return response()->json([
                 'message' => "Tidak dapat mengubah status dari '{$order->status}' ke '{$newStatus}'.",
             ], 422);
@@ -87,38 +113,43 @@ class SellerOrderController extends Controller
 
         $order->update(['status' => $newStatus]);
 
-        // Notifikasi ke pembeli saat status berubah
-        $order->load('customer.user');
-        $buyerUserId = $order->customer?->user?->id;
-        if ($buyerUserId) {
-            $buyerMessages = [
-                'confirmed'  => "Pesanan #{$order->order_code} sedang disiapkan oleh penjual.",
-                'cancelled'  => "Pesanan #{$order->order_code} dibatalkan oleh penjual.",
-            ];
-            if (isset($buyerMessages[$newStatus])) {
-                Notification::send(
-                    $buyerUserId,
-                    $newStatus === 'confirmed' ? 'Pesanan Sedang Disiapkan' : 'Pesanan Dibatalkan',
-                    $buyerMessages[$newStatus],
-                    'order_' . $newStatus,
-                    'order',
-                    $order->id
-                );
-            }
+        // Pickup selesai diambil pembeli — langsung cairkan ke seller & BUMDes
+        if ($newStatus === 'completed' && $mode === 'pickup') {
+            app(WebhookController::class)->triggerDisbursement($order->fresh(['payment', 'umkmProfile.bumdesProfile']));
         }
 
-        $descriptions = [
-            'confirmed'  => 'Pesanan dikonfirmasi oleh penjual.',
-            'processing' => 'Pesanan sedang diproses/dikemas.',
-            'shipped'    => 'Pesanan telah dikirim.',
-            'cancelled'  => 'Pesanan dibatalkan oleh penjual.',
+        // Buat record Shipment saat ekspedisi di-shipped
+        if ($newStatus === 'shipped' && $mode === 'ekspedisi') {
+            Shipment::updateOrCreate(
+                ['order_id' => $order->id],
+                [
+                    'tracking_number' => $validated['tracking_number'],
+                    'status'          => 'shipped',
+                    'shipped_at'      => now(),
+                ]
+            );
+        }
+
+        // Notifikasi ke pembeli
+        $order->load('customer.user');
+        $buyerUserId = $order->customer?->user?->id;
+
+        $buyerNotifs = [
+            'confirmed'        => ['Pesanan Sedang Disiapkan',     "Pesanan #{$order->order_code} sedang disiapkan oleh penjual.", 'order'],
+            'cancelled'        => ['Pesanan Dibatalkan',            "Pesanan #{$order->order_code} dibatalkan oleh penjual.", 'order'],
+            'ready_for_pickup' => ['Pesanan Siap Diambil',          "Pesanan #{$order->order_code} siap diambil! Silakan datang ke toko.", 'order'],
+            'shipped'          => ['Pesanan Telah Dikirim',         "Pesanan #{$order->order_code} telah dikirim via ekspedisi. Cek nomor resi di detail pesanan.", 'order'],
+            'completed'        => ['Pesanan Selesai',               "Pesanan #{$order->order_code} telah selesai. Terima kasih!", 'order'],
         ];
 
-        // Notifikasi ke semua kurir yang sedang online saat order dikonfirmasi
-        if ($newStatus === 'confirmed') {
-            $driverUserIds = DriverProfile::where('is_available', true)
-                ->pluck('user_id')
-                ->toArray();
+        if ($buyerUserId && isset($buyerNotifs[$newStatus])) {
+            [$title, $body, $type] = $buyerNotifs[$newStatus];
+            Notification::send($buyerUserId, $title, $body, 'order_' . $newStatus, $type, $order->id);
+        }
+
+        // Notifikasi ke kurir yang available saat order kurir_lokal dikonfirmasi
+        if ($newStatus === 'confirmed' && $mode === 'kurir_lokal') {
+            $driverUserIds = DriverProfile::where('is_available', true)->pluck('user_id')->toArray();
             foreach ($driverUserIds as $driverUserId) {
                 Notification::send(
                     $driverUserId,
@@ -131,6 +162,14 @@ class SellerOrderController extends Controller
             }
         }
 
+        $descriptions = [
+            'confirmed'        => 'Pesanan dikonfirmasi oleh penjual.',
+            'cancelled'        => 'Pesanan dibatalkan oleh penjual.',
+            'ready_for_pickup' => 'Pesanan siap diambil oleh pembeli.',
+            'shipped'          => 'Pesanan dikirim via ekspedisi. No. resi: ' . ($validated['tracking_number'] ?? '-'),
+            'completed'        => 'Pesanan selesai — pembeli telah mengambil barang.',
+        ];
+
         OrderHistory::create([
             'order_id'    => $order->id,
             'user_id'     => $request->user()->id,
@@ -140,7 +179,7 @@ class SellerOrderController extends Controller
 
         return response()->json([
             'message' => 'Status pesanan berhasil diperbarui.',
-            'data'    => $order->fresh(),
+            'data'    => $order->fresh(['shipment']),
         ]);
     }
 }

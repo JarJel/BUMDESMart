@@ -20,6 +20,10 @@ export interface DriverOrderItem {
     weight: number;
     images?: { id: number; file_path: string }[];
   };
+  variant_option?: {
+    id: number;
+    value: string;
+  } | null;
 }
 
 export interface DriverPickupPoint {

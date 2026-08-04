@@ -12,6 +12,7 @@ import type { Dokumen } from "@/lib/data/dummy";
 import { productApi } from "@/lib/api/product";
 import { cartApi } from "@/lib/api/cart";
 import { useToast } from "@/components/ui/Toast";
+import { getFileUrl } from "@/lib/storage";
 
 function formatRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
@@ -92,6 +93,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
   
   const [showLoginAlert, setShowLoginAlert] = useState(false);
@@ -236,17 +238,14 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
 
   if (error || !produk) return notFound();
 
-  const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
-  const resolveImg = (p: string) => p.startsWith("http") || p.startsWith("data:") ? p : `${IMG_BASE}${p}`;
-  const defaultMainImage = produk.primary_image?.file_path
-    ? resolveImg(produk.primary_image.file_path)
-    : produk.images?.[0]?.file_path
-      ? resolveImg(produk.images[0].file_path)
-      : '/placeholder-product.jpg';
+  const resolveImg = (p: string | null | undefined) => getFileUrl(p) ?? '/placeholder-product.jpg';
+  const defaultMainImage = resolveImg(
+    produk.primary_image?.file_path ?? produk.images?.[0]?.file_path ?? null
+  );
   const mainImageUrl = selectedImage || defaultMainImage;
   const allImages = Array.from(new Set([
     defaultMainImage,
-    ...(produk.images || []).map((img: any) => `${IMG_BASE}${img.file_path}`)
+    ...(produk.images || []).map((img: any) => getFileUrl(img.file_path) ?? "")
   ].filter(Boolean) as string[]));
 
   const selectIndex = (idx: number) => {
@@ -288,6 +287,9 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
   
   // Hitung harga dinamis berdasarkan varian (options) atau diskon
   let activeVariant: any = null;
+  const allVariantOptions = (produk.variants ?? []).flatMap((v: any) => v.options ?? []);
+  const isVariantProduct = produk.has_variant && allVariantOptions.length > 0;
+
   if (produk.variants) {
     for (const v of produk.variants) {
       const found = v.options?.find((opt: any) => opt.id === selectedVariantId);
@@ -298,9 +300,17 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
     }
   }
 
+  // Effective price & stock: use variant data when product has variants
+  const effectivePrice = isVariantProduct
+    ? (activeVariant ? Number(activeVariant.price) : Math.min(...allVariantOptions.map((o: any) => Number(o.price))))
+    : price;
+  const effectiveStock = isVariantProduct
+    ? (activeVariant ? Number(activeVariant.stock) : allVariantOptions.reduce((sum: number, o: any) => sum + Number(o.stock), 0))
+    : produk.stock;
+
   const finalPrice = activeVariant 
     ? Number(activeVariant.price) 
-    : (activeDiscount ? Number(activeDiscount.discounted_price) : price);
+    : (activeDiscount ? Number(activeDiscount.discounted_price) : effectivePrice);
     
   const totalCartQty = cartItems.reduce((s, i) => s + i.quantity, 0);
 
@@ -476,16 +486,6 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
                 })}
               </div>
             )}
-            {/* Varian di bawah gambar — mengisi ruang kosong */}
-            {produk.variants && produk.variants.length > 0 && (
-              <div className="hidden sm:block">
-                <VariantSelector 
-                  variants={produk.variants}
-                  selectedId={selectedVariantId}
-                  onChange={setSelectedVariantId}
-                />
-              </div>
-            )}
           </div>
 
           {/* Kolom info */}
@@ -494,7 +494,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
               <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "var(--primary-muted)", color: "var(--primary)" }}>
                 {produk.category?.name || "Produk"}
               </span>
-              {produk.stock > 0
+              {effectiveStock > 0
                 ? <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-50 text-green-700">Tersedia</span>
                 : <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-50 text-red-600">Habis</span>
               }
@@ -549,18 +549,38 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
                     </p>
                   )}
                 </div>
+              ) : isVariantProduct && !activeVariant ? (
+                <div>
+                  <p className="text-base sm:text-2xl lg:text-3xl font-bold" style={{ color: "var(--primary)" }}>
+                    {(() => {
+                      const prices = allVariantOptions.map((o: any) => Number(o.price));
+                      const min = Math.min(...prices);
+                      const max = Math.max(...prices);
+                      return min === max
+                        ? `Rp ${min.toLocaleString("id-ID")}`
+                        : `Rp ${min.toLocaleString("id-ID")} – ${max.toLocaleString("id-ID")}`;
+                    })()}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">Pilih varian untuk melihat harga</p>
+                </div>
               ) : (
                 <p className="text-base sm:text-2xl lg:text-3xl font-bold" style={{ color: "var(--primary)" }}>
-                  Rp {price.toLocaleString("id-ID")}
+                  Rp {effectivePrice.toLocaleString("id-ID")}
                 </p>
               )}
             </div>
 
-            <p className="hidden sm:block text-xs text-gray-500 leading-relaxed mb-3 line-clamp-2">{produk.description}</p>
+            <p className="hidden sm:block text-xs text-gray-500 leading-relaxed mb-4 line-clamp-2">{produk.description}</p>
 
-            {/* Varian — hanya mobile */}
+            {/* Pilihan Varian (Ditempatkan di atas Qty & Beli) */}
             {produk.variants && produk.variants.length > 0 && (
-              <div className="block sm:hidden mb-4">
+              <div className="py-3 mb-4 border-t border-b border-gray-100 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Variasi</span>
+                  {!activeVariant && (
+                    <span className="text-[11px] text-amber-600 font-semibold animate-pulse">Pilih varian untuk checkout</span>
+                  )}
+                </div>
                 <VariantSelector 
                   variants={produk.variants}
                   selectedId={selectedVariantId}
@@ -570,7 +590,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
             )}
 
             {/* Qty + tombol */}
-            <QtyButtons stok={produk.stock} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />
+            <QtyButtons stok={effectiveStock} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />
           </div>
         </div>
 
@@ -626,34 +646,94 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
               {["Informasi Produk", "Ulasan", "Info Pengiriman"].map((tab, i) => (
                 <button
                   key={tab}
-                  className={`shrink-0 px-3 sm:px-5 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap cursor-pointer ${i === 0 ? "border-green-600 text-green-700" : "border-transparent text-gray-400 hover:text-gray-600"}`}
+                  onClick={() => setActiveTab(i)}
+                  className={`shrink-0 px-3 sm:px-5 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap cursor-pointer ${activeTab === i ? "border-green-600 text-green-700" : "border-transparent text-gray-400 hover:text-gray-600"}`}
                 >
                   {tab}
                 </button>
               ))}
             </div>
 
-            {/* Konten Tab */}
-            <div className="p-4 sm:p-6">
-              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed whitespace-pre-line mb-6">
-                {produk.description}
-              </p>
+            {/* Tab 0: Informasi Produk */}
+            {activeTab === 0 && (
+              <div className="p-4 sm:p-6">
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed whitespace-pre-line mb-6">
+                  {produk.description}
+                </p>
+                <h3 className="text-xs sm:text-sm font-bold text-gray-900 mb-3">Spesifikasi Produk</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "Asal Produk", val: toko?.city || "-" },
+                    { label: "Min. Pembelian", val: "1 pcs" },
+                    { label: "Penjual", val: toko?.owner_name || "-" },
+                    { label: "Kategori", val: produk.category?.name || "Produk" },
+                  ].map((row) => (
+                    <div key={row.label} className="bg-gray-50 rounded-xl p-3">
+                      <p className="text-xs text-gray-400 mb-0.5">{row.label}</p>
+                      <p className="text-xs sm:text-sm font-semibold text-gray-800 leading-snug">{row.val}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-              <h3 className="text-xs sm:text-sm font-bold text-gray-900 mb-3">Spesifikasi Produk</h3>
-              <div className="grid grid-cols-2 gap-3">
+            {/* Tab 1: Ulasan */}
+            {activeTab === 1 && (
+              <div className="p-4 sm:p-6">
+                {(produk.reviews ?? []).length === 0 ? (
+                  <div className="flex flex-col items-center py-10 text-center">
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                      <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-700">Belum ada ulasan</p>
+                    <p className="text-xs text-gray-400 mt-1">Jadilah yang pertama memberikan ulasan untuk produk ini.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {(produk.reviews as any[]).map((r: any, idx: number) => (
+                      <div key={idx} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center text-xs font-bold text-green-700">
+                            {(r.customer?.user?.name ?? "A")[0].toUpperCase()}
+                          </div>
+                          <span className="text-xs font-semibold text-gray-700">{r.customer?.user?.name ?? "Pembeli"}</span>
+                          <div className="flex gap-0.5 ml-auto">
+                            {[1,2,3,4,5].map(s => (
+                              <svg key={s} className={`w-3 h-3 ${s <= r.rating ? "text-yellow-400" : "text-gray-200"}`} fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            ))}
+                          </div>
+                        </div>
+                        {r.comment && <p className="text-xs text-gray-600 leading-relaxed pl-9">{r.comment}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tab 2: Info Pengiriman */}
+            {activeTab === 2 && (
+              <div className="p-4 sm:p-6 space-y-4">
                 {[
-                  { label: "Asal Produk", val: toko?.city || "Desa Lengkong" },
-                  { label: "Min. Pembelian", val: "1 pcs" },
-                  { label: "Penjual", val: toko?.owner_name || "-" },
-                  { label: "Kategori", val: produk.category?.name || "Produk" },
-                ].map((row) => (
-                  <div key={row.label} className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400 mb-0.5">{row.label}</p>
-                    <p className="text-xs sm:text-sm font-semibold text-gray-800 leading-snug">{row.val}</p>
+                  { icon: "🚚", title: "Pengiriman oleh Kurir BUMDESmart", desc: "Diantar langsung oleh kurir terverifikasi dari BUMDes sekitar. Estimasi 1–3 jam setelah pesanan dikonfirmasi." },
+                  { icon: "📦", title: "Pengemasan Aman", desc: "Produk dikemas oleh penjual sebelum diambil kurir. Pastikan produk sudah siap saat pesanan dikonfirmasi." },
+                  { icon: "📍", title: "Area Pengiriman", desc: `Pengiriman dalam area operasional BUMDes${toko?.bumdesProfile?.village ? " " + toko.bumdesProfile.village : ""}. Cek area coverage di halaman toko.` },
+                  { icon: "💳", title: "Pembayaran di Muka", desc: "Pembayaran dilakukan saat checkout. Pesanan akan diproses setelah pembayaran dikonfirmasi." },
+                ].map((item) => (
+                  <div key={item.title} className="flex gap-3">
+                    <span className="text-xl shrink-0">{item.icon}</span>
+                    <div>
+                      <p className="text-xs sm:text-sm font-semibold text-gray-800">{item.title}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{item.desc}</p>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
 

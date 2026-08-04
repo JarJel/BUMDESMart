@@ -61,7 +61,12 @@ class UserController extends Controller
             'role'   => ['sometimes', Rule::in(['super_admin', 'admin_bumdes', 'umkm', 'customer'])],
         ]);
 
+        if (isset($validated['role'])) {
+            $user->forceFill(['role' => $validated['role']]);
+            unset($validated['role']);
+        }
         $user->update($validated);
+        $user->save();
 
         return response()->json(['message' => 'Pengguna berhasil diperbarui.', 'data' => $user]);
     }

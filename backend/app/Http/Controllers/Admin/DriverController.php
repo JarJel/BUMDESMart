@@ -48,11 +48,11 @@ class DriverController extends Controller
         }
 
         $drivers = $query->latest()->get()->map(fn($d) => array_merge($d->toArray(), [
-            'name'             => $d->user?->name,
-            'email'            => $d->user?->email,
-            'phone'            => $d->user?->phone,
-            'photo_profile_url' => $d->photo_profile ? asset('storage/' . $d->photo_profile) : null,
-            'photo_ktp_url'    => $d->photo_ktp    ? asset('storage/' . $d->photo_ktp)    : null,
+            'name'              => $d->user?->name,
+            'email'             => $d->user?->email,
+            'phone'             => $d->user?->phone,
+            'photo_profile_url' => $d->photo_profile ?: null,
+            'photo_ktp_url'     => $d->photo_ktp     ?: null,
         ]));
 
         return response()->json(['data' => $drivers]);
@@ -70,8 +70,8 @@ class DriverController extends Controller
             'name'              => $driver->user?->name,
             'email'             => $driver->user?->email,
             'phone'             => $driver->user?->phone,
-            'photo_profile_url' => $driver->photo_profile ? asset('storage/' . $driver->photo_profile) : null,
-            'photo_ktp_url'     => $driver->photo_ktp    ? asset('storage/' . $driver->photo_ktp)    : null,
+            'photo_profile_url' => $driver->photo_profile ?: null,
+            'photo_ktp_url'     => $driver->photo_ktp     ?: null,
         ])]);
     }
 

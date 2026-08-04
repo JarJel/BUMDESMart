@@ -8,7 +8,8 @@ import { useRouter } from "next/navigation";
 import { cartApi } from "@/lib/api/cart";
 import api from "@/lib/api/axios";
 import { useAuth } from "@/hooks/useAuth";
-import { Bike, Store, Package, ShoppingBag, MapPin, DollarSign, Clock, BadgeCheck } from "lucide-react";
+import { Store, Package, ShoppingBag, MapPin } from "lucide-react";
+import { getFileUrl } from "@/lib/storage";
 
 // ─── Counter animasi count-up ─────────────────────────────────────────────────
 function CountUp({ target, suffix = "", duration = 1800 }: { target: number; suffix?: string; duration?: number }) {
@@ -102,22 +103,11 @@ function TokoCard({ toko }: { toko: any }) {
   const desc = toko.description || toko.deskripsi || "Deskripsi toko";
   const banner = toko.logo || toko.banner || toko.foto || "";
   const city = toko.city || toko.lokasi || "Jawa Barat";
-  const rating = toko.rating || "5.0";
+  const rating = toko.rating ? Number(toko.rating).toFixed(1) : null;
   const totalProduk = toko.totalProduk ?? 0;
   const totalPenjualan = toko.totalPenjualan ?? 0;
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
-  const IMG_BASE = API_URL.replace("/api/v1", "");
-  
-  let bannerUrl = "";
-  if (banner) {
-    if (banner.startsWith("http")) {
-      bannerUrl = banner;
-    } else {
-      const cleanBanner = banner.startsWith("/") ? banner : `/${banner}`;
-      bannerUrl = `${IMG_BASE}${cleanBanner}`;
-    }
-  }
+  const bannerUrl = getFileUrl(banner) ?? "";
 
   return (
     <Link
@@ -138,10 +128,12 @@ function TokoCard({ toko }: { toko: any }) {
         ) : (
           <div className="w-full h-full bg-gradient-to-tr from-[var(--primary)] via-[var(--primary)] to-[var(--primary-light)] group-hover:scale-105 transition-transform duration-200" />
         )}
-        <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full z-10">
-          <StarIcon size="sm" className="text-yellow-400" />
-          <span className="text-xs font-semibold text-white">{rating}</span>
-        </div>
+        {rating && (
+          <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full z-10">
+            <StarIcon size="sm" className="text-yellow-400" />
+            <span className="text-xs font-semibold text-white">{rating}</span>
+          </div>
+        )}
         {totalProduk > 0 && (
           <div className="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-white font-medium z-10">
             {totalProduk} produk
@@ -402,75 +394,6 @@ export default function BerandaPage() {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== JADI PENGIRIM ===== */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center gap-12">
-            {/* Ilustrasi kiri */}
-            <div className="w-full md:w-[420px] shrink-0">
-              <div className="relative w-full h-72 rounded-2xl overflow-hidden flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 60%, #FDE8D8 100%)" }}>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <svg className="w-32 h-32 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={0.8}
-                      d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1" />
-                  </svg>
-                </div>
-                <div className="relative z-10 text-center text-white px-6">
-                  <div className="flex items-center justify-center mb-3">
-                    <Bike className="w-14 h-14 text-white drop-shadow-lg" strokeWidth={1.5} />
-                  </div>
-                  <p className="text-lg font-bold">Antar. Cepat. Cuan.</p>
-                  <p className="text-sm text-orange-100 mt-1">Bergabung bersama pengirim BUMDESMart</p>
-                </div>
-                <div className="absolute top-4 left-4 w-16 h-16 rounded-full bg-white/10" />
-                <div className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white/10" />
-              </div>
-            </div>
-
-            {/* Teks kanan */}
-            <div className="flex-1">
-              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--accent-dark)" }}>
-                Peluang Penghasilan
-              </p>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
-                Jadi Pengirim<br />BUMDESMart
-              </h2>
-              <p className="text-sm text-gray-500 leading-relaxed mb-6 max-w-md">
-                Bantu produk UMKM desa sampai ke tangan pembeli. Jadwal fleksibel, penghasilan kompetitif — mulai dari kendaraan yang kamu punya sekarang.
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                {([
-                  { Icon: DollarSign, label: "Penghasilan Harian",  desc: "Bayaran per pengiriman langsung masuk" },
-                  { Icon: Clock,      label: "Jam Kerja Bebas",     desc: "Aktif sesuai kesiapanmu, kapan saja" },
-                  { Icon: BadgeCheck, label: "Mitra Resmi",         desc: "Terdaftar & dipercaya BUMDes" },
-                ] as const).map(b => (
-                  <div key={b.label} className="flex gap-3 items-start p-3 rounded-xl" style={{ background: "#FEF3E8" }}>
-                    <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center" style={{ background: "var(--accent-dark)" }}>
-                      <b.Icon className="w-4 h-4 text-white" strokeWidth={2} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-900">{b.label}</p>
-                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{b.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <Link href="/daftar/kurir"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white hover:opacity-90 transition-all"
-                style={{ background: "var(--accent-dark)" }}>
-                Daftar Jadi Pengirim
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
             </div>
           </div>
         </div>

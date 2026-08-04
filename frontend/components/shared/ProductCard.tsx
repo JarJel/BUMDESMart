@@ -11,7 +11,14 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
   onAddToCart?: (productId: number) => void;
 }) {
   const name = product.name || product.nama || "Nama Produk";
-  const price = Number(product.price || product.harga || 0);
+  // Hitung harga dasar untuk produk varian
+  const allVariantOptions = (product.variants ?? []).flatMap((v: any) => v.options ?? []);
+  const isVariantProduct = product.has_variant && allVariantOptions.length > 0;
+  
+  const price = isVariantProduct
+    ? Math.min(...allVariantOptions.map((o: any) => Number(o.price ?? o.price_adjustment ?? 0)))
+    : Number(product.price || product.harga || 0);
+
   const rating = product.rating ?? null;
   
   let imageUrl = "";
@@ -34,7 +41,9 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
   const shopName = product.tokNama || product.umkm_profile?.shop_name || "BumdesMart";
   const soldCount = product.sold_count ?? product.terjual ?? 0;
   const activeDiscount = product.active_discount ?? null;
-  const finalPrice = activeDiscount ? activeDiscount.discounted_price : price;
+  const finalPrice = activeDiscount
+    ? (activeDiscount.discounted_price ?? (activeDiscount.type === "percentage" ? price * (1 - Number(activeDiscount.value)/100) : price - Number(activeDiscount.value)))
+    : price;
   const discountLabel = activeDiscount
     ? activeDiscount.type === "percentage"
       ? `-${Number(activeDiscount.value).toFixed(0)}%`

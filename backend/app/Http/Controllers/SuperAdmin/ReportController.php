@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BumdesProfile;
+use App\Models\Order;
 use App\Models\UmkmProfile;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -69,6 +70,27 @@ class ReportController extends Controller
             ->limit(5)
             ->get();
 
+        // Pesanan & pendapatan platform per bulan tahun ini
+        $ordersPerMonth = Order::selectRaw('MONTH(created_at) as month, COUNT(*) as count')
+            ->whereYear('created_at', now()->year)
+            ->groupBy('month')
+            ->get()
+            ->keyBy('month');
+
+        $revenuePerMonth = Order::selectRaw('MONTH(created_at) as month, SUM(bumdes_fee + COALESCE(service_fee, 0)) as total')
+            ->whereIn('status', ['completed', 'delivered'])
+            ->whereYear('created_at', now()->year)
+            ->groupBy('month')
+            ->get()
+            ->keyBy('month');
+
+        $monthLabels = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+        $monthlyData = collect(range(1, 12))->map(fn ($m) => [
+            'label'   => $monthLabels[$m - 1],
+            'orders'  => $ordersPerMonth->get($m)?->count ?? 0,
+            'revenue' => (float) ($revenuePerMonth->get($m)?->total ?? 0),
+        ]);
+
         return response()->json([
             'data' => [
                 'users'                => $userStats,
@@ -77,6 +99,7 @@ class ReportController extends Controller
                 'products'             => $productStats,
                 'recent_registrations' => $last7Days,
                 'top_bumdes'           => $topBumdes,
+                'monthly_data'         => $monthlyData,
             ],
         ]);
     }

@@ -7,7 +7,7 @@ import api from "@/lib/api/axios";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 
-const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
+import { getFileUrl } from "@/lib/storage";
 
 const STATUS_MAP: Record<string, string> = {
   active: "Aktif",
@@ -68,9 +68,7 @@ export default function ProdukPage() {
 
   const getImageUrl = (p: ProductData) => {
     const path = p.primary_image?.file_path ?? p.images?.[0]?.file_path;
-    if (!path) return null;
-    if (path.startsWith("http") || path.startsWith("data:")) return path;
-    return `${IMG_BASE}${path}`;
+    return getFileUrl(path);
   };
 
   const handleDelete = async () => {
@@ -154,6 +152,26 @@ export default function ProdukPage() {
                 const imgUrl = getImageUrl(p);
                 const statusLabel = STATUS_MAP[p.status] ?? p.status;
                 const badgeClass = statusBadge[p.status] ?? "bg-gray-100 text-gray-500";
+
+                // Compute display price and stock for variant products
+                const allOptions = (p.variants ?? []).flatMap(v => v.options ?? []);
+                const isVariant = p.has_variant && allOptions.length > 0;
+                let displayPrice: string;
+                let displayStock: number;
+
+                if (isVariant) {
+                  const prices = allOptions.map(o => Number(o.price ?? o.price_adjustment ?? 0));
+                  const minPrice = Math.min(...prices);
+                  const maxPrice = Math.max(...prices);
+                  displayPrice = minPrice === maxPrice
+                    ? `Rp ${minPrice.toLocaleString("id")}`
+                    : `Rp ${minPrice.toLocaleString("id")} – ${maxPrice.toLocaleString("id")}`;
+                  displayStock = allOptions.reduce((sum, o) => sum + (o.stock ?? 0), 0);
+                } else {
+                  displayPrice = `Rp ${Number(p.price).toLocaleString("id")}`;
+                  displayStock = p.stock;
+                }
+
                 return (
                   <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
                     <td className="px-4 py-3">
@@ -180,10 +198,10 @@ export default function ProdukPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right text-xs font-semibold text-gray-900">
-                      Rp {Number(p.price).toLocaleString("id")}
+                      {displayPrice}
                     </td>
                     <td className="px-4 py-3 text-right text-xs hidden md:table-cell">
-                      <span className={p.stock === 0 ? "text-red-500 font-medium" : "text-gray-700"}>{p.stock}</span>
+                      <span className={displayStock === 0 ? "text-red-500 font-medium" : "text-gray-700"}>{displayStock}</span>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeClass}`}>{statusLabel}</span>

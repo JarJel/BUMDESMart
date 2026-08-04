@@ -37,6 +37,7 @@ use App\Http\Controllers\Admin\RequiredDocumentController;
 use App\Http\Controllers\Admin\UmkmVerificationController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Driver\DriverController;
 use App\Http\Controllers\WhatsappController;
 
@@ -77,10 +78,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/{orderId}/reviews', [ReviewController::class, 'store']);
     Route::get('/orders/{orderId}/reviews', [ReviewController::class, 'showByOrder']);
 
-    // Seller bank account & balance
+    // Seller bank account & withdraw
     Route::get('/seller/bank-accounts', [BankAccountController::class, 'index']);
     Route::post('/seller/bank-accounts', [BankAccountController::class, 'store']);
     Route::delete('/seller/bank-accounts/{id}', [BankAccountController::class, 'destroy']);
+    Route::post('/seller/withdraw', [BankAccountController::class, 'withdraw']);
 
     // Wishlist management routes
     Route::get('/wishlist', [WishlistController::class, 'index']);
@@ -143,13 +145,38 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/seller/products/{id}', [SellerProductController::class, 'destroy']);
 });
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/register/umkm', [AuthController::class, 'registerUmkm']);
-Route::post('/register/pengirim', [AuthController::class, 'registerDriver']);
-Route::post('/login', [AuthController::class, 'login']);
+// File serving — workaround nginx /storage 403 block
+// Checks storage/app/public/ first (driver photos, etc.), then public/ (product uploads, etc.)
+Route::get('/files/{path}', function (string $path) {
+    $candidates = [
+        storage_path('app/public/' . $path),
+        public_path($path),
+    ];
+    $fullPath = null;
+    foreach ($candidates as $candidate) {
+        if (file_exists($candidate) && is_file($candidate)) {
+            $fullPath = $candidate;
+            break;
+        }
+    }
+    if (!$fullPath) {
+        abort(404);
+    }
+    $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
+    return response()->file($fullPath, ['Content-Type' => $mime]);
+})->where('path', '.*');
 
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::middleware('throttle:10,1')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/register/umkm', [AuthController::class, 'registerUmkm']);
+    Route::post('/register/pengirim', [AuthController::class, 'registerDriver']);
+});
+
+Route::middleware('throttle:5,1')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+});
 Route::post('/auth/google', [AuthController::class, 'loginWithGoogle']);
 
 // Seller/UMKM public routes for customers
@@ -158,6 +185,10 @@ Route::get('/sellers/{idOrSlug}', [SellerController::class, 'show']);
 
 // Admin BUMDes routes
 Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('admin')->group(function () {
+    // Dashboard stats
+    Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats']);
+    Route::get('/dashboard/chart', [AdminDashboardController::class, 'chartData']);
+
     // Verifikasi mitra
     Route::get('/umkm', [UmkmVerificationController::class, 'index']);
     Route::get('/umkm/{umkm}', [UmkmVerificationController::class, 'show']);
@@ -249,6 +280,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('super-admin')->
 Route::middleware(['auth:sanctum', 'role:pengirim'])->prefix('driver')->group(function () {
     Route::get('/profile', [DriverController::class, 'profile']);
     Route::put('/profile', [DriverController::class, 'updateProfile']);
+    Route::post('/profile/photo', [DriverController::class, 'uploadPhoto']);
     Route::patch('/profile/availability', [DriverController::class, 'toggleAvailability']);
     Route::get('/orders/available', [DriverController::class, 'availableOrders']);
     Route::get('/orders/active', [DriverController::class, 'activeOrders']);
@@ -257,6 +289,12 @@ Route::middleware(['auth:sanctum', 'role:pengirim'])->prefix('driver')->group(fu
     Route::patch('/orders/{id}/status', [DriverController::class, 'updateOrderStatus']);
     Route::get('/history', [DriverController::class, 'orderHistory']);
     Route::get('/stats', [DriverController::class, 'stats']);
+
+    // Driver bank account & withdraw (pakai controller yang sama dengan seller)
+    Route::get('/bank-accounts', [BankAccountController::class, 'index']);
+    Route::post('/bank-accounts', [BankAccountController::class, 'store']);
+    Route::delete('/bank-accounts/{id}', [BankAccountController::class, 'destroy']);
+    Route::post('/withdraw', [BankAccountController::class, 'withdraw']);
 });
 
 // Public stats (landing page counter)
@@ -294,4 +332,4 @@ Route::get('/categories', function () {
     return response()->json(['data' => $parents]);
 });
 
-Route::post('/send-whatsapp', [WhatsappController::class, 'sendWhatsapp']);
+Route::middleware('auth:sanctum')->post('/send-whatsapp', [WhatsappController::class, 'sendWhatsapp']);

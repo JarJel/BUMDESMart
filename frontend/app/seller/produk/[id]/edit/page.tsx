@@ -6,6 +6,7 @@ import api from "@/lib/api/axios";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { useToast } from "@/components/ui/Toast";
 import { compressImage } from "@/lib/utils/compressImage";
+import { getFileUrl } from "@/lib/storage";
 
 interface Category { id: number; name: string; slug?: string; children?: Category[]; }
 
@@ -13,6 +14,13 @@ interface ExistingImage {
   id: number;
   file_path: string;
   is_primary?: boolean;
+}
+
+interface VariantOptionRow {
+  id?: number; // existing option id from server
+  value: string;
+  price: string;
+  stock: string;
 }
 
 const BUSINESS_CATEGORY_MAP: Record<string, string[]> = {
@@ -66,6 +74,14 @@ export default function EditProdukPage() {
     status: "active",
   });
 
+  // Variant state
+  const [hasVariant, setHasVariant] = useState(false);
+  const [variantName, setVariantName] = useState("");
+  const [variantOptions, setVariantOptions] = useState<VariantOptionRow[]>([
+    { value: "", price: "", stock: "" },
+  ]);
+  const [deletedOptionIds, setDeletedOptionIds] = useState<number[]>([]);
+
   // Foto yang sudah ada di server
   const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
   const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
@@ -103,6 +119,23 @@ export default function EditProdukPage() {
       // Sort: primary first
       imgs.sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
       setExistingImages(imgs);
+
+      // Load variant data
+      const hasVar = p.has_variant ?? false;
+      setHasVariant(hasVar);
+      if (hasVar && p.variants && p.variants.length > 0) {
+        const firstVariant = p.variants[0];
+        setVariantName(firstVariant.name ?? "");
+        const opts: VariantOptionRow[] = (firstVariant.options ?? []).map((opt: any) => ({
+          id: opt.id,
+          value: opt.value ?? "",
+          price: opt.price?.toString() ?? "",
+          stock: opt.stock?.toString() ?? "",
+        }));
+        if (opts.length > 0) {
+          setVariantOptions(opts);
+        }
+      }
     }).catch(() => {
       toast.error("Gagal memuat data produk.");
     }).finally(() => setLoading(false));
@@ -141,14 +174,43 @@ export default function EditProdukPage() {
     setNewPhotoPreviews(prev => prev.filter((_, i) => i !== idx));
   };
 
+  // Variant option helpers
+  const addOption = () => {
+    setVariantOptions(prev => [...prev, { value: "", price: "", stock: "" }]);
+  };
+
+  const removeOption = (idx: number) => {
+    if (variantOptions.length <= 1) return;
+    const opt = variantOptions[idx];
+    if (opt.id) {
+      setDeletedOptionIds(prev => [...prev, opt.id!]);
+    }
+    setVariantOptions(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateOption = (idx: number, field: keyof VariantOptionRow, value: string) => {
+    setVariantOptions(prev => prev.map((opt, i) => i === idx ? { ...opt, [field]: value } : opt));
+  };
+
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = "Nama produk wajib diisi";
     if (!form.category_id) e.category_id = "Kategori wajib dipilih";
     if (!form.description.trim()) e.description = "Deskripsi wajib diisi";
-    if (!form.price || Number(form.price) <= 0) e.price = "Harga harus lebih dari 0";
-    if (!form.stock || Number(form.stock) < 0) e.stock = "Stok tidak boleh negatif";
     if (!form.weight || Number(form.weight) <= 0) e.weight = "Berat wajib diisi (gram)";
+
+    if (hasVariant) {
+      if (!variantName.trim()) e.variant_name = "Nama grup varian wajib diisi";
+      const hasEmptyOption = variantOptions.some(opt => !opt.value.trim());
+      const hasInvalidPrice = variantOptions.some(opt => !opt.price || Number(opt.price) <= 0);
+      const hasInvalidStock = variantOptions.some(opt => opt.stock === "" || Number(opt.stock) < 0);
+      if (hasEmptyOption) e.variant_options = "Semua opsi harus punya nilai";
+      if (hasInvalidPrice) e.variant_price = "Harga setiap opsi harus lebih dari 0";
+      if (hasInvalidStock) e.variant_stock = "Stok setiap opsi tidak boleh negatif";
+    } else {
+      if (!form.price || Number(form.price) <= 0) e.price = "Harga harus lebih dari 0";
+      if (!form.stock || Number(form.stock) < 0) e.stock = "Stok tidak boleh negatif";
+    }
     return e;
   };
 
@@ -163,12 +225,30 @@ export default function EditProdukPage() {
     fd.append("name", form.name);
     fd.append("category_id", form.category_id);
     fd.append("description", form.description);
-    fd.append("price", form.price);
-    fd.append("stock", form.stock);
     fd.append("weight", form.weight);
     fd.append("status", statusOverride ?? form.status);
     newPhotos.forEach(f => fd.append("images[]", f));
     removedImageIds.forEach(rid => fd.append("delete_image_ids[]", rid.toString()));
+
+    if (hasVariant) {
+      fd.append("has_variant", "1");
+      fd.append("variant[name]", variantName);
+      variantOptions.forEach((opt, i) => {
+        if (opt.id) {
+          fd.append(`variant[options][${i}][id]`, opt.id.toString());
+        }
+        fd.append(`variant[options][${i}][value]`, opt.value);
+        fd.append(`variant[options][${i}][price]`, opt.price);
+        fd.append(`variant[options][${i}][stock]`, opt.stock);
+      });
+      deletedOptionIds.forEach((did, i) => {
+        fd.append(`variant[delete_option_ids][${i}]`, did.toString());
+      });
+    } else {
+      fd.append("has_variant", "0");
+      fd.append("price", form.price);
+      fd.append("stock", form.stock);
+    }
 
     try {
       await api.post(`/seller/products/${id}`, fd, {
@@ -192,7 +272,7 @@ export default function EditProdukPage() {
 
   const totalPhotos = existingImages.length + newPhotos.length;
   const primaryPreviewUrl = existingImages[0]
-    ? (existingImages[0].file_path.startsWith("http") ? existingImages[0].file_path : `${(process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "")}/${existingImages[0].file_path}`)
+    ? (getFileUrl(existingImages[0].file_path))
     : newPhotoPreviews[0] ?? null;
 
   if (loading) {
@@ -270,7 +350,7 @@ export default function EditProdukPage() {
             <div className="grid grid-cols-5 gap-3">
               {/* Foto existing */}
               {existingImages.map((img, i) => {
-                const url = img.file_path.startsWith("http") ? img.file_path : `${(process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "")}/${img.file_path}`;
+                const url = getFileUrl(img.file_path) ?? "";
                 return (
                   <div key={`ex-${img.id}`} className="aspect-square rounded-xl overflow-hidden relative group border border-gray-200">
                     <img src={url} alt="" className="w-full h-full object-cover" />
@@ -328,30 +408,139 @@ export default function EditProdukPage() {
 
           {/* Harga & Stok */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-900">Harga & Stok</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-medium text-gray-700 mb-1.5 block">Harga Jual <span className="text-red-500">*</span></label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 font-medium">Rp</span>
-                  <input value={form.price} onChange={setField("price")} type="number" min="0" placeholder="0"
-                    className={`w-full text-sm border rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:border-green-400 ${errors.price ? "border-red-300" : "border-gray-200"}`} />
-                </div>
-                {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-700 mb-1.5 block">Stok <span className="text-red-500">*</span></label>
-                <input value={form.stock} onChange={setField("stock")} type="number" min="0" placeholder="0"
-                  className={`w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none focus:border-green-400 ${errors.stock ? "border-red-300" : "border-gray-200"}`} />
-                {errors.stock && <p className="text-xs text-red-500 mt-1">{errors.stock}</p>}
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-700 mb-1.5 block">Berat (gram) <span className="text-red-500">*</span></label>
-                <input value={form.weight} onChange={setField("weight")} type="number" min="0" placeholder="200"
-                  className={`w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none focus:border-green-400 ${errors.weight ? "border-red-300" : "border-gray-200"}`} />
-                {errors.weight && <p className="text-xs text-red-500 mt-1">{errors.weight}</p>}
-              </div>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-900">Harga & Stok</h2>
             </div>
+
+            {/* Toggle Varian */}
+            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-gray-50 border border-gray-100">
+              <div>
+                <p className="text-sm font-medium text-gray-800">Produk punya varian?</p>
+                <p className="text-xs text-gray-400 mt-0.5">Contoh: ukuran, warna, rasa</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHasVariant(!hasVariant)}
+                className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${hasVariant ? "bg-green-600" : "bg-gray-300"}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${hasVariant ? "translate-x-5" : "translate-x-0"}`} />
+              </button>
+            </div>
+
+            {/* Non-variant: price & stock */}
+            {!hasVariant && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-700 mb-1.5 block">Harga Jual <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 font-medium">Rp</span>
+                    <input value={form.price} onChange={setField("price")} type="number" min="0" placeholder="0"
+                      className={`w-full text-sm border rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:border-green-400 ${errors.price ? "border-red-300" : "border-gray-200"}`} />
+                  </div>
+                  {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 mb-1.5 block">Stok <span className="text-red-500">*</span></label>
+                  <input value={form.stock} onChange={setField("stock")} type="number" min="0" placeholder="0"
+                    className={`w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none focus:border-green-400 ${errors.stock ? "border-red-300" : "border-gray-200"}`} />
+                  {errors.stock && <p className="text-xs text-red-500 mt-1">{errors.stock}</p>}
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 mb-1.5 block">Berat (gram) <span className="text-red-500">*</span></label>
+                  <input value={form.weight} onChange={setField("weight")} type="number" min="0" placeholder="200"
+                    className={`w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none focus:border-green-400 ${errors.weight ? "border-red-300" : "border-gray-200"}`} />
+                  {errors.weight && <p className="text-xs text-red-500 mt-1">{errors.weight}</p>}
+                </div>
+              </div>
+            )}
+
+            {/* Variant section */}
+            {hasVariant && (
+              <div className="space-y-4">
+                {/* Berat tetap ditampilkan */}
+                <div className="max-w-xs">
+                  <label className="text-xs font-medium text-gray-700 mb-1.5 block">Berat (gram) <span className="text-red-500">*</span></label>
+                  <input value={form.weight} onChange={setField("weight")} type="number" min="0" placeholder="200"
+                    className={`w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none focus:border-green-400 ${errors.weight ? "border-red-300" : "border-gray-200"}`} />
+                  {errors.weight && <p className="text-xs text-red-500 mt-1">{errors.weight}</p>}
+                </div>
+
+                {/* Variant name */}
+                <div className="bg-green-50/50 rounded-xl border border-green-100 p-4 space-y-4">
+                  <div>
+                    <label className="text-xs font-medium text-gray-700 mb-1.5 block">Nama Grup Varian <span className="text-red-500">*</span></label>
+                    <input
+                      value={variantName}
+                      onChange={e => setVariantName(e.target.value)}
+                      type="text"
+                      placeholder="Contoh: Ukuran, Warna, Rasa"
+                      className={`w-full text-sm border rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:border-green-400 ${errors.variant_name ? "border-red-300" : "border-gray-200"}`}
+                    />
+                    {errors.variant_name && <p className="text-xs text-red-500 mt-1">{errors.variant_name}</p>}
+                  </div>
+
+                  {/* Options list */}
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-[1fr_120px_90px_32px] gap-2 px-1">
+                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Nilai</span>
+                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Harga (Rp)</span>
+                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Stok</span>
+                      <span />
+                    </div>
+
+                    {variantOptions.map((opt, i) => (
+                      <div key={opt.id ?? `new-${i}`} className="grid grid-cols-[1fr_120px_90px_32px] gap-2 items-center">
+                        <input
+                          value={opt.value}
+                          onChange={e => updateOption(i, "value", e.target.value)}
+                          type="text"
+                          placeholder="Contoh: S, M, L"
+                          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-green-400"
+                        />
+                        <input
+                          value={opt.price}
+                          onChange={e => updateOption(i, "price", e.target.value)}
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-green-400"
+                        />
+                        <input
+                          value={opt.stock}
+                          onChange={e => updateOption(i, "stock", e.target.value)}
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-green-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeOption(i)}
+                          disabled={variantOptions.length <= 1}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {(errors.variant_options || errors.variant_price || errors.variant_stock) && (
+                    <p className="text-xs text-red-500">{errors.variant_options || errors.variant_price || errors.variant_stock}</p>
+                  )}
+
+                  {/* Add option button */}
+                  <button
+                    type="button"
+                    onClick={addOption}
+                    className="flex items-center gap-2 text-sm font-medium text-green-700 hover:text-green-800 px-3 py-2 rounded-lg border border-dashed border-green-300 hover:border-green-400 hover:bg-green-50 transition-colors w-full justify-center"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                    Tambah Opsi
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -375,11 +564,25 @@ export default function EditProdukPage() {
             <div className="pointer-events-none w-40 mx-auto">
               <ProductCard product={{
                 name: form.name || "Nama Produk",
-                price: form.price || 0,
+                price: hasVariant
+                  ? (variantOptions[0]?.price ? Number(variantOptions[0].price) : 0)
+                  : (form.price || 0),
                 slug: "preview",
                 primary_image: primaryPreviewUrl ? { file_path: primaryPreviewUrl } : null,
               }} compact />
             </div>
+            {hasVariant && variantOptions.length > 0 && (
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-[11px] text-gray-400 mb-1.5">Varian: {variantName || "—"}</p>
+                <div className="flex flex-wrap gap-1">
+                  {variantOptions.filter(o => o.value.trim()).map((o, i) => (
+                    <span key={i} className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-green-50 text-green-700 border border-green-200">
+                      {o.value}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
