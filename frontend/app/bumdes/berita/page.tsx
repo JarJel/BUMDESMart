@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { getFileUrl } from "@/lib/storage";
 
 interface Broadcast {
   id: number;
@@ -18,7 +19,6 @@ interface Broadcast {
   created_at: string;
 }
 
-const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
 
 const CATEGORIES = [
   { value: "pengumuman",   label: "Pengumuman" },
@@ -39,8 +39,7 @@ const TARGETS = [
 ];
 
 function getPhotoUrl(path: string): string {
-  if (!path) return "";
-  return path.startsWith("http") ? path : `${BASE_URL}${path}`;
+  return getFileUrl(path) ?? "";
 }
 
 function PhotoSlider({ photos }: { photos: string[] }) {

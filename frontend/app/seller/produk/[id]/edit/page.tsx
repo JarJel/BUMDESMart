@@ -6,6 +6,7 @@ import api from "@/lib/api/axios";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { useToast } from "@/components/ui/Toast";
 import { compressImage } from "@/lib/utils/compressImage";
+import { getFileUrl } from "@/lib/storage";
 
 interface Category { id: number; name: string; slug?: string; children?: Category[]; }
 
@@ -271,7 +272,7 @@ export default function EditProdukPage() {
 
   const totalPhotos = existingImages.length + newPhotos.length;
   const primaryPreviewUrl = existingImages[0]
-    ? (existingImages[0].file_path.startsWith("http") ? existingImages[0].file_path : `${(process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "")}/${existingImages[0].file_path}`)
+    ? (getFileUrl(existingImages[0].file_path))
     : newPhotoPreviews[0] ?? null;
 
   if (loading) {
@@ -349,7 +350,7 @@ export default function EditProdukPage() {
             <div className="grid grid-cols-5 gap-3">
               {/* Foto existing */}
               {existingImages.map((img, i) => {
-                const url = img.file_path.startsWith("http") ? img.file_path : `${(process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "")}/${img.file_path}`;
+                const url = getFileUrl(img.file_path) ?? "";
                 return (
                   <div key={`ex-${img.id}`} className="aspect-square rounded-xl overflow-hidden relative group border border-gray-200">
                     <img src={url} alt="" className="w-full h-full object-cover" />

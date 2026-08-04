@@ -4,13 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
 
-const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
-
-function getPhotoUrl(rawPath: string | null | undefined): string | null {
-  if (!rawPath) return null;
-  if (rawPath.startsWith("http")) return rawPath;
-  return `${IMG_BASE}/storage/${rawPath}`;
-}
+import { getFileUrl as getPhotoUrl } from "@/lib/storage";
 
 const VEHICLE_TYPES = [
   { value: "motor",  label: "Motor" },

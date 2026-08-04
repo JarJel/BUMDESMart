@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
 
-const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
+import { getFileUrl } from "@/lib/storage";
 
 const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
   active:   { bg: "#ECFDF5", text: "#065F46", label: "Aktif" },
@@ -133,7 +133,7 @@ export default function KinerjaPage() {
               <tbody className="divide-y divide-gray-50">
                 {filtered.map((m, i) => {
                   const badge  = STATUS_BADGE[m.status] ?? STATUS_BADGE.pending;
-                  const logoUrl = m.logo ? (m.logo.startsWith("http") ? m.logo : `${IMG_BASE}${m.logo}`) : null;
+                  const logoUrl = getFileUrl(m.logo);
                   const rating = Number(m.rating);
                   const ratingColor = rating >= 4 ? "text-green-700" : rating >= 3 ? "text-yellow-600" : rating > 0 ? "text-red-500" : "text-gray-300";
                   return (
@@ -185,7 +185,7 @@ export default function KinerjaPage() {
           <div className="md:hidden space-y-3">
             {filtered.map((m, i) => {
               const badge  = STATUS_BADGE[m.status] ?? STATUS_BADGE.pending;
-              const logoUrl = m.logo ? (m.logo.startsWith("http") ? m.logo : `${IMG_BASE}${m.logo}`) : null;
+              const logoUrl = getFileUrl(m.logo);
               const rating  = Number(m.rating);
               return (
                 <div key={m.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">

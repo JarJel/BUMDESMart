@@ -7,6 +7,7 @@ import axios from "axios";
 import { sellerApi, SellerData } from "@/lib/api/seller";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { productApi, ProductData } from "@/lib/api/product";
+import { getFileUrl } from "@/lib/storage";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -57,11 +58,7 @@ export default function BumdesProfilePage() {
     }).catch(() => {}).finally(() => setLoading(false));
   }, [slug]);
 
-  const getLogoUrl = (logo: string | null) => {
-    if (!logo) return null;
-    if (logo.startsWith("http") || logo.startsWith("/")) return logo;
-    return `${(process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "")}/${logo}`;
-  };
+  const getLogoUrl = (logo: string | null) => getFileUrl(logo);
 
   if (loading) {
     return (
@@ -182,7 +179,7 @@ export default function BumdesProfilePage() {
                 <Link key={toko.id} href={`/${toko.slug}`} className="group bg-white rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border border-gray-100">
                   <div className="h-36 relative overflow-hidden bg-gray-100">
                     {toko.banner ? (
-                      <img src={toko.banner.startsWith("http") ? toko.banner : `${(process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "")}/${toko.banner}`} alt={toko.shop_name} className="w-full h-full object-cover" onError={e => { e.currentTarget.src = "https://placehold.co/600x300?text=No+Banner"; }} />
+                      <img src={getFileUrl(toko.banner) ?? ""} alt={toko.shop_name} className="w-full h-full object-cover" onError={e => { e.currentTarget.src = "https://placehold.co/600x300?text=No+Banner"; }} />
                     ) : (
                       <div className="w-full h-full" style={{ background: "linear-gradient(135deg, var(--primary-dark), var(--primary-light))" }} />
                     )}

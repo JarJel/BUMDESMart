@@ -7,7 +7,7 @@ import api from "@/lib/api/axios";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 
-const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
+import { getFileUrl } from "@/lib/storage";
 
 const STATUS_MAP: Record<string, string> = {
   active: "Aktif",
@@ -68,9 +68,7 @@ export default function ProdukPage() {
 
   const getImageUrl = (p: ProductData) => {
     const path = p.primary_image?.file_path ?? p.images?.[0]?.file_path;
-    if (!path) return null;
-    if (path.startsWith("http") || path.startsWith("data:")) return path;
-    return `${IMG_BASE}${path}`;
+    return getFileUrl(path);
   };
 
   const handleDelete = async () => {

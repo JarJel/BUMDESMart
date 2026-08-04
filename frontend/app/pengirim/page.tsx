@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
+import { getFileUrl } from "@/lib/storage";
 import { BarChart3, ChevronRight, MessageCircle, Navigation, Package, Power, RefreshCw, Star, Wallet } from "lucide-react";
 
 function formatRp(n: number) {
@@ -43,7 +44,6 @@ export default function PengirimDashboard() {
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
   // Berita dari BUMDes
-  const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loadingAnn, setLoadingAnn] = useState(true);
   const [selectedAnn, setSelectedAnn] = useState<any | null>(null);
@@ -547,7 +547,7 @@ export default function PengirimDashboard() {
             {announcements.slice(0, 5).map((ann) => {
               const firstPhoto = ann.photos?.[0];
               const photoUrl = firstPhoto
-                ? (firstPhoto.startsWith("http") ? firstPhoto : `${BASE_URL}${firstPhoto}`)
+                ? (getFileUrl(firstPhoto))
                 : null;
               const catColors: Record<string, string> = {
                 pengumuman: "bg-blue-50 text-blue-700", pelatihan: "bg-purple-50 text-purple-700",
@@ -617,7 +617,7 @@ export default function PengirimDashboard() {
                 const AnnPhotoSlider = () => {
                   const [pidx, setPidx] = useState(0);
                   const photoUrls = (selectedAnn.photos as string[]).map((p) =>
-                    p.startsWith("http") ? p : `${BASE_URL}${p}`
+                    getFileUrl(p) ?? ""
                   );
                   return (
                     <div className="relative w-full aspect-video bg-gray-100 rounded-xl overflow-hidden">

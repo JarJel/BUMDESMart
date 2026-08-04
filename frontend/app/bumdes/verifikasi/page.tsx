@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { getFileUrl as _getFileUrl } from "@/lib/storage";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -41,9 +42,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function getFileUrl(path: string) {
-  if (!path) return "";
-  if (path.startsWith("http")) return path;
-  return `${(process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "")}/storage/${path.replace(/^\/?(storage\/)?/, "")}`;
+  return _getFileUrl(path) ?? "";
 }
 
 function isPdf(path: string) {

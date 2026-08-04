@@ -27,18 +27,7 @@ const STATUS_COLOR: Record<string, { bg: string; text: string; label: string }> 
   cancelled:  { bg: "#FEE2E2", text: "#991B1B", label: "Dibatalkan" },
 };
 
-const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
-
-function getImgUrl(product: any): string | null {
-  const path = product?.primary_image?.file_path
-    ?? product?.images?.[0]?.file_path
-    ?? product?.images?.[0]?.image_path
-    ?? product?.image_path
-    ?? null;
-  if (!path) return null;
-  if (path.startsWith("http")) return path;
-  return `${IMG_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
-}
+import { getProductImgUrl as getImgUrl } from "@/lib/storage";
 
 export default function PesananPage() {
   const router = useRouter();

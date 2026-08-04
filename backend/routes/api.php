@@ -145,6 +145,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/seller/products/{id}', [SellerProductController::class, 'destroy']);
 });
 
+// File serving — workaround nginx /storage 403 block
+Route::get('/files/{path}', function (string $path) {
+    $fullPath = storage_path('app/public/' . $path);
+    if (!file_exists($fullPath) || !is_file($fullPath)) {
+        abort(404);
+    }
+    $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
+    return response()->file($fullPath, ['Content-Type' => $mime]);
+})->where('path', '.*');
+
 Route::middleware('throttle:10,1')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/register/umkm', [AuthController::class, 'registerUmkm']);

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { sellerApi, SellerData } from "@/lib/api/seller";
+import { getFileUrl } from "@/lib/storage";
 
 function StarIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
   return (
@@ -32,14 +33,7 @@ export default function SemuaTokoPage() {
   if (sort === "terbaru") filtered.sort((a, b) => b.id - a.id);
   else if (sort === "terlama") filtered.sort((a, b) => a.id - b.id);
 
-  const getBannerUrl = (banner: string | null) => {
-    if (!banner) return "";
-    if (banner.startsWith("http")) return banner;
-    const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
-    const IMG_BASE = API_URL.replace("/api/v1", "");
-    const cleanBanner = banner.startsWith("/") ? banner : `/${banner}`;
-    return `${IMG_BASE}${cleanBanner}`;
-  };
+  const getBannerUrl = (banner: string | null) => getFileUrl(banner) ?? "";
 
   return (
     <div style={{ background: "#F4F7F5", minHeight: "100vh" }}>
@@ -76,11 +70,7 @@ export default function SemuaTokoPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filtered.map((toko) => {
                 const bannerUrl = getBannerUrl(toko.banner);
-                const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
-                const IMG_BASE = API_URL.replace("/api/v1", "");
-                const logoUrl = toko.logo
-                  ? (toko.logo.startsWith("http") ? toko.logo : `${IMG_BASE}${toko.logo.startsWith("/") ? toko.logo : `/${toko.logo}`}`)
-                  : null;
+                const logoUrl = getFileUrl(toko.logo);
                 const initials = toko.shop_name ? toko.shop_name.slice(0, 2).toUpperCase() : "TK";
 
                 return (

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import ApexChart from "@/components/shared/ApexChart";
 import api from "@/lib/api/axios";
+import { getFileUrl } from "@/lib/storage";
 import {
   IconStore, IconBox, IconMoney, IconShoppingBag,
   IconDoc, IconTag, IconShield, IconChevronRight,
@@ -57,7 +58,6 @@ export default function BumdesDashboard() {
   const [loadingNews, setLoadingNews] = useState(true);
   const [selectedNews, setSelectedNews] = useState<any | null>(null);
 
-  const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
 
   useEffect(() => {
     api.get("/admin/balance")
@@ -259,7 +259,7 @@ export default function BumdesDashboard() {
             ) : (
               newsList.map((a) => {
                 const firstPhoto = a.photos?.[0];
-                const photoUrl = firstPhoto ? (firstPhoto.startsWith("http") ? firstPhoto : `${BASE_URL}${firstPhoto}`) : null;
+                const photoUrl = firstPhoto ? (getFileUrl(firstPhoto) ?? "") : null;
                 const catColors: Record<string, string> = {
                   pengumuman: "bg-blue-50 text-blue-700", pelatihan: "bg-purple-50 text-purple-700",
                   info_bantuan: "bg-yellow-50 text-yellow-700", jadwal: "bg-orange-50 text-orange-700",
@@ -374,7 +374,7 @@ export default function BumdesDashboard() {
                 const NewsPhotoSlider = () => {
                   const [pidx, setPidx] = useState(0);
                   const photoUrls = selectedNews.photos!.map((p: string) =>
-                    p.startsWith("http") ? p : `${BASE_URL}${p}`
+                    getFileUrl(p) ?? ""
                   );
                   return (
                     <div className="relative w-full aspect-video bg-gray-100 rounded-xl overflow-hidden">

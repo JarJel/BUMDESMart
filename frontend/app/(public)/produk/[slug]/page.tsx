@@ -12,6 +12,7 @@ import type { Dokumen } from "@/lib/data/dummy";
 import { productApi } from "@/lib/api/product";
 import { cartApi } from "@/lib/api/cart";
 import { useToast } from "@/components/ui/Toast";
+import { getFileUrl } from "@/lib/storage";
 
 function formatRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
@@ -236,17 +237,14 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
 
   if (error || !produk) return notFound();
 
-  const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
-  const resolveImg = (p: string) => p.startsWith("http") || p.startsWith("data:") ? p : `${IMG_BASE}${p}`;
-  const defaultMainImage = produk.primary_image?.file_path
-    ? resolveImg(produk.primary_image.file_path)
-    : produk.images?.[0]?.file_path
-      ? resolveImg(produk.images[0].file_path)
-      : '/placeholder-product.jpg';
+  const resolveImg = (p: string | null | undefined) => getFileUrl(p) ?? '/placeholder-product.jpg';
+  const defaultMainImage = resolveImg(
+    produk.primary_image?.file_path ?? produk.images?.[0]?.file_path ?? null
+  );
   const mainImageUrl = selectedImage || defaultMainImage;
   const allImages = Array.from(new Set([
     defaultMainImage,
-    ...(produk.images || []).map((img: any) => `${IMG_BASE}${img.file_path}`)
+    ...(produk.images || []).map((img: any) => getFileUrl(img.file_path) ?? "")
   ].filter(Boolean) as string[]));
 
   const selectIndex = (idx: number) => {

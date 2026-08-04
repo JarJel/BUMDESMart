@@ -6,21 +6,9 @@ import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
 
-const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
+import { getFileUrl, getProductImgUrl } from "@/lib/storage";
 
-function getStorageUrl(rawPath: string | null | undefined): string | null {
-  if (!rawPath) return null;
-  if (rawPath.startsWith("http")) return rawPath;
-  return `${IMG_BASE}/storage/${rawPath}`;
-}
-
-function getProductImgUrl(product: any): string | null {
-  const path = product?.primary_image?.file_path
-    ?? product?.images?.[0]?.file_path
-    ?? product?.images?.[0]?.image_path
-    ?? product?.image_path ?? null;
-  return getStorageUrl(path);
-}
+const getStorageUrl = getFileUrl;
 
 function formatRp(n: number) {
   return "Rp " + Math.round(n).toLocaleString("id-ID");

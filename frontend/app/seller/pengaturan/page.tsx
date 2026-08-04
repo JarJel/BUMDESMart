@@ -4,10 +4,9 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
+import { getFileUrl } from "@/lib/storage";
 
 const MapPicker = dynamic(() => import("@/components/shared/MapPicker"), { ssr: false });
-
-const IMG_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace("/api/v1", "");
 
 const CATEGORY_OPTIONS = [
   { value: "makanan_minuman",      label: "Makanan & Minuman" },
@@ -77,11 +76,7 @@ function MediaUpload({
   const [err, setErr] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const displaySrc = preview
-    ? preview
-    : current
-    ? (current.startsWith("http") || current.startsWith("data:") ? current : `${IMG_BASE}${current}`)
-    : null;
+  const displaySrc = preview ?? getFileUrl(current);
 
   const handleFile = async (file: File) => {
     setErr("");

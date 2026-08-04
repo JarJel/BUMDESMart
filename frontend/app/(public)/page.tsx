@@ -9,6 +9,7 @@ import { cartApi } from "@/lib/api/cart";
 import api from "@/lib/api/axios";
 import { useAuth } from "@/hooks/useAuth";
 import { Store, Package, ShoppingBag, MapPin } from "lucide-react";
+import { getFileUrl } from "@/lib/storage";
 
 // ─── Counter animasi count-up ─────────────────────────────────────────────────
 function CountUp({ target, suffix = "", duration = 1800 }: { target: number; suffix?: string; duration?: number }) {
@@ -106,18 +107,7 @@ function TokoCard({ toko }: { toko: any }) {
   const totalProduk = toko.totalProduk ?? 0;
   const totalPenjualan = toko.totalPenjualan ?? 0;
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
-  const IMG_BASE = API_URL.replace("/api/v1", "");
-  
-  let bannerUrl = "";
-  if (banner) {
-    if (banner.startsWith("http")) {
-      bannerUrl = banner;
-    } else {
-      const cleanBanner = banner.startsWith("/") ? banner : `/${banner}`;
-      bannerUrl = `${IMG_BASE}${cleanBanner}`;
-    }
-  }
+  const bannerUrl = getFileUrl(banner) ?? "";
 
   return (
     <Link
