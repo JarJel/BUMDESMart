@@ -146,9 +146,20 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // File serving — workaround nginx /storage 403 block
+// Checks storage/app/public/ first (driver photos, etc.), then public/ (product uploads, etc.)
 Route::get('/files/{path}', function (string $path) {
-    $fullPath = storage_path('app/public/' . $path);
-    if (!file_exists($fullPath) || !is_file($fullPath)) {
+    $candidates = [
+        storage_path('app/public/' . $path),
+        public_path($path),
+    ];
+    $fullPath = null;
+    foreach ($candidates as $candidate) {
+        if (file_exists($candidate) && is_file($candidate)) {
+            $fullPath = $candidate;
+            break;
+        }
+    }
+    if (!$fullPath) {
         abort(404);
     }
     $mime = mime_content_type($fullPath) ?: 'application/octet-stream';

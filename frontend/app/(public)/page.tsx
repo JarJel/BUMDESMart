@@ -103,7 +103,7 @@ function TokoCard({ toko }: { toko: any }) {
   const desc = toko.description || toko.deskripsi || "Deskripsi toko";
   const banner = toko.logo || toko.banner || toko.foto || "";
   const city = toko.city || toko.lokasi || "Jawa Barat";
-  const rating = toko.rating || "5.0";
+  const rating = toko.rating ? Number(toko.rating).toFixed(1) : null;
   const totalProduk = toko.totalProduk ?? 0;
   const totalPenjualan = toko.totalPenjualan ?? 0;
 
@@ -128,10 +128,12 @@ function TokoCard({ toko }: { toko: any }) {
         ) : (
           <div className="w-full h-full bg-gradient-to-tr from-[var(--primary)] via-[var(--primary)] to-[var(--primary-light)] group-hover:scale-105 transition-transform duration-200" />
         )}
-        <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full z-10">
-          <StarIcon size="sm" className="text-yellow-400" />
-          <span className="text-xs font-semibold text-white">{rating}</span>
-        </div>
+        {rating && (
+          <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full z-10">
+            <StarIcon size="sm" className="text-yellow-400" />
+            <span className="text-xs font-semibold text-white">{rating}</span>
+          </div>
+        )}
         {totalProduk > 0 && (
           <div className="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-white font-medium z-10">
             {totalProduk} produk

@@ -114,14 +114,12 @@ class UmkmProfile extends Model
     public function recalculateRating(): void
     {
         try {
-            $avg = $this->products()
-                ->whereHas('reviews')
-                ->with('reviews:id,product_id,rating')
-                ->get()
-                ->flatMap(fn($p) => $p->reviews)
-                ->avg('rating');
+            $avg = \Illuminate\Support\Facades\DB::table('product_reviews')
+                ->join('products', 'product_reviews.product_id', '=', 'products.id')
+                ->where('products.umkm_profile_id', $this->id)
+                ->avg('product_reviews.rating');
 
-            $this->update(['rating' => $avg ? round($avg, 2) : null]);
+            $this->update(['rating' => $avg !== null ? round((float) $avg, 2) : null]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning('recalculateRating: ' . $e->getMessage());
         }
