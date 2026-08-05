@@ -33,6 +33,16 @@ export const authApi = {
   forgotPassword: (email: string) =>
     api.post('/forgot-password', { email }),
 
+  verifyOtp: (data: { email: string; otp: string }) =>
+    api.post('/verify-otp', data),
+
+  resetPassword: (data: {
+    email: string
+    otp: string
+    password: string
+    password_confirmation: string
+  }) => api.post('/reset-password', data),
+
   loginWithGoogle: (idToken: string) =>
     api.post('/auth/google', { id_token: idToken }),
 }
