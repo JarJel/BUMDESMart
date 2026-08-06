@@ -288,6 +288,44 @@ class AuthController extends Controller
     }
 
     /**
+     * API Verifikasi OTP (step 2 — tanpa reset password).
+     * OTP tidak dihapus di sini, tetap tersimpan untuk dipakai di step reset.
+     */
+    public function verifyOtp(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|string|email|exists:users,email',
+            'otp'   => 'required|string|size:6',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $resetRecord = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->first();
+
+        // Cek OTP ada & cocok
+        if (!$resetRecord || !Hash::check($request->otp, $resetRecord->token)) {
+            return response()->json([
+                'errors' => ['otp' => ['Kode OTP salah atau tidak valid.']]
+            ], 422);
+        }
+
+        // Cek kedaluwarsa (15 menit)
+        $createdAt = \Carbon\Carbon::parse($resetRecord->created_at);
+        if ($createdAt->addMinutes(15)->isPast()) {
+            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+            return response()->json([
+                'errors' => ['otp' => ['Kode OTP telah kedaluwarsa. Silakan minta kode baru.']]
+            ], 422);
+        }
+
+        return response()->json(['message' => 'OTP valid.'], 200);
+    }
+
+    /**
      * API Reset Password menggunakan OTP.
      */
     public function resetPassword(Request $request)
