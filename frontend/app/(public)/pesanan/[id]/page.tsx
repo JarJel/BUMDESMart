@@ -439,7 +439,7 @@ export default function DetailPesananPage() {
             )}
             {Number(order.discount) > 0 && (
               <div className="flex justify-between text-green-600 font-medium">
-                <span className="flex items-center gap-1">🎟️ Diskon Voucher</span>
+                <span className="flex items-center gap-1"><i className="ti ti-ticket" /> Diskon Voucher</span>
                 <span>-{formatRp(Number(order.discount))}</span>
               </div>
             )}

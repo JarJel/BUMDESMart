@@ -586,7 +586,7 @@ export default function PesananPage() {
                   {/* Aksi cepat — hanya pending */}
                   {o.status === "pending" && (
                     <div className="mt-3 pt-3 border-t border-gray-100/80 flex items-center justify-between gap-3 bg-blue-50/50 p-3 rounded-xl">
-                      <p className="text-xs font-medium text-blue-700">⚡ Pesanan baru masuk! Segera konfirmasi.</p>
+                      <p className="text-xs font-medium text-blue-700 flex items-center gap-1"><i className="ti ti-bolt" /> Pesanan baru masuk! Segera konfirmasi.</p>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button
                           onClick={e => { e.stopPropagation(); handleUpdateStatus(o.id, "cancelled"); }}

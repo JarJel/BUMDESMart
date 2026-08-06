@@ -349,7 +349,7 @@ export default function AdminKurirPage() {
                   { label: "SIM", value: selected.sim_type?.toUpperCase() || "—" },
                   { label: "No. KTP", value: selected.id_number || "—" },
                   { label: "Total Antar", value: selected.total_deliveries.toString() },
-                  { label: "Rating", value: selected.rating > 0 ? `${selected.rating.toFixed(1)} ⭐` : "—" },
+                  { label: "Rating", value: selected.rating > 0 ? `${selected.rating.toFixed(1)} ★` : "—" },
                 ].map(item => (
                   <div key={item.label} className="bg-gray-50 rounded-xl p-3">
                     <p className="text-xs text-gray-500 mb-0.5">{item.label}</p>

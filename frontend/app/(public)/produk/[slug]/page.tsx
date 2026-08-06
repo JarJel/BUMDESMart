@@ -171,6 +171,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
+        localStorage.setItem('pending_cart_item', JSON.stringify({ product_id: produk.id, variant_id: selectedVariantId, quantity: qty }));
         setShowLoginAlert(true);
       } else if (
         err.response?.data?.message?.toLowerCase().includes("toko lain") ||
@@ -197,6 +198,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
+        localStorage.setItem('pending_cart_item', JSON.stringify({ product_id: produk.id, variant_id: selectedVariantId, quantity: qty }));
         setShowLoginAlert(true);
       } else if (
         err.response?.data?.message?.toLowerCase().includes("toko lain") ||
@@ -719,13 +721,13 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
             {activeTab === 2 && (
               <div className="p-4 sm:p-6 space-y-4">
                 {[
-                  { icon: "🚚", title: "Pengiriman oleh Kurir BUMDESmart", desc: "Diantar langsung oleh kurir terverifikasi dari BUMDes sekitar. Estimasi 1–3 jam setelah pesanan dikonfirmasi." },
-                  { icon: "📦", title: "Pengemasan Aman", desc: "Produk dikemas oleh penjual sebelum diambil kurir. Pastikan produk sudah siap saat pesanan dikonfirmasi." },
-                  { icon: "📍", title: "Area Pengiriman", desc: `Pengiriman dalam area operasional BUMDes${toko?.bumdesProfile?.village ? " " + toko.bumdesProfile.village : ""}. Cek area coverage di halaman toko.` },
-                  { icon: "💳", title: "Pembayaran di Muka", desc: "Pembayaran dilakukan saat checkout. Pesanan akan diproses setelah pembayaran dikonfirmasi." },
+                  { icon: "ti ti-truck", title: "Pengiriman oleh Kurir BUMDESmart", desc: "Diantar langsung oleh kurir terverifikasi dari BUMDes sekitar. Estimasi 1–3 jam setelah pesanan dikonfirmasi." },
+                  { icon: "ti ti-package", title: "Pengemasan Aman", desc: "Produk dikemas oleh penjual sebelum diambil kurir. Pastikan produk sudah siap saat pesanan dikonfirmasi." },
+                  { icon: "ti ti-map-pin", title: "Area Pengiriman", desc: `Pengiriman dalam area operasional BUMDes${toko?.bumdesProfile?.village ? " " + toko.bumdesProfile.village : ""}. Cek area coverage di halaman toko.` },
+                  { icon: "ti ti-credit-card", title: "Pembayaran di Muka", desc: "Pembayaran dilakukan saat checkout. Pesanan akan diproses setelah pembayaran dikonfirmasi." },
                 ].map((item) => (
                   <div key={item.title} className="flex gap-3">
-                    <span className="text-xl shrink-0">{item.icon}</span>
+                    <i className={`${item.icon} text-xl shrink-0 text-gray-500`} />
                     <div>
                       <p className="text-xs sm:text-sm font-semibold text-gray-800">{item.title}</p>
                       <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{item.desc}</p>

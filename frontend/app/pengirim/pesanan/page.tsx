@@ -365,18 +365,18 @@ export default function PengirimPesananPage() {
                 <button
                   onClick={() => setProofPhoto(null)}
                   className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs"
-                >✕</button>
+                ><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
               </div>
             ) : (
               <div className="space-y-2">
                 <label className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-orange-50 border border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors">
-                  <span className="text-xl">📷</span>
+                  <i className="ti ti-camera text-xl text-orange-600" />
                   <span className="text-sm font-semibold text-orange-700">Buka Kamera</span>
                   <input type="file" accept="image/*" capture="environment" className="hidden"
                     onChange={e => setProofPhoto(e.target.files?.[0] ?? null)} />
                 </label>
                 <label className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
-                  <span className="text-xl">🖼️</span>
+                  <i className="ti ti-photo text-xl text-gray-500" />
                   <span className="text-sm font-semibold text-gray-600">Pilih dari Galeri</span>
                   <input type="file" accept="image/*" className="hidden"
                     onChange={e => setProofPhoto(e.target.files?.[0] ?? null)} />

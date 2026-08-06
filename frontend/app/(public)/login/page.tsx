@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { authApi } from "@/lib/api/auth";
+import { cartApi } from "@/lib/api/cart";
 import { setAuthCookies, getRoleHome } from "@/lib/utils/auth";
 import { useToast } from "@/components/ui/Toast";
 
@@ -52,6 +53,16 @@ function LoginForm() {
       localStorage.setItem("user_email", user.email ?? "");
       setAuthCookies(token, user.role);
       window.dispatchEvent(new Event("auth-change"));
+      const pendingRaw = localStorage.getItem('pending_cart_item');
+      if (pendingRaw && user.role === 'customer') {
+        try {
+          const p = JSON.parse(pendingRaw);
+          await cartApi.add(p.product_id, p.quantity, p.variant_id ?? null);
+          localStorage.removeItem('pending_cart_item');
+          router.push('/checkout');
+          return;
+        } catch {}
+      }
       const dest = redirectTo || getRoleHome(user.role);
       router.push(dest);
     } catch (err: any) {
@@ -73,6 +84,16 @@ function LoginForm() {
       localStorage.setItem("token", token);
       setAuthCookies(token, user.role);
       window.dispatchEvent(new Event("auth-change"));
+      const pendingRaw = localStorage.getItem('pending_cart_item');
+      if (pendingRaw && user.role === 'customer') {
+        try {
+          const p = JSON.parse(pendingRaw);
+          await cartApi.add(p.product_id, p.quantity, p.variant_id ?? null);
+          localStorage.removeItem('pending_cart_item');
+          router.push('/checkout');
+          return;
+        } catch {}
+      }
       const dest = redirectTo || getRoleHome(user.role);
       router.push(dest);
     } catch (err: any) {

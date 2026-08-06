@@ -295,7 +295,7 @@ export default function BumdesDashboard() {
                           {catLabels[a.category] ?? "Info"}
                         </span>
                         {a.photos && a.photos.length > 1 && (
-                          <span className="text-[8px] text-gray-400">📷 {a.photos.length}</span>
+                          <span className="text-[8px] text-gray-400 flex items-center gap-0.5"><i className="ti ti-camera" /> {a.photos.length}</span>
                         )}
                       </div>
                       <p className="text-xs font-bold text-gray-900 line-clamp-1">{a.title}</p>

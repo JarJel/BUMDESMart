@@ -341,7 +341,7 @@ function StepPassword({ email, otp, onBack }: { email: string; otp: string; onBa
       <ProgressBar step={3} />
       <h1 className="text-xl font-bold text-gray-900 mb-1">Buat Password Baru</h1>
       <p className="text-sm text-gray-500 mb-6">
-        OTP terverifikasi ✅ Silakan buat password baru untuk akun Anda.
+        OTP terverifikasi <i className="ti ti-circle-check text-green-500" /> Silakan buat password baru untuk akun Anda.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">

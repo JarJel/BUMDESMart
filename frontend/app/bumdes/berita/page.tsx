@@ -81,12 +81,20 @@ export default function KelolaBeritaPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [selected, setSelected] = useState<Broadcast | null>(null);
+  const [selected, setSelected] = useState<any | null>(null);
+  const [registrantsModal, setRegistrantsModal] = useState<number | null>(null);
+  const [registrants, setRegistrants] = useState<any[]>([]);
+  const [registrantsTitle, setRegistrantsTitle] = useState("");
+  const [loadingRegs, setLoadingRegs] = useState(false);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("pengumuman");
   const [content, setContent] = useState("");
   const [target, setTarget] = useState("all");
   const [umkmCategory, setUmkmCategory] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [allowRegistration, setAllowRegistration] = useState(false);
+  const [maxParticipants, setMaxParticipants] = useState("");
+  const [registrationDeadline, setRegistrationDeadline] = useState("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -114,6 +122,7 @@ export default function KelolaBeritaPage() {
   };
   const resetForm = () => {
     setTitle(""); setCategory("pengumuman"); setContent(""); setTarget("all"); setUmkmCategory("");
+    setEventDate(""); setAllowRegistration(false); setMaxParticipants(""); setRegistrationDeadline("");
     setPhotoFiles([]); setPreviewUrls([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -125,6 +134,10 @@ export default function KelolaBeritaPage() {
     fd.append("title", title); fd.append("category", category);
     fd.append("content", content); fd.append("target", target);
     if (target === "umkm_category") fd.append("umkm_category", umkmCategory);
+    if (eventDate) fd.append("event_date", eventDate);
+    if (allowRegistration) fd.append("allow_registration", "1");
+    if (allowRegistration && maxParticipants) fd.append("max_participants", maxParticipants);
+    if (allowRegistration && registrationDeadline) fd.append("registration_deadline", registrationDeadline);
     photoFiles.forEach((f, i) => fd.append(`photos[${i}]`, f));
     try {
       await api.post("/admin/broadcasts", fd, { headers: { "Content-Type": "multipart/form-data" } });
@@ -148,6 +161,29 @@ export default function KelolaBeritaPage() {
     }
   };
   const catLabel = (v: string) => CATEGORIES.find((c) => c.value === v)?.label ?? v;
+
+  useEffect(() => {
+    if (!registrantsModal) return;
+    setLoadingRegs(true);
+    api.get(`/admin/broadcasts/${registrantsModal}/registrations`)
+      .then(res => {
+        setRegistrants(res.data.data ?? []);
+        setRegistrantsTitle(res.data.event?.title ?? "");
+      })
+      .catch(() => setRegistrants([]))
+      .finally(() => setLoadingRegs(false));
+  }, [registrantsModal]);
+
+  const handleRemoveRegistrant = async (userId: number) => {
+    if (!registrantsModal) return;
+    try {
+      await api.delete(`/admin/broadcasts/${registrantsModal}/registrations/${userId}`);
+      setRegistrants(prev => prev.filter(r => r.user_id !== userId));
+      toast.success("Peserta berhasil dihapus.");
+    } catch {
+      toast.error("Gagal menghapus peserta.");
+    }
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
@@ -228,6 +264,46 @@ export default function KelolaBeritaPage() {
                     <input type="text" value={umkmCategory} onChange={(e) => setUmkmCategory(e.target.value)} placeholder="Contoh: makanan, kerajinan, tekstil..." className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition" />
                   </div>
                 )}
+                {/* Tanggal Event */}
+                {["acara", "pelatihan", "undangan"].includes(category) && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Tanggal Event <span className="text-gray-400 font-normal">(opsional)</span></label>
+                        <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={new Date().toISOString().split("T")[0]} className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition" />
+                      </div>
+                      <div className="flex items-end pb-2">
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                          <input type="checkbox" checked={allowRegistration} onChange={(e) => { setAllowRegistration(e.target.checked); if (!e.target.checked) { setMaxParticipants(""); setRegistrationDeadline(""); }}} className="w-4 h-4 rounded accent-green-600" />
+                          <span className="text-sm text-gray-700 font-medium">Buka pendaftaran peserta</span>
+                        </label>
+                      </div>
+                    </div>
+                    {allowRegistration && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-1 border-l-2 border-green-200 ml-1">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">Kuota Peserta <span className="text-gray-400 font-normal">(opsional, kosong = tak terbatas)</span></label>
+                          <input
+                            type="number" min="1" value={maxParticipants}
+                            onChange={(e) => setMaxParticipants(e.target.value)}
+                            placeholder="Contoh: 50"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">Batas Daftar <span className="text-gray-400 font-normal">(opsional)</span></label>
+                          <input
+                            type="date" value={registrationDeadline}
+                            onChange={(e) => setRegistrationDeadline(e.target.value)}
+                            min={new Date().toISOString().split("T")[0]}
+                            max={eventDate || undefined}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Isi Berita */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">Isi Berita <span className="text-red-500">*</span></label>
@@ -264,15 +340,116 @@ export default function KelolaBeritaPage() {
                 </div>
                 <h1 className="text-base font-bold text-gray-900 leading-snug">{selected.title}</h1>
                 <p className="text-[10px] text-gray-400">{new Date(selected.sent_at ?? selected.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })} · {selected.recipient_count} penerima</p>
+                {selected.event_date && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 text-[11px] font-semibold">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      {new Date(selected.event_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                    </span>
+                    {selected.allow_registration && (
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-50 text-green-700 text-[11px] font-semibold">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        Pendaftaran dibuka
+                        {selected.max_participants && ` · maks ${selected.max_participants} orang`}
+                      </span>
+                    )}
+                    {selected.registration_deadline && (
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-[11px] font-semibold">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Daftar s.d. {new Date(selected.registration_deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed pt-2">{selected.content}</p>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-between">
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-between flex-wrap gap-2">
               <button onClick={() => setDeleteId(selected.id)} className="px-4 py-2 rounded-xl text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition flex items-center gap-1.5">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 Hapus
               </button>
-              <button onClick={() => setSelected(null)} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">Tutup</button>
+              <div className="flex gap-2">
+                {selected.allow_registration && (
+                  <button
+                    onClick={() => setRegistrantsModal(selected.id)}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold text-white flex items-center gap-1.5"
+                    style={{ background: "var(--primary)" }}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    Lihat Peserta
+                  </button>
+                )}
+                <button onClick={() => setSelected(null)} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">Tutup</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Daftar Peserta */}
+      {registrantsModal !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-gray-100 flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">Daftar Peserta</h2>
+                {registrantsTitle && <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-1">{registrantsTitle}</p>}
+              </div>
+              <button onClick={() => setRegistrantsModal(null)} className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition shrink-0">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {loadingRegs ? (
+                <div className="text-center py-12 text-sm text-gray-400">Memuat peserta...</div>
+              ) : registrants.length === 0 ? (
+                <div className="text-center py-12 text-sm text-gray-400">Belum ada yang mendaftar.</div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/60">
+                      <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">#</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Nama</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Role</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Tgl Daftar</th>
+                      <th className="px-3 py-2.5"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {registrants.map((r, i) => (
+                      <tr key={r.id} className="hover:bg-gray-50/50 transition">
+                        <td className="px-5 py-3 text-[11px] text-gray-400">{i + 1}</td>
+                        <td className="px-3 py-3">
+                          <p className="text-xs font-semibold text-gray-900">{r.name}</p>
+                          <p className="text-[10px] text-gray-400">{r.email}</p>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${r.registrant_type === "umkm" ? "bg-blue-50 text-blue-700" : "bg-orange-50 text-orange-700"}`}>
+                            {r.registrant_type === "umkm" ? "UMKM" : "Kurir"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-[10px] text-gray-400">
+                          {new Date(r.registered_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                        </td>
+                        <td className="px-3 py-3 text-right">
+                          <button
+                            onClick={() => handleRemoveRegistrant(r.user_id)}
+                            className="p-1 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition"
+                            title="Hapus peserta"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="px-6 py-3 border-t border-gray-100 flex justify-between items-center">
+              <span className="text-xs text-gray-400">{registrants.length} peserta terdaftar</span>
+              <button onClick={() => setRegistrantsModal(null)} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">Tutup</button>
             </div>
           </div>
         </div>

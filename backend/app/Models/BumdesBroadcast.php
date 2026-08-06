@@ -16,12 +16,25 @@ class BumdesBroadcast extends Model
         'umkm_category',
         'recipient_count',
         'sent_at',
+        'event_date',
+        'allow_registration',
+        'max_participants',
+        'registration_deadline',
     ];
 
     protected $casts = [
-        'sent_at' => 'datetime',
-        'photos'  => 'array',
+        'sent_at'                => 'datetime',
+        'photos'                 => 'array',
+        'event_date'             => 'date',
+        'allow_registration'     => 'boolean',
+        'max_participants'       => 'integer',
+        'registration_deadline'  => 'date',
     ];
+
+    public function registrations()
+    {
+        return $this->hasMany(BroadcastRegistration::class, 'broadcast_id');
+    }
 
     public function bumdesProfile()
     {

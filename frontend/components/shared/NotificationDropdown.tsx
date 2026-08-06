@@ -75,14 +75,14 @@ interface Notif {
 }
 
 const TYPE_ICON: Record<string, string> = {
-  order_new: "🛍️",
-  order_confirmed: "✅",
-  order_cancelled: "❌",
-  order_shipped: "🚚",
-  order_delivered: "📦",
-  stock_warning: "⚠️",
-  info: "ℹ️",
-  promo: "🏷️",
+  order_new: "ti-shopping-bag",
+  order_confirmed: "ti-circle-check",
+  order_cancelled: "ti-circle-x",
+  order_shipped: "ti-truck",
+  order_delivered: "ti-package",
+  stock_warning: "ti-alert-triangle",
+  info: "ti-info-circle",
+  promo: "ti-tag",
 };
 
 function timeAgo(dateStr: string) {
@@ -192,7 +192,7 @@ export default function NotificationDropdown() {
               <div className="py-10 text-center text-xs text-gray-400">Memuat...</div>
             ) : notifs.length === 0 ? (
               <div className="py-10 text-center">
-                <p className="text-2xl mb-2">🔔</p>
+                <i className="ti ti-bell text-2xl text-gray-300 mb-2 block" />
                 <p className="text-xs text-gray-400">Belum ada notifikasi</p>
               </div>
             ) : (
@@ -204,7 +204,7 @@ export default function NotificationDropdown() {
                     }`}
                 >
                   <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-base shrink-0 mt-0.5">
-                    {TYPE_ICON[n.type] ?? "🔔"}
+                    <i className={`ti ${TYPE_ICON[n.type] ?? "ti-bell"} text-gray-500`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`text-xs leading-snug ${n.is_read ? "text-gray-700" : "text-gray-900 font-semibold"}`}>

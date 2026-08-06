@@ -231,6 +231,8 @@ Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('ad
     Route::post('/broadcasts', [AdminBroadcastController::class, 'store']);
     Route::get('/broadcasts/{id}', [AdminBroadcastController::class, 'show']);
     Route::delete('/broadcasts/{id}', [AdminBroadcastController::class, 'destroy']);
+    Route::get('/broadcasts/{id}/registrations', [AdminBroadcastController::class, 'registrants']);
+    Route::delete('/broadcasts/{id}/registrations/{userId}', [AdminBroadcastController::class, 'removeRegistrant']);
 
     Route::get('/required-documents', [RequiredDocumentController::class, 'index']);
     Route::post('/required-documents/seed-defaults', [RequiredDocumentController::class, 'seedDefaults']);
@@ -308,6 +310,9 @@ Route::get('/bumdes', [SuperAdminBumdesController::class, 'index']);
 Route::get('/berita', [\App\Http\Controllers\Public\BeritaController::class, 'index']);
 Route::get('/berita/{id}', [\App\Http\Controllers\Public\BeritaController::class, 'show']);
 Route::middleware('auth:sanctum')->get('/my/berita', [\App\Http\Controllers\Public\BeritaController::class, 'myBerita']);
+Route::middleware('auth:sanctum')->post('/my/berita/{id}/register', [\App\Http\Controllers\Public\BeritaController::class, 'register']);
+Route::middleware('auth:sanctum')->delete('/my/berita/{id}/register', [\App\Http\Controllers\Public\BeritaController::class, 'unregister']);
+Route::middleware('auth:sanctum')->get('/my/berita/{id}/peserta', [\App\Http\Controllers\Public\BeritaController::class, 'peserta']);
 
 // Webhook Xendit (tidak perlu auth Sanctum)
 Route::post('/webhooks/xendit', [WebhookController::class, 'xendit']);

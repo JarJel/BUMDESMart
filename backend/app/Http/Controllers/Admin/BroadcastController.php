@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BroadcastRegistration;
 use App\Models\BumdesBroadcast;
 use App\Models\BumdesProfile;
 use App\Models\DriverProfile;
@@ -38,13 +39,17 @@ class BroadcastController extends Controller
         $bumdes = $this->getBumdes($request);
 
         $validated = $request->validate([
-            'title'         => 'required|string|max:255',
-            'category'      => 'required|in:pengumuman,pelatihan,info_bantuan,jadwal,acara,promosi,sistem,undangan',
-            'content'       => 'required|string',
-            'target'        => 'required|in:all,umkm,driver,umkm_category',
-            'umkm_category' => 'required_if:target,umkm_category|nullable|string|max:100',
-            'photos'        => 'nullable|array|max:5',
-            'photos.*'      => 'image|mimes:jpeg,png,jpg,webp|max:3072',
+            'title'              => 'required|string|max:255',
+            'category'           => 'required|in:pengumuman,pelatihan,info_bantuan,jadwal,acara,promosi,sistem,undangan',
+            'content'            => 'required|string',
+            'target'             => 'required|in:all,umkm,driver,umkm_category',
+            'umkm_category'      => 'required_if:target,umkm_category|nullable|string|max:100',
+            'photos'             => 'nullable|array|max:5',
+            'photos.*'           => 'image|mimes:jpeg,png,jpg,webp|max:3072',
+            'event_date'              => 'nullable|date',
+            'allow_registration'      => 'nullable|boolean',
+            'max_participants'         => 'nullable|integer|min:1',
+            'registration_deadline'    => 'nullable|date',
         ]);
 
         // Upload multiple foto
@@ -76,15 +81,19 @@ class BroadcastController extends Controller
         }
 
         $broadcast = BumdesBroadcast::create([
-            'bumdes_profile_id' => $bumdes->id,
-            'title'             => $validated['title'],
-            'category'          => $validated['category'],
-            'content'           => $validated['content'],
-            'photos'            => !empty($photoPaths) ? $photoPaths : null,
-            'target'            => $validated['target'],
-            'umkm_category'     => $validated['umkm_category'] ?? null,
-            'recipient_count'   => count($emails),
-            'sent_at'           => now(),
+            'bumdes_profile_id'  => $bumdes->id,
+            'title'              => $validated['title'],
+            'category'           => $validated['category'],
+            'content'            => $validated['content'],
+            'photos'             => !empty($photoPaths) ? $photoPaths : null,
+            'target'             => $validated['target'],
+            'umkm_category'      => $validated['umkm_category'] ?? null,
+            'recipient_count'    => count($emails),
+            'sent_at'            => now(),
+            'event_date'             => $validated['event_date'] ?? null,
+            'allow_registration'     => $validated['allow_registration'] ?? false,
+            'max_participants'        => $validated['max_participants'] ?? null,
+            'registration_deadline'   => $validated['registration_deadline'] ?? null,
         ]);
 
         return response()->json([
@@ -100,6 +109,50 @@ class BroadcastController extends Controller
         $bumdes    = $this->getBumdes($request);
         $broadcast = BumdesBroadcast::where('bumdes_profile_id', $bumdes->id)->findOrFail($id);
         return response()->json(['data' => $broadcast]);
+    }
+
+    // GET /admin/broadcasts/{id}/registrations
+    public function registrants(Request $request, int $id)
+    {
+        $bumdes    = $this->getBumdes($request);
+        $broadcast = BumdesBroadcast::where('bumdes_profile_id', $bumdes->id)->findOrFail($id);
+
+        $regs = BroadcastRegistration::with('user:id,name,email,phone')
+            ->where('broadcast_id', $broadcast->id)
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn($r) => [
+                'id'                   => $r->id,
+                'user_id'              => $r->user_id,
+                'name'                 => $r->user->name,
+                'email'                => $r->user->email,
+                'phone'                => $r->user->phone ?? null,
+                'registrant_type'      => $r->registrant_type,
+                'registered_at'        => $r->created_at,
+                'total_programs_joined' => BroadcastRegistration::where('user_id', $r->user_id)->count(),
+            ])
+            ->sortByDesc('total_programs_joined')
+            ->values();
+
+        return response()->json([
+            'data'  => $regs,
+            'total' => $regs->count(),
+            'event' => [
+                'title'            => $broadcast->title,
+                'event_date'       => $broadcast->event_date,
+                'max_participants' => $broadcast->max_participants,
+            ],
+        ]);
+    }
+
+    // DELETE /admin/broadcasts/{id}/registrations/{userId}
+    public function removeRegistrant(Request $request, int $id, int $userId)
+    {
+        $bumdes    = $this->getBumdes($request);
+        BumdesBroadcast::where('bumdes_profile_id', $bumdes->id)->findOrFail($id);
+
+        BroadcastRegistration::where('broadcast_id', $id)->where('user_id', $userId)->delete();
+        return response()->json(['message' => 'Peserta berhasil dihapus.']);
     }
 
     // DELETE /admin/broadcasts/{id}

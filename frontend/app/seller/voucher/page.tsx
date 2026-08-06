@@ -41,7 +41,7 @@ const TRIGGER_OPTIONS: { value: TriggerType; label: string; desc: string; icon: 
     value: "item_count",
     label: "Jumlah Item",
     desc: "Berdasarkan jumlah item yang dibeli dalam 1 transaksi",
-    icon: "🛍️",
+    icon: "ti ti-shopping-bag",
     unit: "item",
     placeholder: "misal: 5",
   },
@@ -49,7 +49,7 @@ const TRIGGER_OPTIONS: { value: TriggerType; label: string; desc: string; icon: 
     value: "order_amount",
     label: "Total Belanja",
     desc: "Berdasarkan total harga belanja dalam 1 transaksi",
-    icon: "💰",
+    icon: "ti ti-coin",
     unit: "Rp",
     placeholder: "misal: 200000",
   },
@@ -57,16 +57,16 @@ const TRIGGER_OPTIONS: { value: TriggerType; label: string; desc: string; icon: 
     value: "order_frequency",
     label: "Frekuensi Beli",
     desc: "Berdasarkan berapa kali customer sudah beli di toko ini",
-    icon: "🔄",
+    icon: "ti ti-refresh",
     unit: "kali",
     placeholder: "misal: 10",
   },
 ];
 
 const REWARD_OPTIONS: { value: RewardType; label: string; icon: string }[] = [
-  { value: "flat", label: "Diskon Nominal (Rp)", icon: "💵" },
-  { value: "percentage", label: "Diskon Persen (%)", icon: "🏷️" },
-  { value: "free_shipping", label: "Gratis Ongkir", icon: "🚚" },
+  { value: "flat", label: "Diskon Nominal (Rp)", icon: "ti ti-coin" },
+  { value: "percentage", label: "Diskon Persen (%)", icon: "ti ti-tag" },
+  { value: "free_shipping", label: "Gratis Ongkir", icon: "ti ti-truck" },
 ];
 
 function buildAutoLabel(form: typeof EMPTY_FORM): string {
@@ -228,7 +228,7 @@ export default function VoucherPage() {
 
       {/* Info banner */}
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3">
-        <span className="text-xl shrink-0">💡</span>
+        <i className="ti ti-bulb text-xl shrink-0 text-amber-600" />
         <div>
           <p className="text-sm font-semibold text-amber-800">Cara kerja voucher</p>
           <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
@@ -245,7 +245,7 @@ export default function VoucherPage() {
         </div>
       ) : programs.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 flex flex-col items-center justify-center py-20 text-center">
-          <div className="text-5xl mb-4">🎟️</div>
+          <i className="ti ti-ticket text-5xl text-gray-300 mb-4" />
           <p className="text-sm font-semibold text-gray-700 mb-1">Belum ada program voucher</p>
           <p className="text-xs text-gray-400 mb-5 max-w-xs">
             Buat program voucher untuk menarik lebih banyak pembeli. Voucher muncul otomatis tanpa kode.
@@ -274,7 +274,7 @@ export default function VoucherPage() {
                     className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0"
                     style={{ background: p.is_active ? "var(--primary-light, #f0fdf4)" : "#f9fafb" }}
                   >
-                    {trigger.icon}
+                    <i className={trigger.icon} />
                   </div>
 
                   {/* Content */}
@@ -389,7 +389,7 @@ export default function VoucherPage() {
                           : "border-gray-100 hover:border-gray-200 bg-white"
                       }`}
                     >
-                      <span className="text-xl shrink-0">{t.icon}</span>
+                      <i className={`${t.icon} text-xl shrink-0`} />
                       <div>
                         <p className={`text-sm font-semibold ${form.trigger_type === t.value ? "text-green-700" : "text-gray-800"}`}>
                           {t.label}
@@ -444,7 +444,7 @@ export default function VoucherPage() {
                           : "border-gray-100 hover:border-gray-200"
                       }`}
                     >
-                      <span className="text-xl">{r.icon}</span>
+                      <i className={`${r.icon} text-xl`} />
                       <span className={`text-[11px] font-semibold ${form.reward_type === r.value ? "text-green-700" : "text-gray-600"}`}>
                         {r.label}
                       </span>
@@ -504,7 +504,7 @@ export default function VoucherPage() {
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-4">
                 <p className="text-[10px] text-green-600 font-semibold mb-1 uppercase tracking-wide">Preview Voucher</p>
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">🎟️</span>
+                  <i className="ti ti-ticket text-2xl text-green-600" />
                   <div>
                     <p className="text-sm font-bold text-green-800">{form.label.trim() || buildAutoLabel(form)}</p>
                     <p className="text-[10px] text-green-600 mt-0.5">Tampil otomatis di checkout pembeli</p>

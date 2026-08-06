@@ -555,7 +555,7 @@ export default function CheckoutPage() {
                                 disabled={item.quantity <= 1}
                                 className="text-xs text-gray-500 hover:text-gray-800 disabled:opacity-30 cursor-pointer font-bold border-0 bg-transparent"
                               >
-                                ➖
+                                −
                               </button>
                               <span className="text-xs font-semibold text-gray-800 w-4 text-center">{item.quantity}</span>
                               <button
@@ -563,7 +563,7 @@ export default function CheckoutPage() {
                                 disabled={item.quantity >= stock}
                                 className="text-xs text-gray-500 hover:text-gray-800 disabled:opacity-30 cursor-pointer font-bold border-0 bg-transparent"
                               >
-                                ➕
+                                +
                               </button>
                             </div>
 
@@ -597,7 +597,7 @@ export default function CheckoutPage() {
                     return (
                       <div className="mt-4 pt-3 border-t border-dashed border-gray-100 space-y-2">
                         <p className="text-[11px] font-semibold text-gray-500 flex items-center gap-1">
-                          🎟️ Voucher Toko
+                          <i className="ti ti-ticket" /> Voucher Toko
                         </p>
                         {vouchers.map((v) => {
                           const isSelected = selectedVId === v.id;
@@ -630,7 +630,7 @@ export default function CheckoutPage() {
                                 }`}
                               >
                                 <div className="flex items-center gap-2">
-                                  <span className="text-base">🎟️</span>
+                                  <i className="ti ti-ticket text-green-600" />
                                   <span className="text-xs font-semibold text-green-700">{v.label}</span>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
@@ -859,7 +859,7 @@ export default function CheckoutPage() {
               {/* Diskon Voucher yang Dipilih */}
               {voucherDiscount > 0 && (
                 <div className="flex justify-between text-green-600 font-medium">
-                  <span>🎟️ Diskon Voucher</span>
+                  <span className="flex items-center gap-1"><i className="ti ti-ticket" /> Diskon Voucher</span>
                   <span>-{formatRupiah(voucherDiscount)}</span>
                 </div>
               )}

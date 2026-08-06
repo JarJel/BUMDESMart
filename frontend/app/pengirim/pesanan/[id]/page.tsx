@@ -406,7 +406,7 @@ export default function OrderDetailPage() {
               <MapLegend />
               {!driverLocation && (
                 <p className="mt-2 text-center text-[11px] text-amber-600">
-                  ⚠ Izinkan akses lokasi untuk menampilkan posisi kamu di peta.
+                  <i className="ti ti-alert-triangle" /> Izinkan akses lokasi untuk menampilkan posisi kamu di peta.
                 </p>
               )}
             </>
@@ -520,7 +520,7 @@ export default function OrderDetailPage() {
           )}
           {Number(order.discount ?? 0) > 0 && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm text-green-600 font-medium">
-              <span className="flex items-center gap-1">🎟️ Diskon Voucher</span>
+              <span className="flex items-center gap-1"><i className="ti ti-ticket" /> Diskon Voucher</span>
               <span>-{formatRp(order.discount ?? 0)}</span>
             </div>
           )}
