@@ -75,6 +75,8 @@ export default function TambahProdukPage() {
     stock: "",
     weight: "",
     status: "active",
+    is_pre_order: false,
+    pre_order_days: "7",
   });
 
   // Variant state
@@ -149,6 +151,12 @@ export default function TambahProdukPage() {
     if (!form.description.trim()) e.description = "Deskripsi wajib diisi";
     if (!form.weight || Number(form.weight) <= 0) e.weight = "Berat wajib diisi (gram)";
 
+    if (form.is_pre_order) {
+      if (!form.pre_order_days || Number(form.pre_order_days) < 1) {
+        e.pre_order_days = "Waktu pre-order wajib diisi dan minimal 1 hari";
+      }
+    }
+
     if (hasVariant) {
       if (!variantName.trim()) e.variant_name = "Nama grup varian wajib diisi";
       const hasEmptyOption = variantOptions.some(opt => !opt.value.trim());
@@ -176,6 +184,10 @@ export default function TambahProdukPage() {
     fd.append("description", form.description);
     fd.append("weight", form.weight);
     fd.append("status", statusOverride ?? form.status);
+    fd.append("is_pre_order", form.is_pre_order ? "1" : "0");
+    if (form.is_pre_order) {
+      fd.append("pre_order_days", form.pre_order_days);
+    }
     photos.forEach(f => fd.append("images[]", f));
 
     if (hasVariant) {
@@ -449,6 +461,39 @@ export default function TambahProdukPage() {
                 </div>
               </div>
             )}
+
+            {/* Sistem Pre-Order */}
+            <div className="border-t border-gray-100 pt-4 mt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800">Sistem Pre-Order</h3>
+                  <p className="text-xs text-gray-500">Aktifkan jika produk ini memerlukan waktu produksi/distribusi lebih lama.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, is_pre_order: !prev.is_pre_order }))}
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${form.is_pre_order ? "bg-green-600" : "bg-gray-300"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${form.is_pre_order ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+
+              {form.is_pre_order && (
+                <div className="max-w-xs mt-3 animate-fadeIn">
+                  <label className="text-xs font-medium text-gray-700 mb-1.5 block">Waktu Pre-Order (Hari) <span className="text-red-500">*</span></label>
+                  <input
+                    value={form.pre_order_days}
+                    onChange={setField("pre_order_days")}
+                    type="number"
+                    min="1"
+                    placeholder="7"
+                    className={`w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none focus:border-green-400 ${errors.pre_order_days ? "border-red-300" : "border-gray-200"}`}
+                  />
+                  {errors.pre_order_days && <p className="text-xs text-red-500 mt-1">{errors.pre_order_days}</p>}
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
 

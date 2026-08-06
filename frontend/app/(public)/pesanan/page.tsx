@@ -113,7 +113,10 @@ export default function PesananPage() {
       ) : (
         <div className="space-y-3">
           {orders.map((order: any) => {
-            const sc        = STATUS_COLOR[order.status] || { bg: "#F3F4F6", text: "#6B7280", label: order.status };
+            let sc          = STATUS_COLOR[order.status] || { bg: "#F3F4F6", text: "#6B7280", label: order.status };
+            if (order.status === "pending" && order.payment?.status === "paid") {
+              sc = { bg: "#D1FAE5", text: "#065F46", label: "Pembayaran Berhasil" };
+            }
             const firstItem = order.items?.[0];
             const imgUrl    = getImgUrl(firstItem?.product);
             const moreItems = (order.items?.length || 0) - 1;

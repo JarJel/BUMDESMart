@@ -180,9 +180,20 @@ export default function DetailPesananPage() {
   if (!order) return null;
 
   const stepIdx    = STATUS_IDX[order.status] ?? 0;
-  const badge      = STATUS_BADGE[order.status] ?? { bg: "#F3F4F6", text: "#6B7280", label: order.status };
+  let badge        = STATUS_BADGE[order.status] ?? { bg: "#F3F4F6", text: "#6B7280", label: order.status };
+  if (order.status === "pending" && order.payment?.status === "paid") {
+    badge = { bg: "#ECFDF5", text: "#047857", label: "Pembayaran Berhasil" };
+  }
   const isCancelled = order.status === "cancelled";
   const isReviewed = existingReviews.length > 0;
+
+  const steps = [
+    { key: "pending",    label: order.payment?.status === "paid" ? "Pembayaran Berhasil" : "Menunggu Bayar" },
+    { key: "confirmed",  label: "Dikonfirmasi" },
+    { key: "processing", label: "Diproses" },
+    { key: "shipped",    label: "Dikirim" },
+    { key: "delivered",  label: "Selesai" },
+  ];
 
   return (
     <div style={{ background: "#F4F7F5", minHeight: "100vh" }}>
@@ -210,7 +221,7 @@ export default function DetailPesananPage() {
           <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4">
             <p className="text-sm font-semibold text-gray-800 mb-5">Status Pesanan</p>
             <div className="flex items-start">
-              {STATUS_STEPS.map((step, i) => (
+              {steps.map((step, i) => (
                 <div key={step.key} className="flex-1 flex flex-col items-center relative">
                   <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold z-10"
                     style={i <= stepIdx
@@ -222,16 +233,13 @@ export default function DetailPesananPage() {
                       </svg>
                     ) : i + 1}
                   </div>
-                  {i < STATUS_STEPS.length - 1 && (
+                  {i < steps.length - 1 && (
                     <div className="absolute top-3.5 left-1/2 w-full h-0.5"
-                      style={{ background: i < stepIdx ? "var(--primary)" : "#F3F4F6" }} />
+                      style={{ background: i < stepIdx ? "var(--primary)" : "#E5E7EB" }} />
                   )}
-                  <p className="text-center text-[10px] mt-2 leading-tight px-0.5"
-                    style={i === stepIdx
-                      ? { color: "var(--primary)", fontWeight: 600 }
-                      : { color: "#9CA3AF" }}>
+                  <span className={`text-[10px] sm:text-xs font-semibold mt-2.5 text-center px-1 leading-snug ${i <= stepIdx ? "text-gray-900 font-bold" : "text-gray-400"}`}>
                     {step.label}
-                  </p>
+                  </span>
                 </div>
               ))}
             </div>

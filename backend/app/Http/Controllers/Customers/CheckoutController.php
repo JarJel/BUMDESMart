@@ -493,14 +493,16 @@ class CheckoutController extends Controller
             $disc           = $product->activeDiscount;
             $discountAmount = $disc ? ($basePrice - $disc->calculateDiscountedPrice($basePrice)) : 0;
 
-            if ($product->has_variant && isset($validated['variant_id'])) {
-                $variant = ProductVariantOption::find($validated['variant_id']);
-                if (!$variant || $variant->stock < $qty) {
-                    return response()->json(['success' => false, 'message' => "Stok {$product->name} tidak mencukupi."], 422);
-                }
-            } else {
-                if ($product->stock < $qty) {
-                    return response()->json(['success' => false, 'message' => "Stok {$product->name} tidak mencukupi."], 422);
+            if (!$product->is_pre_order) {
+                if ($product->has_variant && isset($validated['variant_id'])) {
+                    $variant = ProductVariantOption::find($validated['variant_id']);
+                    if (!$variant || $variant->stock < $qty) {
+                        return response()->json(['success' => false, 'message' => "Stok {$product->name} tidak mencukupi."], 422);
+                    }
+                } else {
+                    if ($product->stock < $qty) {
+                        return response()->json(['success' => false, 'message' => "Stok {$product->name} tidak mencukupi."], 422);
+                    }
                 }
             }
 
@@ -536,9 +538,11 @@ class CheckoutController extends Controller
                 $disc           = $product->activeDiscount;
                 $discountAmount = $disc ? ($basePrice - $disc->calculateDiscountedPrice($basePrice)) : 0;
 
-                $availableStock = $ci->variant ? $ci->variant->stock : $product->stock;
-                if ($availableStock < $ci->quantity) {
-                    return response()->json(['success' => false, 'message' => "Stok {$product->name} tidak mencukupi."], 422);
+                if (!$product->is_pre_order) {
+                    $availableStock = $ci->variant ? $ci->variant->stock : $product->stock;
+                    if ($availableStock < $ci->quantity) {
+                        return response()->json(['success' => false, 'message' => "Stok {$product->name} tidak mencukupi."], 422);
+                    }
                 }
 
                 $rawItems[] = [
@@ -718,7 +722,9 @@ class CheckoutController extends Controller
                         'sub_total'         => ($item['product_price'] - $item['discount_amount']) * $item['quantity'],
                     ]);
 
-                    $item['product']->decrement('stock', $item['quantity']);
+                    if (!$item['product']->is_pre_order) {
+                        $item['product']->decrement('stock', $item['quantity']);
+                    }
                 }
 
                 OrderHistory::create([
