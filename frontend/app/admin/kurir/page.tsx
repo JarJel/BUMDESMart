@@ -93,6 +93,7 @@ export default function AdminKurirPage() {
   const [page, setPage] = useState(1);
 
   const [selected, setSelected] = useState<Driver | null>(null);
+  const [drawerTab, setDrawerTab] = useState<"info" | "kinerja">("info");
   const [suspendReason, setSuspendReason] = useState("");
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -314,33 +315,43 @@ export default function AdminKurirPage() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSelected(null)} />
           <div className="relative ml-auto w-full max-w-md bg-white h-full overflow-y-auto shadow-2xl flex flex-col">
             {/* Drawer header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 sticky top-0 bg-white z-10">
-              <h2 className="text-lg font-bold text-gray-900">Detail Kurir</h2>
-              <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-gray-100">
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
+            <div className="sticky top-0 bg-white z-10 border-b border-gray-100">
+              <div className="flex items-center justify-between px-6 py-4">
+                <div className="flex items-center gap-3">
+                  {getFileUrl(selected.photo_profile_url) ? (
+                    <img src={getFileUrl(selected.photo_profile_url)!} alt="" className="w-10 h-10 rounded-xl object-cover border border-gray-200 shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold shrink-0">
+                      {selected.user.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-bold text-gray-900">{selected.user.name}</p>
+                    <StatusBadge driver={selected} />
+                  </div>
+                </div>
+                <button onClick={() => { setSelected(null); setDrawerTab("info"); }} className="p-1.5 rounded-lg hover:bg-gray-100">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              {/* Tabs */}
+              <div className="flex px-6">
+                <button onClick={() => setDrawerTab("info")} className={`py-2.5 px-1 mr-5 text-xs font-semibold border-b-2 transition ${drawerTab === "info" ? "border-indigo-600 text-indigo-700" : "border-transparent text-gray-400 hover:text-gray-600"}`}>Info & Dokumen</button>
+                <button onClick={() => setDrawerTab("kinerja")} className={`py-2.5 px-1 text-xs font-semibold border-b-2 transition ${drawerTab === "kinerja" ? "border-indigo-600 text-indigo-700" : "border-transparent text-gray-400 hover:text-gray-600"}`}>Kinerja</button>
+              </div>
             </div>
 
+            {/* Tab: Info */}
+            {drawerTab === "info" && (
             <div className="p-6 space-y-6 flex-1">
-              {/* Profile photo + name */}
-              <div className="flex items-center gap-4">
-                {getFileUrl(selected.photo_profile_url) ? (
-                  <img src={getFileUrl(selected.photo_profile_url)!} alt="" className="w-16 h-16 rounded-2xl object-cover border border-gray-200" />
-                ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-2xl">
-                    {selected.user.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div>
-                  <p className="font-bold text-gray-900 text-lg">{selected.user.name}</p>
-                  <p className="text-sm text-gray-500">{selected.user.email}</p>
-                  {selected.user.phone && <p className="text-sm text-gray-500">{selected.user.phone}</p>}
-                  <div className="mt-1"><StatusBadge driver={selected} /></div>
-                </div>
+              {/* Info kontak */}
+              <div className="space-y-1">
+                <p className="text-sm text-gray-500">{selected.user.email}</p>
+                {selected.user.phone && <p className="text-sm text-gray-500">{selected.user.phone}</p>}
               </div>
 
               {/* Info grid */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {[
                   { label: "Kendaraan", value: VEHICLE_LABEL[selected.vehicle_type] },
                   { label: "Plat Nomor", value: selected.vehicle_plate },
@@ -348,8 +359,6 @@ export default function AdminKurirPage() {
                   { label: "Tahun", value: selected.vehicle_year?.toString() || "—" },
                   { label: "SIM", value: selected.sim_type?.toUpperCase() || "—" },
                   { label: "No. KTP", value: selected.id_number || "—" },
-                  { label: "Total Antar", value: selected.total_deliveries.toString() },
-                  { label: "Rating", value: selected.rating > 0 ? `${selected.rating.toFixed(1)} ★` : "—" },
                 ].map(item => (
                   <div key={item.label} className="bg-gray-50 rounded-xl p-3">
                     <p className="text-xs text-gray-500 mb-0.5">{item.label}</p>
@@ -379,6 +388,70 @@ export default function AdminKurirPage() {
                 </div>
               )}
             </div>
+            )}
+
+            {/* Tab: Kinerja */}
+            {drawerTab === "kinerja" && (
+            <div className="p-6 space-y-5 flex-1">
+              {/* Stat cards */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-indigo-50 rounded-2xl p-4 text-center">
+                  <p className="text-3xl font-bold text-indigo-700">{selected.total_deliveries}</p>
+                  <p className="text-xs text-indigo-500 mt-1">Total Antar</p>
+                </div>
+                <div className="bg-amber-50 rounded-2xl p-4 text-center">
+                  <p className="text-3xl font-bold text-amber-600">{selected.rating > 0 ? selected.rating.toFixed(1) : "—"}</p>
+                  <p className="text-xs text-amber-500 mt-1">Rating ★</p>
+                </div>
+              </div>
+
+              {/* Status operasional */}
+              <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status Operasional</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Tersedia menerima pesanan</span>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${selected.is_available ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-500"}`}>
+                    {selected.is_available ? "Online" : "Offline"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Akun diverifikasi</span>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${selected.is_verified ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-600"}`}>
+                    {selected.is_verified ? "Ya" : "Belum"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Akun disuspend</span>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${selected.is_suspended ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"}`}>
+                    {selected.is_suspended ? "Ya" : "Tidak"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Rating bar */}
+              {selected.rating > 0 && (
+                <div className="bg-gray-50 rounded-2xl p-4">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Visualisasi Rating</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-amber-400 transition-all"
+                        style={{ width: `${(selected.rating / 5) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-bold text-amber-600 shrink-0">{selected.rating.toFixed(1)} / 5</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {selected.rating >= 4.5 ? "Performa sangat baik" :
+                     selected.rating >= 3.5 ? "Performa baik" :
+                     selected.rating >= 2.5 ? "Performa cukup" : "Perlu ditingkatkan"}
+                  </p>
+                </div>
+              )}
+
+              <p className="text-xs text-gray-400 text-center">Bergabung sejak {new Date(selected.user.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
+            </div>
+            )}
 
             {/* Action buttons */}
             <div className="px-6 py-5 border-t border-gray-100 space-y-2 sticky bottom-0 bg-white">

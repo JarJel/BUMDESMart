@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
 import {
   Search, X, CheckCircle, XCircle, Package, MessageCircle,
-  MapPin, Phone, Clock, ChevronRight, Truck, Home,
+  MapPin, Phone, Clock, ChevronRight, Truck, Home, ExternalLink,
 } from "lucide-react";
 
 interface OrderItem {
@@ -580,7 +581,17 @@ export default function PesananPage() {
                       <p className="text-xs text-gray-400 mt-0.5">{formatDate(o.created_at).split(",")[0]}</p>
                     </div>
 
-                    <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Link
+                        href={`/seller/pesanan/${o.id}`}
+                        onClick={e => e.stopPropagation()}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                        title="Buka halaman detail"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Link>
+                      <ChevronRight className="w-4 h-4 text-gray-300" />
+                    </div>
                   </div>
 
                   {/* Aksi cepat — hanya pending */}
