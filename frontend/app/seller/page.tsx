@@ -150,9 +150,27 @@ export default function SellerSummaryPage() {
           <div className="text-sm" style={{ color: "var(--primary-dark)" }}>
             <p className="font-semibold mb-1">Ringkasan hari ini</p>
             <ul className="text-xs space-y-0.5 text-gray-600">
-              {todayOrders > 0 && <li>Ada <strong>{todayOrders} pesanan</strong> yang perlu diproses</li>}
-              {lowStock > 0 && <li><strong>{lowStock} produk</strong> stoknya mau habis (sisa ≤ 5)</li>}
-              {outOfStock > 0 && <li><strong>{outOfStock} produk</strong> stoknya sudah habis</li>}
+              {todayOrders > 0 && (
+                <li>
+                  <a href="/seller/pesanan" className="hover:underline">
+                    Ada <strong>{todayOrders} pesanan</strong> yang perlu diproses →
+                  </a>
+                </li>
+              )}
+              {lowStock > 0 && (
+                <li>
+                  <a href="/seller/produk" className="hover:underline">
+                    <strong>{lowStock} produk</strong> stoknya mau habis (sisa ≤ 5) →
+                  </a>
+                </li>
+              )}
+              {outOfStock > 0 && (
+                <li>
+                  <a href="/seller/produk" className="hover:underline">
+                    <strong>{outOfStock} produk</strong> stoknya sudah habis →
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
         </div>

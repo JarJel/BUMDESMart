@@ -29,6 +29,17 @@ interface Umkm {
   rejection_reason: string | null;
   created_at: string;
   verified_at: string | null;
+  business_category: string | null;
+  description: string | null;
+  address: string | null;
+  city: string | null;
+  province: string | null;
+  logo: string | null;
+  nib: string | null;
+  npwp: string | null;
+  halal_cert: string | null;
+  halal_number: string | null;
+  rating: number | null;
   documents: Document[];
 }
 
@@ -55,8 +66,9 @@ export default function VerifikasiPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  // Modal review dokumen
+  // Modal review
   const [reviewTarget, setReviewTarget] = useState<Umkm | null>(null);
+  const [reviewTab, setReviewTab] = useState<"profil" | "dokumen">("profil");
   const [docIdx, setDocIdx] = useState(0);
   const [imgError, setImgError] = useState(false);
 
@@ -108,6 +120,7 @@ export default function VerifikasiPage() {
 
   const openReview = (u: Umkm) => {
     setReviewTarget(u);
+    setReviewTab("profil");
     setDocIdx(0);
     setImgError(false);
   };
@@ -243,133 +256,203 @@ export default function VerifikasiPage() {
         </div>
       )}
 
-      {/* ── Modal Review Dokumen ── */}
+      {/* ── Modal Review ── */}
       {reviewTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
           <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-              <div>
-                <p className="text-sm font-bold text-gray-900">{reviewTarget.shop_name}</p>
-                <p className="text-xs text-gray-400">{reviewTarget.owner_name} · {reviewTarget.documents.length} dokumen</p>
+              <div className="flex items-center gap-3 min-w-0">
+                {reviewTarget.logo ? (
+                  <img src={getFileUrl(reviewTarget.logo)} alt="logo" className="w-9 h-9 rounded-xl object-cover shrink-0 border border-gray-100" />
+                ) : (
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0" style={{ background: "#2D6A4F" }}>
+                    {reviewTarget.shop_name[0]}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-gray-900 truncate">{reviewTarget.shop_name}</p>
+                  <p className="text-xs text-gray-400">{reviewTarget.owner_name}</p>
+                </div>
               </div>
-              <button onClick={() => setReviewTarget(null)} className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition">
+              <button onClick={() => setReviewTarget(null)} className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition shrink-0">
                 <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* Tabs dokumen */}
-            <div className="flex gap-1 px-5 pt-3 pb-0 overflow-x-auto shrink-0" style={{ scrollbarWidth: "none" }}>
-              {reviewTarget.documents.map((doc, i) => (
-                <button
-                  key={doc.id}
-                  onClick={() => { setDocIdx(i); setImgError(false); }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
-                    docIdx === i ? "bg-green-700 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  }`}
-                >
-                  {DOC_LABEL[doc.document_type] ?? doc.document_type}
-                </button>
-              ))}
+            {/* Tabs utama */}
+            <div className="flex border-b border-gray-100 px-5 shrink-0">
+              <button
+                onClick={() => setReviewTab("profil")}
+                className={`py-2.5 px-1 mr-5 text-xs font-semibold border-b-2 transition ${reviewTab === "profil" ? "border-green-700 text-green-700" : "border-transparent text-gray-400 hover:text-gray-600"}`}
+              >Profil Usaha</button>
+              <button
+                onClick={() => setReviewTab("dokumen")}
+                className={`py-2.5 px-1 text-xs font-semibold border-b-2 transition ${reviewTab === "dokumen" ? "border-green-700 text-green-700" : "border-transparent text-gray-400 hover:text-gray-600"}`}
+              >
+                Dokumen ({reviewTarget.documents.length})
+              </button>
             </div>
 
-            {/* Preview area */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
-              {(() => {
-                const doc = reviewTarget.documents[docIdx];
-                if (!doc) return null;
-                const url = getFileUrl(doc.file_path);
-                const pdf = isPdf(doc.file_path);
+            {/* Tab: Profil Usaha */}
+            {reviewTab === "profil" && (
+              <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0 space-y-4">
+                {/* Info kontak */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "Nama Pemilik", value: reviewTarget.owner_name },
+                    { label: "No. HP", value: reviewTarget.phone ?? "—" },
+                    { label: "Email", value: reviewTarget.email ?? "—" },
+                    { label: "Kategori Usaha", value: reviewTarget.business_category ?? "—" },
+                    { label: "Kota", value: reviewTarget.city ?? "—" },
+                    { label: "Provinsi", value: reviewTarget.province ?? "—" },
+                  ].map(item => (
+                    <div key={item.label} className="bg-gray-50 rounded-xl px-3 py-2.5">
+                      <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide mb-0.5">{item.label}</p>
+                      <p className="text-xs font-semibold text-gray-800 break-all">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
 
-                return (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-gray-700">
-                        {DOC_LABEL[doc.document_type] ?? doc.document_type}
-                      </p>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-green-700 hover:underline font-medium"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                        Buka di tab baru
-                      </a>
+                {/* Alamat */}
+                {reviewTarget.address && (
+                  <div className="bg-gray-50 rounded-xl px-3 py-2.5">
+                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide mb-0.5">Alamat</p>
+                    <p className="text-xs text-gray-800">{reviewTarget.address}</p>
+                  </div>
+                )}
+
+                {/* Deskripsi */}
+                {reviewTarget.description && (
+                  <div className="bg-gray-50 rounded-xl px-3 py-2.5">
+                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide mb-0.5">Deskripsi Usaha</p>
+                    <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{reviewTarget.description}</p>
+                  </div>
+                )}
+
+                {/* Legalitas */}
+                {(reviewTarget.nib || reviewTarget.npwp || reviewTarget.halal_number) && (
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide mb-2">Legalitas</p>
+                    <div className="space-y-2">
+                      {reviewTarget.nib && (
+                        <div className="flex items-center justify-between px-3 py-2 bg-green-50 rounded-xl">
+                          <span className="text-xs font-semibold text-green-700">NIB</span>
+                          <span className="text-xs text-gray-700 font-mono">{reviewTarget.nib}</span>
+                        </div>
+                      )}
+                      {reviewTarget.npwp && (
+                        <div className="flex items-center justify-between px-3 py-2 bg-blue-50 rounded-xl">
+                          <span className="text-xs font-semibold text-blue-700">NPWP</span>
+                          <span className="text-xs text-gray-700 font-mono">{reviewTarget.npwp}</span>
+                        </div>
+                      )}
+                      {reviewTarget.halal_number && (
+                        <div className="flex items-center justify-between px-3 py-2 bg-amber-50 rounded-xl">
+                          <span className="text-xs font-semibold text-amber-700">Sertifikat Halal</span>
+                          <span className="text-xs text-gray-700 font-mono">{reviewTarget.halal_number}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rating kalau sudah aktif sebelumnya */}
+                {reviewTarget.rating !== null && reviewTarget.rating > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 rounded-xl">
+                    <span className="text-amber-500 text-sm">★</span>
+                    <span className="text-xs font-semibold text-amber-700">{Number(reviewTarget.rating).toFixed(1)}</span>
+                    <span className="text-xs text-gray-400">rating toko</span>
+                  </div>
+                )}
+
+                {/* Tanggal */}
+                <div className="flex gap-3 text-xs text-gray-400">
+                  <span>Daftar: {formatDate(reviewTarget.created_at)}</span>
+                  {reviewTarget.verified_at && <span>· Diverifikasi: {formatDate(reviewTarget.verified_at)}</span>}
+                </div>
+              </div>
+            )}
+
+            {/* Tab: Dokumen */}
+            {reviewTab === "dokumen" && (
+              <>
+                {reviewTarget.documents.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center text-xs text-gray-400 py-16">
+                    Belum ada dokumen yang diunggah.
+                  </div>
+                ) : (
+                  <>
+                    {/* Sub-tabs dokumen */}
+                    <div className="flex gap-1 px-5 pt-3 pb-0 overflow-x-auto shrink-0" style={{ scrollbarWidth: "none" }}>
+                      {reviewTarget.documents.map((doc, i) => (
+                        <button
+                          key={doc.id}
+                          onClick={() => { setDocIdx(i); setImgError(false); }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
+                            docIdx === i ? "bg-green-700 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          }`}
+                        >
+                          {DOC_LABEL[doc.document_type] ?? doc.document_type}
+                        </button>
+                      ))}
                     </div>
 
-                    {pdf ? (
-                      <div className="w-full rounded-xl border border-gray-200 overflow-hidden bg-gray-50">
-                        <iframe
-                          src={url}
-                          className="w-full"
-                          style={{ height: "420px" }}
-                          title={DOC_LABEL[doc.document_type] ?? doc.document_type}
-                        />
-                      </div>
-                    ) : imgError ? (
-                      <div className="w-full rounded-xl border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center py-16 gap-3">
-                        <svg className="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <p className="text-xs text-gray-400 text-center">Gambar tidak dapat dimuat.<br />Klik "Buka di tab baru" untuk melihat dokumen.</p>
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-4 py-2 rounded-lg text-xs font-semibold text-white"
-                          style={{ background: "#2D6A4F" }}
-                        >
-                          Buka Dokumen
-                        </a>
-                      </div>
-                    ) : (
-                      <div className="w-full rounded-xl border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
-                        <img
-                          src={url}
-                          alt={DOC_LABEL[doc.document_type] ?? doc.document_type}
-                          className="max-w-full max-h-[420px] object-contain"
-                          onError={() => setImgError(true)}
-                        />
-                      </div>
-                    )}
+                    {/* Preview area */}
+                    <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
+                      {(() => {
+                        const doc = reviewTarget.documents[docIdx];
+                        if (!doc) return null;
+                        const url = getFileUrl(doc.file_path);
+                        const pdf = isPdf(doc.file_path);
+                        return (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs font-semibold text-gray-700">{DOC_LABEL[doc.document_type] ?? doc.document_type}</p>
+                              <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-green-700 hover:underline font-medium">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                Buka di tab baru
+                              </a>
+                            </div>
+                            {pdf ? (
+                              <div className="w-full rounded-xl border border-gray-200 overflow-hidden bg-gray-50">
+                                <iframe src={url} className="w-full" style={{ height: "380px" }} title={DOC_LABEL[doc.document_type] ?? doc.document_type} />
+                              </div>
+                            ) : imgError ? (
+                              <div className="w-full rounded-xl border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center py-12 gap-3">
+                                <svg className="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                <p className="text-xs text-gray-400 text-center">Gambar tidak dapat dimuat.</p>
+                                <a href={url} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-lg text-xs font-semibold text-white" style={{ background: "#2D6A4F" }}>Buka Dokumen</a>
+                              </div>
+                            ) : (
+                              <div className="w-full rounded-xl border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+                                <img src={url} alt={DOC_LABEL[doc.document_type] ?? doc.document_type} className="max-w-full max-h-[380px] object-contain" onError={() => setImgError(true)} />
+                              </div>
+                            )}
+                            {doc.notes && (
+                              <div className="px-3 py-2 bg-yellow-50 border border-yellow-100 rounded-lg text-xs text-yellow-700">
+                                <span className="font-semibold">Catatan: </span>{doc.notes}
+                              </div>
+                            )}
+                            {reviewTarget.documents.length > 1 && (
+                              <div className="flex items-center justify-between pt-1">
+                                <button onClick={() => { setDocIdx(i => Math.max(0, i - 1)); setImgError(false); }} disabled={docIdx === 0} className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50">← Sebelumnya</button>
+                                <span className="text-xs text-gray-400">{docIdx + 1} / {reviewTarget.documents.length}</span>
+                                <button onClick={() => { setDocIdx(i => Math.min(reviewTarget.documents.length - 1, i + 1)); setImgError(false); }} disabled={docIdx === reviewTarget.documents.length - 1} className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50">Berikutnya →</button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
 
-                    {doc.notes && (
-                      <div className="px-3 py-2 bg-yellow-50 border border-yellow-100 rounded-lg text-xs text-yellow-700">
-                        <span className="font-semibold">Catatan: </span>{doc.notes}
-                      </div>
-                    )}
-
-                    {/* Navigasi dokumen */}
-                    {reviewTarget.documents.length > 1 && (
-                      <div className="flex items-center justify-between pt-1">
-                        <button
-                          onClick={() => { setDocIdx(i => Math.max(0, i - 1)); setImgError(false); }}
-                          disabled={docIdx === 0}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50"
-                        >
-                          ← Sebelumnya
-                        </button>
-                        <span className="text-xs text-gray-400">{docIdx + 1} / {reviewTarget.documents.length}</span>
-                        <button
-                          onClick={() => { setDocIdx(i => Math.min(reviewTarget.documents.length - 1, i + 1)); setImgError(false); }}
-                          disabled={docIdx === reviewTarget.documents.length - 1}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50"
-                        >
-                          Berikutnya →
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Footer aksi — hanya untuk pending */}
+            {/* Footer aksi */}
             {reviewTarget.status === "pending" && (
               <div className="px-5 py-4 border-t border-gray-100 flex gap-3 shrink-0">
                 <button

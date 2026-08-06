@@ -28,16 +28,28 @@ class UmkmVerificationController extends Controller
 
         $umkms = $query->latest()->get()->map(function ($u) {
             return [
-                'id'               => $u->id,
-                'shop_name'        => $u->shop_name,
-                'owner_name'       => $u->owner_name,
-                'phone'            => $u->phone,
-                'email'            => $u->user?->email,
-                'status'           => $u->status,
-                'rejection_reason' => $u->rejection_reason,
-                'created_at'       => $u->created_at,
-                'verified_at'      => $u->verified_at,
-                'documents'        => $u->documents->map(fn($d) => [
+                'id'                => $u->id,
+                'shop_name'         => $u->shop_name,
+                'owner_name'        => $u->owner_name,
+                'phone'             => $u->phone,
+                'email'             => $u->user?->email,
+                'status'            => $u->status,
+                'rejection_reason'  => $u->rejection_reason,
+                'created_at'        => $u->created_at,
+                'verified_at'       => $u->verified_at,
+                // profil detail
+                'business_category' => $u->business_category,
+                'description'       => $u->description,
+                'address'           => $u->address,
+                'city'              => $u->city,
+                'province'          => $u->province,
+                'logo'              => $u->logo,
+                'nib'               => $u->nib,
+                'npwp'              => $u->npwp,
+                'halal_cert'        => $u->halal_cert,
+                'halal_number'      => $u->halal_number,
+                'rating'            => $u->rating,
+                'documents'         => $u->documents->map(fn($d) => [
                     'id'            => $d->id,
                     'document_type' => $d->document_type,
                     'file_path'     => $d->file_path,
