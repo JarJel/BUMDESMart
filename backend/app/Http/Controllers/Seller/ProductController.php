@@ -188,6 +188,8 @@ class ProductController extends Controller
             'variant.options.*.price'   => 'required|numeric|min:0',
             'variant.options.*.stock'   => 'required|integer|min:0',
             'variant.options.*.weight'  => 'sometimes|integer|min:0',
+            'is_pre_order'              => 'sometimes|boolean',
+            'pre_order_days'            => 'required_if:is_pre_order,true|integer|min:1',
         ]);
 
         if ($validator->fails()) {
@@ -213,6 +215,8 @@ class ProductController extends Controller
                 'is_digital'      => $request->is_digital ?? false,
                 'has_variant'     => $hasVariant,
                 'status'          => $request->status ?? 'draft',
+                'is_pre_order'    => $request->boolean('is_pre_order', false),
+                'pre_order_days'  => $request->boolean('is_pre_order', false) ? (int) $request->pre_order_days : null,
             ]);
 
             if ($hasVariant && $request->has('variant')) {
@@ -450,7 +454,13 @@ class ProductController extends Controller
             'variant.options.*.is_active'    => 'sometimes|boolean',
             'variant.delete_option_ids'      => 'sometimes|array',
             'variant.delete_option_ids.*'    => 'integer',
+            'is_pre_order'                   => 'sometimes|boolean',
+            'pre_order_days'                 => 'required_if:is_pre_order,true|integer|min:1',
         ]);
+
+        if(empty($validator['is_pre_order'])) {
+            $validator['is_pre_order'] = null;
+        }
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
@@ -465,6 +475,10 @@ class ProductController extends Controller
             $updateData = $request->only([
                 'category_id', 'name', 'description', 'weight', 'is_digital', 'status'
             ]);
+            if ($request->has('is_pre_order')) {
+                $updateData['is_pre_order'] = $request->boolean('is_pre_order');
+                $updateData['pre_order_days'] = $updateData['is_pre_order'] ? (int) $request->pre_order_days : null;
+            }
             $updateData['has_variant'] = $hasVariant;
             if (!$hasVariant) {
                 if ($request->has('price')) $updateData['price'] = $request->price;

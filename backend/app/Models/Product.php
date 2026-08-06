@@ -23,6 +23,8 @@ class Product extends Model
         'is_digital',
         'sold_count',
         'status',
+        'is_pre_order',
+        'pre_order_days',
     ];
 
     protected function casts(): array
@@ -30,6 +32,8 @@ class Product extends Model
         return [
             'has_variant' => 'boolean',
             'is_digital'  => 'boolean',
+            'is_pre_order' => 'boolean',
+            'pre_order_days' => 'integer',
         ];
     }
 

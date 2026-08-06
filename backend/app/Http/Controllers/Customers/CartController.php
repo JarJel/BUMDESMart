@@ -115,7 +115,7 @@ class CartController extends Controller
             $currentQuantity = $cartItem ? $cartItem->quantity : 0;
             $newQuantity = $currentQuantity + $quantity;
 
-            if ($newQuantity > $maxStock) {
+            if (!$product->is_pre_order && $newQuantity > $maxStock) {
                 return response()->json([
                     'success' => false,
                     'message' => "Stok tidak mencukupi. Stok tersedia: {$maxStock}. Jumlah di keranjang Anda: {$currentQuantity}."
@@ -214,7 +214,7 @@ class CartController extends Controller
                 }
             }
 
-            if ($quantity > $maxStock) {
+            if (!$product->is_pre_order && $quantity > $maxStock) {
                 return response()->json([
                     'success' => false,
                     'message' => "Stok tidak mencukupi. Stok tersedia: {$maxStock}."

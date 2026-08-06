@@ -66,14 +66,20 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
               e.currentTarget.src = 'https://placehold.co/400x400?text=No+Image';
             }}
           />
-          {!compact && soldCount > 300 && (
+          {product.is_pre_order ? (
+            <span
+              className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full text-white bg-amber-600 uppercase tracking-wider shadow-sm"
+            >
+              PRE-ORDER
+            </span>
+          ) : !compact && soldCount > 300 ? (
             <span
               className="absolute top-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full text-white"
               style={{ background: "var(--accent-dark)" }}
             >
               TERLARIS
             </span>
-          )}
+          ) : null}
           {discountLabel && (
             <span className="absolute top-2 right-2 text-xs font-bold px-2 py-0.5 rounded-full text-white bg-red-500">
               {discountLabel}

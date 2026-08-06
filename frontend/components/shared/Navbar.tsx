@@ -8,6 +8,7 @@ import { notificationApi } from "@/lib/api/notification";
 import { wishlistApi, WishlistItemData } from "@/lib/api/wishlist";
 import { cartApi, CartItemData } from "@/lib/api/cart";
 import { NotificationData } from "@/lib/api/notification";
+import { useToast } from "@/components/ui/Toast";
 
 const navLinks = [
   { href: "/", label: "Beranda" },
@@ -40,6 +41,7 @@ export default function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   // States for dropdown content and active toggle
+  const toast = useToast();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [wishlistItems, setWishlistItems] = useState<WishlistItemData[]>([]);
   const [cartItems, setCartItems] = useState<CartItemData[]>([]);
@@ -59,7 +61,21 @@ export default function Navbar() {
         const items = Array.isArray(payload.data)
           ? payload.data
           : (payload.data?.data ?? []);
-        setNotifications(items);
+        
+        // Show Toast if there are new unread notifications
+        setNotifications((prev) => {
+          if (prev.length > 0) {
+            const prevIds = prev.map((n) => n.id);
+            const newUnreads = items.filter((n: any) => !n.is_read && !prevIds.includes(n.id));
+            if (newUnreads.length > 0) {
+              newUnreads.forEach((n: any) => {
+                toast.info(n.content, n.title);
+              });
+            }
+          }
+          return items;
+        });
+
         setUnreadCount(payload.unread_count ?? items.filter((n: any) => !n.is_read).length);
       }
     } catch (err) {
@@ -291,7 +307,7 @@ export default function Navbar() {
                       onMouseEnter={fetchNotifications}
                     >
                       <button
-                        onClick={() => router.push("/profil?tab=Notifikasi")}
+                        onClick={() => router.push("/notifikasi")}
                         className="relative p-2 rounded-lg transition-colors cursor-pointer text-gray-500 hover:text-gray-700 hover:bg-gray-50 group-hover:text-green-600 group-hover:bg-green-50"
                         title="Notifikasi"
                       >
@@ -326,11 +342,11 @@ export default function Navbar() {
                           ) : (
                             notifications.slice(0, 5).map((notif) => (
                               <div key={notif.id} className={`p-4 hover:bg-gray-50/50 transition-colors flex gap-3 items-start relative group ${!notif.is_read ? 'bg-green-50/10' : ''}`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${notif.type === 'order' ? 'bg-blue-50 text-blue-600' :
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${(notif.type === 'order' || notif.type?.startsWith('order_')) ? 'bg-blue-50 text-blue-600' :
                                     notif.type === 'promo' ? 'bg-amber-50 text-amber-600' :
                                       notif.type === 'wishlist' ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-600'
                                   }`}>
-                                  {notif.type === 'order'
+                                  {(notif.type === 'order' || notif.type?.startsWith('order_'))
                                     ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                                     : notif.type === 'promo'
                                     ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
@@ -380,7 +396,7 @@ export default function Navbar() {
                         </div>
                         <div className="p-3 bg-gray-50 border-t border-gray-100 text-center">
                           <button
-                            onClick={() => router.push("/profil?tab=Notifikasi")}
+                            onClick={() => router.push("/notifikasi")}
                             className="text-xs font-semibold text-gray-700 hover:text-green-600 transition-colors w-full cursor-pointer border-0 bg-transparent text-center"
                           >
                             Lihat Semua Notifikasi
@@ -474,7 +490,7 @@ export default function Navbar() {
 
                       {isCustomer && (
                         <button
-                          onClick={() => router.push("/profil?tab=Notifikasi")}
+                          onClick={() => router.push("/notifikasi")}
                           className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer border-0 bg-transparent"
                         >
                           Notifikasi Saya
@@ -576,7 +592,7 @@ export default function Navbar() {
                 </Link>
                 {isCustomer ? (
                   <>
-                    <Link href="/profil?tab=Notifikasi" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
+                    <Link href="/notifikasi" className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
                       <div className="flex items-center justify-between">
                         <span>Notifikasi</span>
                         {unreadCount > 0 && (

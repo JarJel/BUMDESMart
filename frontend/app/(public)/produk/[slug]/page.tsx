@@ -494,10 +494,13 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
               <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "var(--primary-muted)", color: "var(--primary)" }}>
                 {produk.category?.name || "Produk"}
               </span>
-              {effectiveStock > 0
-                ? <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-50 text-green-700">Tersedia</span>
-                : <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-50 text-red-600">Habis</span>
-              }
+              {produk.is_pre_order ? (
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800">Pre-Order ({produk.pre_order_days} Hari)</span>
+              ) : effectiveStock > 0 ? (
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-50 text-green-700">Tersedia</span>
+              ) : (
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-50 text-red-600">Habis</span>
+              )}
             </div>
 
             <h1 className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900 mb-1.5 leading-snug">{produk.name}</h1>
@@ -590,7 +593,13 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
             )}
 
             {/* Qty + tombol */}
-            <QtyButtons stok={effectiveStock} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />
+            <QtyButtons 
+              stok={effectiveStock} 
+              onAddToCart={handleAddToCart} 
+              onBuyNow={handleBuyNow} 
+              isPreOrder={produk.is_pre_order}
+              preOrderDays={produk.pre_order_days}
+            />
           </div>
         </div>
 
