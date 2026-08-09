@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useToast } from "@/components/ui/Toast";
 
 interface MapPickerProps {
   defaultLat?: number | null;
@@ -20,7 +21,9 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
-  const [gpsError, setGpsError] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [showGpsPrompt, setShowGpsPrompt] = useState(false);
+  const toast = useToast();
 
   // State untuk pencarian alamat
   const [searchQuery, setSearchQuery] = useState("");
@@ -76,18 +79,10 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
       markerRef.current = marker;
       setLoading(false);
 
+      // Tampilkan prompt ramah jika belum ada lokasi default
       if (!defaultLat || !defaultLng) {
         if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              const { latitude, longitude } = pos.coords;
-              map.setView([latitude, longitude], 16);
-              marker.setLatLng([latitude, longitude]);
-              onChange(latitude, longitude);
-            },
-            () => setGpsError(true),
-            { timeout: 8000 }
-          );
+          setShowGpsPrompt(true);
         }
       }
     };
@@ -156,23 +151,57 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
     setSuggestions([]);
   };
 
-  const handleGps = () => {
-    if (!navigator.geolocation) return;
-    setGpsError(false);
+  const requestGps = () => {
+    if (!navigator.geolocation) {
+      setShowGpsPrompt(false);
+      toast.warning(
+        "Perangkat kamu tidak mendukung GPS. Gunakan kotak pencarian di atas peta.",
+        "GPS Tidak Tersedia"
+      );
+      return;
+    }
+    setGpsLoading(true);
+    setShowGpsPrompt(false);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
         mapInstanceRef.current?.setView([latitude, longitude], 16);
         markerRef.current?.setLatLng([latitude, longitude]);
         onChange(latitude, longitude);
+        setGpsLoading(false);
       },
-      () => setGpsError(true),
-      { timeout: 8000 }
+      (err) => {
+        setGpsLoading(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          toast.error(
+            "Aktifkan izin lokasi di pengaturan browser, lalu coba lagi.",
+            "Izin Lokasi Ditolak"
+          );
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          toast.warning(
+            "GPS tidak tersedia di perangkat ini. Gunakan pencarian alamat manual.",
+            "GPS Tidak Tersedia"
+          );
+        } else {
+          toast.warning(
+            "Sinyal GPS lemah atau koneksi lambat. Coba lagi atau cari alamat manual.",
+            "GPS Terlalu Lambat"
+          );
+        }
+      },
+      { timeout: 10000 }
     );
   };
 
+  const handleGps = () => {
+    setShowGpsPrompt(true);
+  };
+
   return (
-    <div className="relative rounded-xl overflow-hidden border border-gray-200" style={{ height }}>
+    <div
+      className="relative border border-gray-200"
+      style={{ height, borderRadius: "0.75rem" }}
+    >
       {/* Search Input overlay */}
       <div className="absolute top-3 left-14 right-3 z-[1000] max-w-md bg-white rounded-xl shadow-lg border border-gray-100 p-1 flex flex-col">
         <div className="flex items-center px-2 py-1">
@@ -225,31 +254,101 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
         )}
       </div>
 
+      {/* Map loading overlay */}
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-[1001]">
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-[1001]" style={{ borderRadius: "0.75rem" }}>
           <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-green-600" />
         </div>
       )}
-      <div ref={mapRef} style={{ height: "100%", width: "100%" }} />
-      
+
+      <div ref={mapRef} style={{ height: "100%", width: "100%", borderRadius: "0.75rem", overflow: "hidden" }} />
+
+      {/* GPS Permission Prompt — centered floating card */}
+      {showGpsPrompt && (
+        <div
+          className="absolute inset-0 z-[1100] flex items-center justify-center px-5"
+          style={{ background: "rgba(15, 23, 42, 0.55)", backdropFilter: "blur(2px)", borderRadius: "0.75rem" }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 flex flex-col items-center gap-4 animate-slideUp">
+
+            {/* Icon gradient circle */}
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center shadow-md"
+              style={{ background: "linear-gradient(135deg, #16a34a, #4ade80)" }}
+            >
+              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+
+            {/* Title & Description */}
+            <div className="text-center">
+              <h3 className="text-sm font-bold text-gray-800 mb-1.5">Izinkan Akses Lokasi?</h3>
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Kami butuh GPS kamu untuk menentukan titik pengiriman secara akurat.
+                Lokasi <span className="font-medium text-gray-700">hanya dipakai saat checkout</span> dan tidak disimpan.
+              </p>
+            </div>
+
+            {/* Info tip */}
+            <div className="w-full bg-sky-50 border border-sky-100 rounded-xl px-3 py-2.5 flex items-start gap-2">
+              <svg className="w-3.5 h-3.5 text-sky-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <p className="text-[10px] text-sky-700 leading-relaxed">
+                Tidak ingin pakai GPS? Cari alamat lewat <span className="font-semibold">kotak pencarian</span> di atas peta.
+              </p>
+            </div>
+
+            {/* Action buttons */}
+            <div className="w-full flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowGpsPrompt(false)}
+                className="flex-1 text-xs font-medium text-gray-500 border border-gray-200 rounded-xl py-2.5 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              >
+                Nanti Saja
+              </button>
+              <button
+                type="button"
+                onClick={requestGps}
+                className="flex-1 text-xs font-semibold text-white rounded-xl py-2.5 flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                Izinkan GPS
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* GPS Button */}
       <button
         type="button"
         onClick={handleGps}
-        className="absolute bottom-3 right-3 z-[1000] bg-white rounded-lg shadow-md px-3 py-1.5 text-xs font-semibold text-green-700 border border-green-200 hover:bg-green-50 flex items-center gap-1.5 animate-bounce-subtle"
+        disabled={gpsLoading}
+        className="absolute bottom-3 right-3 z-[1000] bg-white rounded-lg shadow-md px-3 py-1.5 text-xs font-semibold text-green-700 border border-green-100 hover:bg-green-50 flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-wait transition-all hover:shadow-lg"
       >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-        GPS Saya
+        {gpsLoading ? (
+          <>
+            <div className="w-3.5 h-3.5 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+            <span>Mencari...</span>
+          </>
+        ) : (
+          <>
+            <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>GPS Saya</span>
+          </>
+        )}
       </button>
-      
-      {gpsError && (
-        <p className="absolute bottom-12 right-3 z-[1000] bg-red-50 text-red-600 text-xs px-2 py-1 rounded border border-red-200">
-          GPS tidak tersedia
-        </p>
-      )}
+
     </div>
   );
 }

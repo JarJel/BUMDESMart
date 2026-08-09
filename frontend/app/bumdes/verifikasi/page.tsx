@@ -174,12 +174,16 @@ export default function VerifikasiPage() {
               <div className="p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
-                      style={{ background: "#2D6A4F" }}
-                    >
-                      {u.shop_name[0]}
-                    </div>
+                    {u.logo ? (
+                      <img src={getFileUrl(u.logo)} alt={u.shop_name} className="w-10 h-10 rounded-xl object-cover shrink-0 border border-gray-100" />
+                    ) : (
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
+                        style={{ background: "#2D6A4F" }}
+                      >
+                        {u.shop_name[0]}
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold text-gray-900">{u.shop_name}</p>
@@ -384,21 +388,29 @@ export default function VerifikasiPage() {
                     Belum ada dokumen yang diunggah.
                   </div>
                 ) : (
-                  <>
-                    {/* Sub-tabs dokumen */}
-                    <div className="flex gap-1 px-5 pt-3 pb-0 overflow-x-auto shrink-0" style={{ scrollbarWidth: "none" }}>
-                      {reviewTarget.documents.map((doc, i) => (
+                  <div className="flex-1 flex flex-col min-h-0">
+                    {/* Navigasi Dokumen Atas */}
+                    {reviewTarget.documents.length > 1 && (
+                      <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-100 shrink-0">
                         <button
-                          key={doc.id}
-                          onClick={() => { setDocIdx(i); setImgError(false); }}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
-                            docIdx === i ? "bg-green-700 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                          }`}
+                          onClick={() => { setDocIdx(i => Math.max(0, i - 1)); setImgError(false); }}
+                          disabled={docIdx === 0}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 bg-white disabled:opacity-30 disabled:hover:bg-white hover:bg-gray-50 transition-colors shrink-0"
                         >
-                          {DOC_LABEL[doc.document_type] ?? doc.document_type}
+                          Sebelumnya
                         </button>
-                      ))}
-                    </div>
+                        <span className="text-xs font-bold text-gray-700">
+                          Dokumen {docIdx + 1} dari {reviewTarget.documents.length}
+                        </span>
+                        <button
+                          onClick={() => { setDocIdx(i => Math.min(reviewTarget.documents.length - 1, i + 1)); setImgError(false); }}
+                          disabled={docIdx === reviewTarget.documents.length - 1}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 bg-white disabled:opacity-30 disabled:hover:bg-white hover:bg-gray-50 transition-colors shrink-0"
+                        >
+                          Selanjutnya
+                        </button>
+                      </div>
+                    )}
 
                     {/* Preview area */}
                     <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
@@ -409,11 +421,11 @@ export default function VerifikasiPage() {
                         const pdf = isPdf(doc.file_path);
                         return (
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <p className="text-xs font-semibold text-gray-700">{DOC_LABEL[doc.document_type] ?? doc.document_type}</p>
-                              <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-green-700 hover:underline font-medium">
+                            <div className="flex items-center justify-between bg-green-50/50 border border-green-100 rounded-xl px-4 py-2.5">
+                              <p className="text-xs font-bold text-green-800">{DOC_LABEL[doc.document_type] ?? doc.document_type}</p>
+                              <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-green-700 hover:underline font-semibold">
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                Buka di tab baru
+                                Buka
                               </a>
                             </div>
                             {pdf ? (
@@ -436,18 +448,11 @@ export default function VerifikasiPage() {
                                 <span className="font-semibold">Catatan: </span>{doc.notes}
                               </div>
                             )}
-                            {reviewTarget.documents.length > 1 && (
-                              <div className="flex items-center justify-between pt-1">
-                                <button onClick={() => { setDocIdx(i => Math.max(0, i - 1)); setImgError(false); }} disabled={docIdx === 0} className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50">← Sebelumnya</button>
-                                <span className="text-xs text-gray-400">{docIdx + 1} / {reviewTarget.documents.length}</span>
-                                <button onClick={() => { setDocIdx(i => Math.min(reviewTarget.documents.length - 1, i + 1)); setImgError(false); }} disabled={docIdx === reviewTarget.documents.length - 1} className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50">Berikutnya →</button>
-                              </div>
-                            )}
                           </div>
                         );
                       })()}
                     </div>
-                  </>
+                  </div>
                 )}
               </>
             )}

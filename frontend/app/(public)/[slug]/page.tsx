@@ -79,6 +79,40 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
   const [showConflictAlert, setShowConflictAlert] = useState(false);
   const [pendingProductId, setPendingProductId] = useState<number | null>(null);
 
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [cartShopName, setCartShopName] = useState<string>("");
+
+  const loadCartData = async () => {
+    try {
+      const res = await cartApi.get();
+      if (res.data?.success) {
+        const items = res.data.data?.items || [];
+        setCartItems(items);
+        const firstItemShop = items[0]?.product?.umkm_profile?.shop_name 
+          || items[0]?.product?.umkm_profile?.name_umkm 
+          || (items.length > 0 ? (toko?.shop_name || toko?.nama || "BumdesMart") : "");
+        setCartShopName(firstItemShop);
+      }
+    } catch {
+      setCartItems([]);
+      setCartShopName("");
+    }
+  };
+
+  useEffect(() => {
+    loadCartData();
+  }, []);
+
+  useEffect(() => {
+    const handleCartUpdated = () => {
+      loadCartData();
+    };
+    window.addEventListener("cart-updated", handleCartUpdated);
+    return () => {
+      window.removeEventListener("cart-updated", handleCartUpdated);
+    };
+  }, []);
+
   const handleQuickAdd = async (productId: number) => {
     try {
       const res = await cartApi.add(productId, 1, null);
@@ -86,6 +120,7 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
         const p = products.find(prod => prod.id === productId);
         toast.success(`${p?.name || "Produk"} ditambahkan ke keranjang!`);
         window.dispatchEvent(new Event("cart-updated"));
+        loadCartData();
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
@@ -111,6 +146,7 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
         const p = products.find(prod => prod.id === pendingProductId);
         toast.success(`${p?.name || "Produk"} ditambahkan ke keranjang baru!`);
         window.dispatchEvent(new Event("cart-updated"));
+        loadCartData();
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Gagal mengganti keranjang.");
@@ -144,7 +180,7 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
   if (toko.dokumen) documents.push(...toko.dokumen);
 
   return (
-    <div style={{ background: "#F4F7F5", minHeight: "100vh" }}>
+    <div style={{ background: "#F4F7F5", minHeight: "100vh", paddingBottom: cartItems.length > 0 ? "96px" : "0" }}>
       {/* Alert login */}
       {showLoginAlert && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => setShowLoginAlert(false)}>
@@ -374,6 +410,72 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
               </div>
             )}
           </main>
+        </div>
+      </div>
+
+      {/* Sticky Bar GoFood-style */}
+      {cartItems.length > 0 && cartShopName && (
+        <StickyCartBar
+          items={cartItems.map(i => ({
+            cartItemId: i.id,
+            productId: i.product_id,
+            name: i.product?.name || "",
+            price: i.variant ? Number(i.variant.price) : Number(i.product?.price || 0),
+            quantity: i.quantity,
+          }))}
+          shopName={cartShopName}
+          onViewCart={() => router.push("/checkout")}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Sticky Bar GoFood Component ─────────────────────────────────────────────
+function StickyCartBar({ items, shopName, onViewCart }: {
+  items: any[];
+  shopName: string;
+  onViewCart: () => void;
+}) {
+  const totalQty = items.reduce((s, i) => s + i.quantity, 0);
+  const totalPrice = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 50);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div
+      className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-500 ease-out ${
+        visible ? "translate-y-0" : "translate-y-full"
+      }`}
+    >
+      <div className="mx-auto max-w-2xl px-4 pb-4 sm:pb-6">
+        <div
+          className="flex items-center gap-3 rounded-2xl px-4 py-3 shadow-2xl border border-white/20"
+          style={{ background: "var(--primary)" }}
+        >
+          <div className="flex-shrink-0 w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+            <span className="text-white font-bold text-sm">{totalQty}</span>
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-semibold text-sm leading-none truncate">{shopName}</p>
+            <p className="text-white/70 text-xs mt-0.5">Rp {totalPrice.toLocaleString("id-ID")}</p>
+          </div>
+
+          <button
+            onClick={onViewCart}
+            className="flex-shrink-0 flex items-center gap-1.5 bg-white text-sm font-bold px-4 py-2 rounded-xl cursor-pointer border-0 transition-all hover:opacity-90 active:scale-95"
+            style={{ color: "var(--primary)" }}
+          >
+            Keranjang
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>

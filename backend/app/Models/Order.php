@@ -24,6 +24,8 @@ class Order extends Model
         'service_fee',
         'total',
         'status',
+        'courier_rating',
+        'courier_comment',
         'notes',
         'delivery_type',
         'shipping_method',

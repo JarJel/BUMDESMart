@@ -248,12 +248,12 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // Pemicu preview saat data alamat atau metode pengiriman berubah
+  // Pemicu preview saat data alamat, metode pengiriman, atau isi keranjang berubah
   useEffect(() => {
     if (selectedAddressId) {
       loadCheckoutPreview(selectedAddressId, deliveryType);
     }
-  }, [selectedAddressId, deliveryType, loadCheckoutPreview]);
+  }, [selectedAddressId, deliveryType, cartItems, loadCheckoutPreview]);
 
   // Fetch voucher saat cart items berubah
   useEffect(() => {
@@ -342,13 +342,16 @@ export default function CheckoutPage() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedAddressId) { toast.warning("Pilih alamat pengiriman terlebih dahulu."); return; }
+    if (deliveryType === "delivered" && !selectedAddressId) {
+      toast.warning("Pilih alamat pengiriman terlebih dahulu.");
+      return;
+    }
     if (cartItems.length === 0) { toast.warning("Keranjang kosong."); return; }
 
     setSubmitting(true);
     try {
       const payload: any = {
-        address_id: selectedAddressId,
+        address_id: deliveryType === 'delivered' ? selectedAddressId : undefined,
         delivery_type: deliveryType,
         vehicle_type: undefined,
         notes: notes || undefined,
@@ -890,7 +893,7 @@ export default function CheckoutPage() {
 
             <button
               onClick={handleSubmit}
-              disabled={submitting || !selectedAddressId}
+              disabled={submitting || (deliveryType === "delivered" && !selectedAddressId)}
               className="mt-5 w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90"
               style={{ background: "var(--primary)" }}
             >

@@ -25,10 +25,29 @@ class ReviewController extends Controller
             'reviews.*.product_id' => 'required|integer|exists:products,id',
             'reviews.*.rating'     => 'required|integer|min:1|max:5',
             'reviews.*.comment'    => 'nullable|string|max:1000',
+            'courier_rating'       => 'nullable|integer|min:1|max:5',
+            'courier_comment'      => 'nullable|string|max:1000',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Update ulasan kurir jika ada
+        if ($request->has('courier_rating') && $order->driver_id) {
+            $order->update([
+                'courier_rating'  => $request->courier_rating,
+                'courier_comment' => $request->courier_comment,
+            ]);
+
+            // Hitung rata-rata rating driver
+            $avgRating = Order::where('driver_id', $order->driver_id)
+                ->whereNotNull('courier_rating')
+                ->avg('courier_rating');
+
+            // Simpan ke DriverProfile
+            \App\Models\DriverProfile::where('user_id', $order->driver_id)
+                ->update(['rating' => round($avgRating ?? 0, 2)]);
         }
 
         $validProductIds = $order->items->pluck('product_id')->toArray();

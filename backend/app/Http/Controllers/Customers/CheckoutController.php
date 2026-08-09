@@ -448,7 +448,7 @@ class CheckoutController extends Controller
         }
 
         $validated = $request->validate([
-            'address_id'            => 'required|integer|exists:addresses,id',
+            'address_id'            => 'required_if:delivery_type,delivered|nullable|integer|exists:addresses,id',
             'delivery_type'         => 'required|in:delivered,pickup',
             'shipping_method_id'    => 'nullable|string', // kurir-lokal | pickup | ekspedisi-jne-reg | dll
             'shipping_cost_override'=> 'nullable|integer|min:1000|max:2000000', // ongkir ekspedisi dari FE (batas wajar)
@@ -473,11 +473,14 @@ class CheckoutController extends Controller
         $customerId = $user->customer->id;
         $isBuyNow   = $request->filled('product_id');
 
-        $address = Address::where('id', $validated['address_id'])
-            ->where('customer_id', $customerId)
-            ->first();
-        if (!$address) {
-            return response()->json(['success' => false, 'message' => 'Alamat tidak valid.'], 422);
+        $address = null;
+        if ($deliveryType === 'delivered') {
+            $address = Address::where('id', $validated['address_id'])
+                ->where('customer_id', $customerId)
+                ->first();
+            if (!$address) {
+                return response()->json(['success' => false, 'message' => 'Alamat tidak valid.'], 422);
+            }
         }
 
         // Build raw item list
@@ -695,7 +698,7 @@ class CheckoutController extends Controller
                 $order = Order::create([
                     'customer_id'     => $customerId,
                     'umkm_profile_id' => $umkmId,
-                    'address_id'      => $validated['address_id'],
+                    'address_id'      => $validated['address_id'] ?? null,
                     'order_code'      => $orderCode,
                     'sub_total'       => $subTotal,
                     'shipping_cost'   => $shippingCost,

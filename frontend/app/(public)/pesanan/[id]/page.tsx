@@ -75,8 +75,13 @@ export default function DetailPesananPage() {
   // Review state
   const [showReview, setShowReview] = useState(false);
   const [existingReviews, setExistingReviews] = useState<any[]>([]);
-  const [reviewForms, setReviewForms] = useState<Record<number, { rating: number; comment: string }>>({});
   const [submittingReview, setSubmittingReview] = useState(false);
+
+  // Form ulasan transaksi terpadu
+  const [shopRating, setShopRating] = useState(0);
+  const [shopComment, setShopComment] = useState("");
+  const [courierRating, setCourierRating] = useState(0);
+  const [courierComment, setCourierComment] = useState("");
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -117,15 +122,11 @@ export default function DetailPesananPage() {
   }, [order, fetchExistingReviews]);
 
   const openReviewModal = () => {
-    const initial: Record<number, { rating: number; comment: string }> = {};
-    (order?.items ?? []).forEach((item: any) => {
-      const existing = existingReviews.find(r => r.product_id === item.product_id);
-      initial[item.product_id] = {
-        rating:  existing?.rating ?? 0,
-        comment: existing?.comment ?? "",
-      };
-    });
-    setReviewForms(initial);
+    const firstProductReview = existingReviews[0];
+    setShopRating(firstProductReview?.rating ?? 0);
+    setShopComment(firstProductReview?.comment ?? "");
+    setCourierRating(order?.courier_rating ?? 0);
+    setCourierComment(order?.courier_comment ?? "");
     setShowReview(true);
   };
 
@@ -143,25 +144,37 @@ export default function DetailPesananPage() {
   };
 
   const handleSubmitReviews = async () => {
-    const reviews = Object.entries(reviewForms)
-      .filter(([, v]) => v.rating > 0)
-      .map(([productId, v]) => ({
-        product_id: Number(productId),
-        rating:     v.rating,
-        comment:    v.comment || undefined,
-      }));
-
-    if (reviews.length === 0) {
-      toast.error("Pilih rating untuk minimal satu produk.");
+    if (shopRating === 0) {
+      toast.error("Berikan rating ulasan toko terlebih dahulu.");
       return;
     }
 
+    const isKurirLokal = order.delivery_type === "delivered" && order.shipping_method?.startsWith("kurir-lokal");
+    if (isKurirLokal && courierRating === 0) {
+      toast.error("Berikan rating ulasan kurir terlebih dahulu.");
+      return;
+    }
+
+    // Sebarkan ulasan ke semua produk
+    const reviews = (order?.items ?? []).map((item: any) => ({
+      product_id: item.product_id,
+      rating:     shopRating,
+      comment:    shopComment || undefined,
+    }));
+
     setSubmittingReview(true);
     try {
-      await api.post(`/orders/${id}/reviews`, { reviews });
+      const payload: any = { reviews };
+      if (isKurirLokal) {
+        payload.courier_rating = courierRating;
+        payload.courier_comment = courierComment || undefined;
+      }
+
+      await api.post(`/orders/${id}/reviews`, payload);
       toast.success("Ulasan berhasil dikirim!");
       setShowReview(false);
       fetchExistingReviews();
+      fetchOrder();
     } catch {
       toast.error("Gagal mengirim ulasan.");
     } finally {
@@ -470,7 +483,7 @@ export default function DetailPesananPage() {
               {confirming ? "Memproses..." : "Konfirmasi Terima Barang"}
             </button>
           )}
-          {order.status === "pending" && (
+          {order.status === "pending" && order.payment?.status !== "paid" && (
             <Link href={`/pembayaran?order_id=${order.id}`}
               className="block w-full text-center py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90"
               style={{ background: "var(--primary)" }}>
@@ -495,71 +508,88 @@ export default function DetailPesananPage() {
       </div>
 
       {/* Review Modal */}
-      {showReview && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.5)" }}
-          onClick={e => { if (e.target === e.currentTarget) setShowReview(false); }}
-        >
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl">
-              <p className="text-base font-bold text-gray-900">Beri Ulasan</p>
-              <button onClick={() => setShowReview(false)} className="text-gray-400 hover:text-gray-700">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+      {showReview && (() => {
+        const isKurirLokal = order.delivery_type === "delivered" && order.shipping_method?.startsWith("kurir-lokal");
+        const shopName = order.umkm_profile?.shop_name || "Toko";
+        const courierName = order.driver?.name || "Kurir Lokal";
 
-            <div className="p-5 space-y-5">
-              {(order?.items ?? []).map((item: any) => {
-                const productId = item.product_id;
-                const form      = reviewForms[productId] ?? { rating: 0, comment: "" };
-                const imgUrl = getProductImgUrl(item.product);
-                return (
-                  <div key={item.id} className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-gray-50">
-                        {imgUrl
-                          ? <img src={imgUrl} alt={item.product_name} className="w-full h-full object-cover" />
-                          : <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">?</div>
-                        }
-                      </div>
-                      <p className="text-sm font-medium text-gray-900 line-clamp-2">{item.product_name}</p>
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.5)" }}
+            onClick={e => { if (e.target === e.currentTarget) setShowReview(false); }}
+          >
+            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+              <div className="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl">
+                <p className="text-base font-bold text-gray-900">Beri Ulasan Pesanan</p>
+                <button onClick={() => setShowReview(false)} className="text-gray-400 hover:text-gray-700">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-5 space-y-6">
+                {/* 1. Ulasan Toko */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    <p className="text-sm font-bold text-gray-800">Bagaimana kualitas pelayanan {shopName}?</p>
+                  </div>
+                  <StarRating
+                    value={shopRating}
+                    onChange={setShopRating}
+                  />
+                  <textarea
+                    value={shopComment}
+                    onChange={e => setShopComment(e.target.value)}
+                    placeholder={`Bagikan ulasanmu untuk toko ${shopName}... (opsional)`}
+                    rows={3}
+                    className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50 resize-none"
+                  />
+                </div>
+
+                {/* 2. Ulasan Kurir (Jika Kurir Lokal) */}
+                {isKurirLokal && (
+                  <div className="space-y-3 pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                      </svg>
+                      <p className="text-sm font-bold text-gray-800">Bagaimana pengiriman kurir ({courierName})?</p>
                     </div>
                     <StarRating
-                      value={form.rating}
-                      onChange={r => setReviewForms(prev => ({ ...prev, [productId]: { ...form, rating: r } }))}
+                      value={courierRating}
+                      onChange={setCourierRating}
                     />
                     <textarea
-                      value={form.comment}
-                      onChange={e => setReviewForms(prev => ({ ...prev, [productId]: { ...form, comment: e.target.value } }))}
-                      placeholder="Ceritakan pengalamanmu dengan produk ini... (opsional)"
-                      rows={2}
-                      className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50 resize-none"
+                      value={courierComment}
+                      onChange={e => setCourierComment(e.target.value)}
+                      placeholder={`Bagikan ulasanmu untuk performa pengiriman ${courierName}... (opsional)`}
+                      rows={3}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 bg-gray-50 resize-none"
                     />
-                    {item !== (order?.items ?? []).at(-1) && (
-                      <div className="border-b border-gray-100" />
-                    )}
                   </div>
-                );
-              })}
-            </div>
+                )}
+              </div>
 
-            <div className="p-5 border-t border-gray-100 flex gap-3 sticky bottom-0 bg-white rounded-b-2xl">
-              <button onClick={() => setShowReview(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50">
-                Batal
-              </button>
-              <button onClick={handleSubmitReviews} disabled={submittingReview}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                style={{ background: "var(--primary)" }}>
-                {submittingReview ? "Mengirim..." : "Kirim Ulasan"}
-              </button>
+              <div className="p-5 border-t border-gray-100 flex gap-3 sticky bottom-0 bg-white rounded-b-2xl">
+                <button onClick={() => setShowReview(false)}
+                  className="flex-1 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50">
+                  Batal
+                </button>
+                <button onClick={handleSubmitReviews} disabled={submittingReview}
+                  className="flex-1 py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                  style={{ background: "var(--primary)" }}>
+                  {submittingReview ? "Mengirim..." : "Kirim Ulasan"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

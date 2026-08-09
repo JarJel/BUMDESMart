@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
@@ -420,22 +421,20 @@ export default function PengirimDashboard() {
 
               {/* Tombol aksi */}
               {order.status === "picking_up" && (
-                <button
-                  onClick={() => updateStatus(order.id, "shipped")}
-                  disabled={updatingId === order.id}
-                  className="w-full py-3 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                <Link
+                  href={`/pengirim/pesanan/${order.id}`}
+                  className="block w-full py-3 rounded-xl bg-orange-500 text-white text-center text-sm font-bold hover:bg-orange-600 transition-colors"
                 >
-                  {updatingId === order.id ? "Memproses..." : "Barang Sudah Diambil — Mulai Antar"}
-                </button>
+                  Barang Sudah Diambil — Mulai Antar
+                </Link>
               )}
               {order.status === "shipped" && (
-                <button
-                  onClick={() => updateStatus(order.id, "delivered")}
-                  disabled={updatingId === order.id}
-                  className="w-full py-3 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors"
+                <Link
+                  href={`/pengirim/pesanan/${order.id}`}
+                  className="block w-full py-3 rounded-xl bg-green-600 text-white text-center text-sm font-bold hover:bg-green-700 transition-colors"
                 >
-                  {updatingId === order.id ? "Memproses..." : "Pesanan Sudah Diterima Pembeli"}
-                </button>
+                  Pesanan Sudah Diterima Pembeli
+                </Link>
               )}
             </div>
           ))}
