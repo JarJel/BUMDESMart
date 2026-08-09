@@ -33,19 +33,17 @@ function sellerEarnings(o: Order): number {
 }
 
 export default function PendapatanPage() {
-  const [balance, setBalance] = useState<Balance>({ pending: 0, available: 0 });
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      api.get<{ data: Balance }>("/seller/balance"),
-      api.get<{ data: { data: Order[] } }>("/seller/orders"),
-    ]).then(([balRes, ordRes]) => {
-      setBalance(balRes.data.data ?? { pending: 0, available: 0 });
-      setOrders(ordRes.data.data?.data ?? []);
-    }).catch(() => {}).finally(() => setLoading(false));
+    api.get<{ data: { data: Order[] } }>("/seller/orders")
+      .then((ordRes) => {
+        setOrders(ordRes.data.data?.data ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   const now = new Date();
@@ -80,8 +78,6 @@ export default function PendapatanPage() {
     { label: "Hak Seller Bulan Ini", value: loading ? "—" : formatRp(thisMonthRevenue) },
     { label: "Transaksi Selesai Bulan Ini", value: loading ? "—" : `${thisMonthDelivered.length} transaksi` },
     { label: "Rata-rata per Transaksi", value: loading ? "—" : (avgPerTx > 0 ? formatRp(avgPerTx) : "—") },
-    { label: "Saldo Tersedia", value: loading ? "—" : formatRp(balance.available) },
-    { label: "Saldo Menunggu", value: loading ? "—" : formatRp(balance.pending) },
   ];
 
   return (
