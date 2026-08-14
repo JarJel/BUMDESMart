@@ -135,13 +135,22 @@ export default function VoucherPage() {
   };
 
   const handleSave = async () => {
-    if (!form.trigger_value) {
-      toast.error("Nilai syarat wajib diisi.");
+    const triggerVal = Number(form.trigger_value);
+    if (isNaN(triggerVal) || triggerVal <= 0) {
+      toast.error("Nilai syarat wajib diisi dan harus lebih besar dari 0.");
       return;
     }
-    if (form.reward_type !== "free_shipping" && !form.reward_value) {
-      toast.error("Nilai reward wajib diisi.");
+    const rewardVal = Number(form.reward_value);
+    if (form.reward_type !== "free_shipping" && (isNaN(rewardVal) || rewardVal <= 0)) {
+      toast.error("Nilai reward wajib diisi dan harus lebih besar dari 0.");
       return;
+    }
+    if (form.max_discount) {
+      const maxDiscountVal = Number(form.max_discount);
+      if (isNaN(maxDiscountVal) || maxDiscountVal <= 0) {
+        toast.error("Maksimal diskon harus lebih besar dari 0.");
+        return;
+      }
     }
     setSaving(true);
     const body: Record<string, unknown> = {
@@ -289,7 +298,7 @@ export default function VoucherPage() {
                         {trigger.label}
                       </span>
                     </div>
-                    <p className="text-sm font-semibold text-gray-900">{displayLabel}</p>
+                    <p className="text-sm font-semibold text-gray-900 break-words">{displayLabel}</p>
                     <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
                       <span>
                         Syarat: <strong className="text-gray-700">
@@ -504,9 +513,9 @@ export default function VoucherPage() {
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-4">
                 <p className="text-[10px] text-green-600 font-semibold mb-1 uppercase tracking-wide">Preview Voucher</p>
                 <div className="flex items-center gap-3">
-                  <i className="ti ti-ticket text-2xl text-green-600" />
-                  <div>
-                    <p className="text-sm font-bold text-green-800">{form.label.trim() || buildAutoLabel(form)}</p>
+                  <i className="ti ti-ticket text-2xl text-green-600 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-green-800 break-words">{form.label.trim() || buildAutoLabel(form)}</p>
                     <p className="text-[10px] text-green-600 mt-0.5">Tampil otomatis di checkout pembeli</p>
                   </div>
                 </div>

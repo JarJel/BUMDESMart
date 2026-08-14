@@ -32,16 +32,16 @@ class MitraPerformanceController extends Controller
         $mitra = UmkmProfile::where('bumdes_profile_id', $bumdesId)
             ->withCount([
                 'products as active_products' => fn($q) => $q->where('status', 'active'),
-                'orders as total_orders',
-                'orders as orders_this_month'  => fn($q) => $q->where('created_at', '>=', $startOfMonth),
+                'orders as total_orders' => fn($q) => $q->where('status', '!=', 'cancelled'),
+                'orders as orders_this_month'  => fn($q) => $q->where('status', '!=', 'cancelled')->where('created_at', '>=', $startOfMonth),
             ])
             ->withSum(
-                ['orders as total_revenue' => fn($q) => $q->where('status', 'delivered')],
-                'total'
+                ['orders as total_revenue' => fn($q) => $q->whereIn('status', ['completed', 'delivered'])],
+                'sub_total'
             )
             ->withSum(
-                ['orders as revenue_this_month' => fn($q) => $q->where('status', 'delivered')->where('updated_at', '>=', $startOfMonth)],
-                'total'
+                ['orders as revenue_this_month' => fn($q) => $q->whereIn('status', ['completed', 'delivered'])->where('updated_at', '>=', $startOfMonth)],
+                'sub_total'
             )
             ->select(['id', 'shop_name', 'slug', 'logo', 'owner_name', 'status', 'rating', 'is_open', 'created_at'])
             ->get()

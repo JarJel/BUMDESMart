@@ -36,7 +36,8 @@ class DashboardController extends Controller
             ->whereIn('status', ['completed', 'delivered'])
             ->whereYear('created_at', now()->year)
             ->whereMonth('created_at', now()->month)
-            ->sum('bumdes_fee');
+            ->selectRaw('SUM(bumdes_fee + COALESCE(service_fee, 0)) as total')
+            ->value('total') ?? 0;
 
         $totalProduk = Product::whereIn('umkm_profile_id', $umkmIds)->count();
 
@@ -75,7 +76,7 @@ class DashboardController extends Controller
         $revenueByMonth = Order::whereIn('umkm_profile_id', $umkmIds)
             ->whereIn('status', ['completed', 'delivered'])
             ->whereYear('created_at', $year)
-            ->selectRaw('MONTH(created_at) as month, SUM(bumdes_fee) as total')
+            ->selectRaw('MONTH(created_at) as month, SUM(bumdes_fee + COALESCE(service_fee, 0)) as total')
             ->groupBy('month')
             ->get()
             ->keyBy('month');

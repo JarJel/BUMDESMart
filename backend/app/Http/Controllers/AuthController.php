@@ -313,9 +313,24 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Cek kedaluwarsa (15 menit)
-        $createdAt = \Carbon\Carbon::parse($resetRecord->created_at);
-        if ($createdAt->addMinutes(15)->isPast()) {
+        // Cek kedaluwarsa (15 menit) dengan toleransi timezone mismatch
+        $isExpired = true;
+        
+        // 1. Cek dengan parse UTC
+        $createdAtUtc = \Carbon\Carbon::parse($resetRecord->created_at, 'UTC');
+        if (abs(now('UTC')->diffInSeconds($createdAtUtc)) <= 900) {
+            $isExpired = false;
+        }
+        
+        // 2. Cek dengan parse Timezone Aplikasi Default
+        if ($isExpired) {
+            $createdAtApp = \Carbon\Carbon::parse($resetRecord->created_at, config('app.timezone'));
+            if (abs(now()->diffInSeconds($createdAtApp)) <= 900) {
+                $isExpired = false;
+            }
+        }
+
+        if ($isExpired) {
             DB::table('password_reset_tokens')->where('email', $request->email)->delete();
             return response()->json([
                 'errors' => ['otp' => ['Kode OTP telah kedaluwarsa. Silakan minta kode baru.']]
@@ -354,9 +369,24 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Cek kedaluwarsa (15 menit)
-        $createdAt = \Carbon\Carbon::parse($resetRecord->created_at);
-        if ($createdAt->addMinutes(15)->isPast()) {
+        // Cek kedaluwarsa (15 menit) dengan toleransi timezone mismatch
+        $isExpired = true;
+        
+        // 1. Cek dengan parse UTC
+        $createdAtUtc = \Carbon\Carbon::parse($resetRecord->created_at, 'UTC');
+        if (abs(now('UTC')->diffInSeconds($createdAtUtc)) <= 900) {
+            $isExpired = false;
+        }
+        
+        // 2. Cek dengan parse Timezone Aplikasi Default
+        if ($isExpired) {
+            $createdAtApp = \Carbon\Carbon::parse($resetRecord->created_at, config('app.timezone'));
+            if (abs(now()->diffInSeconds($createdAtApp)) <= 900) {
+                $isExpired = false;
+            }
+        }
+
+        if ($isExpired) {
             // Hapus OTP yang kedaluwarsa
             DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 

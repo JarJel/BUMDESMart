@@ -458,10 +458,6 @@ class ProductController extends Controller
             'pre_order_days'                 => 'required_if:is_pre_order,true|integer|min:1',
         ]);
 
-        if(empty($validator['is_pre_order'])) {
-            $validator['is_pre_order'] = null;
-        }
-
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }

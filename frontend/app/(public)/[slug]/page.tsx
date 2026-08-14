@@ -11,6 +11,7 @@ import { Dokumen } from "@/lib/data/dummy";
 import { cartApi } from "@/lib/api/cart";
 import { useToast } from "@/components/ui/Toast";
 import { getFileUrl } from "@/lib/storage";
+import { useAuth } from "@/hooks/useAuth";
 
 function StarIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -79,19 +80,30 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
   const [showConflictAlert, setShowConflictAlert] = useState(false);
   const [pendingProductId, setPendingProductId] = useState<number | null>(null);
 
+  const { user } = useAuth();
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [cartShopName, setCartShopName] = useState<string>("");
 
   const loadCartData = async () => {
+    if (typeof window !== "undefined" && !localStorage.getItem("token")) {
+      setCartItems([]);
+      setCartShopName("");
+      return;
+    }
     try {
       const res = await cartApi.get();
       if (res.data?.success) {
         const items = res.data.data?.items || [];
-        setCartItems(items);
-        const firstItemShop = items[0]?.product?.umkm_profile?.shop_name 
-          || items[0]?.product?.umkm_profile?.name_umkm 
-          || (items.length > 0 ? (toko?.shop_name || toko?.nama || "BumdesMart") : "");
-        setCartShopName(firstItemShop);
+        // Filter items that belong to this store
+        const tokoItems = items.filter((i: any) => i.product?.umkm_profile?.id === toko?.id);
+        setCartItems(tokoItems);
+        
+        if (tokoItems.length > 0) {
+          const nameShop = toko?.shop_name || toko?.nama || "Toko";
+          setCartShopName(nameShop);
+        } else {
+          setCartShopName("");
+        }
       }
     } catch {
       setCartItems([]);
@@ -101,7 +113,7 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
 
   useEffect(() => {
     loadCartData();
-  }, []);
+  }, [user, toko?.id]);
 
   useEffect(() => {
     const handleCartUpdated = () => {
@@ -111,7 +123,7 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
     return () => {
       window.removeEventListener("cart-updated", handleCartUpdated);
     };
-  }, []);
+  }, [user, toko?.id]);
 
   const handleQuickAdd = async (productId: number) => {
     try {

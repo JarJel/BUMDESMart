@@ -64,10 +64,12 @@ class WebhookController extends Controller
             $umkmBalance = UmkmBalance::findOrCreateFor($order->umkm_profile_id, 'umkm');
             $umkmBalance->increment('pending', $umkmAmount);
 
-            // Kredit pending balance BUMDes
-            if ($bumdesFee > 0 && $order->umkmProfile?->bumdesProfile) {
+            // Kredit pending balance BUMDes (bumdes_fee + service_fee)
+            $serviceFee    = (float) ($order->service_fee ?? 0);
+            $totalBumdes   = $bumdesFee + $serviceFee;
+            if ($totalBumdes > 0 && $order->umkmProfile?->bumdesProfile) {
                 $bumdesBalance = UmkmBalance::findOrCreateFor($order->umkmProfile->bumdesProfile->id, 'bumdes');
-                $bumdesBalance->increment('pending', $bumdesFee);
+                $bumdesBalance->increment('pending', $totalBumdes);
             }
 
             // Notifikasi ke UMKM: pesanan baru sudah dibayar
@@ -135,22 +137,23 @@ class WebhookController extends Controller
         $umkmNet     = max(0, (float) $order->sub_total - $commission - $bumdesFee);
         $shippingNet = (float) $order->shipping_cost;
 
-        // Pindahkan pending → available untuk UMKM
+        // Proses saldo UMKM
         $umkmBalance = UmkmBalance::findOrCreateFor($order->umkm_profile_id, 'umkm');
         $umkmBalance->decrement('pending', $umkmNet);
-        $umkmBalance->increment('available', $umkmNet);
 
-        // Buat record disbursement UMKM
         $umkmAccount = UmkmBankAccount::where('owner_id', $order->umkm_profile_id)
             ->where('owner_type', 'umkm')
             ->where('is_active', true)
             ->first();
 
         if ($umkmAccount) {
+            $umkmBalance->increment('withdrawn', $umkmNet);
             $this->createXenditDisbursement($order, $umkmAccount, $umkmNet, 'umkm');
+        } else {
+            $umkmBalance->increment('available', $umkmNet);
         }
 
-        // Pindahkan pending → available untuk BUMDes (bumdes_fee + service_fee)
+        // Proses saldo BUMDes (bumdes_fee + service_fee)
         if ($order->umkmProfile?->bumdesProfile) {
             $bumdesProfile = $order->umkmProfile->bumdesProfile;
             $serviceFee    = (float) ($order->service_fee ?? 0);
@@ -159,7 +162,6 @@ class WebhookController extends Controller
             if ($totalBumdes > 0) {
                 $bumdesBalance = UmkmBalance::findOrCreateFor($bumdesProfile->id, 'bumdes');
                 $bumdesBalance->decrement('pending', $totalBumdes);
-                $bumdesBalance->increment('available', $totalBumdes);
 
                 // Catat histori transaksi BUMDes
                 if ($bumdesFee > 0) {
@@ -181,22 +183,23 @@ class WebhookController extends Controller
                     ]);
                 }
 
-                // Disbursement BUMDes jika ada rekening bank terdaftar
                 $bumdesAccount = UmkmBankAccount::where('owner_id', $bumdesProfile->id)
                     ->where('owner_type', 'bumdes')
                     ->where('is_active', true)
                     ->first();
 
-                if ($bumdesAccount && $totalBumdes > 0) {
+                if ($bumdesAccount) {
+                    $bumdesBalance->increment('withdrawn', $totalBumdes);
                     $this->createXenditDisbursement($order, $bumdesAccount, $totalBumdes, 'bumdes');
+                } else {
+                    $bumdesBalance->increment('available', $totalBumdes);
                 }
             }
         }
 
-        // Jika ada driver, distribusikan ongkir ke driver
+        // Proses saldo Driver (ongkir)
         if ($order->driver_id) {
             $driverBalance = UmkmBalance::findOrCreateFor($order->driver_id, 'driver');
-            $driverBalance->increment('available', $shippingNet);
 
             $driverAccount = UmkmBankAccount::where('owner_id', $order->driver_id)
                 ->where('owner_type', 'driver')
@@ -204,7 +207,10 @@ class WebhookController extends Controller
                 ->first();
 
             if ($driverAccount) {
+                $driverBalance->increment('withdrawn', $shippingNet);
                 $this->createXenditDisbursement($order, $driverAccount, $shippingNet, 'driver');
+            } else {
+                $driverBalance->increment('available', $shippingNet);
             }
         }
     }

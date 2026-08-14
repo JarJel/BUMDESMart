@@ -38,8 +38,8 @@ class VoucherProgramController extends Controller
             'trigger_type'  => 'required|in:item_count,order_amount,order_frequency',
             'trigger_value' => 'required|integer|min:1',
             'reward_type'   => 'required|in:flat,percentage,free_shipping',
-            'reward_value'  => 'required_unless:reward_type,free_shipping|integer|min:0',
-            'max_discount'  => 'nullable|integer|min:0',
+            'reward_value'  => 'required_unless:reward_type,free_shipping|integer|min:1',
+            'max_discount'  => 'nullable|integer|min:1',
             'label'         => 'nullable|string|max:100',
             'is_active'     => 'boolean',
         ]);
@@ -70,8 +70,8 @@ class VoucherProgramController extends Controller
             'trigger_type'  => 'sometimes|in:item_count,order_amount,order_frequency',
             'trigger_value' => 'sometimes|integer|min:1',
             'reward_type'   => 'sometimes|in:flat,percentage,free_shipping',
-            'reward_value'  => 'sometimes|integer|min:0',
-            'max_discount'  => 'nullable|integer|min:0',
+            'reward_value'  => 'sometimes|integer|min:1',
+            'max_discount'  => 'nullable|integer|min:1',
             'label'         => 'nullable|string|max:100',
             'is_active'     => 'boolean',
         ]);
