@@ -659,6 +659,7 @@ export default function DetailPesananPage() {
               </button>
             </div>
           </div>
+        </div>
         );
       })()}
     </div>
