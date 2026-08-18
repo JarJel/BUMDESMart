@@ -612,19 +612,6 @@ export default function DetailPesananPage() {
                 )}
               </div>
 
-<<<<<<< HEAD
-              <div className="p-5 border-t border-gray-100 flex gap-3 sticky bottom-0 bg-white rounded-b-2xl">
-                <button onClick={() => setShowReview(false)}
-                  className="flex-1 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50">
-                  Batal
-                </button>
-                <button onClick={handleSubmitReviews} disabled={submittingReview}
-                  className="flex-1 py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                  style={{ background: "var(--primary)" }}>
-                  {submittingReview ? "Mengirim..." : "Kirim Ulasan"}
-                </button>
-              </div>
-=======
             {/* Driver review section */}
             {order.driver_id && order.driver && (
               <div className="px-5 pb-5">
@@ -670,7 +657,6 @@ export default function DetailPesananPage() {
                 style={{ background: "var(--primary)" }}>
                 {submittingReview ? "Mengirim..." : "Kirim Ulasan Produk"}
               </button>
->>>>>>> d1a9921 (feat: EVT berita/event, kurir review, laporan keuangan, queue webp)
             </div>
           </div>
         );
