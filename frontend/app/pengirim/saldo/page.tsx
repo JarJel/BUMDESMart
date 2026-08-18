@@ -125,8 +125,9 @@ export default function PengirimSaldoPage() {
           <p className="text-lg font-bold text-orange-700 mt-1">{loading ? "—" : formatRp(avail)}</p>
         </div>
         <div className="bg-yellow-50 rounded-2xl p-4 border border-yellow-100">
-          <p className="text-xs text-gray-500">Diproses</p>
+          <p className="text-xs text-gray-500">Menunggu Cair</p>
           <p className="text-lg font-bold text-yellow-700 mt-1">{loading ? "—" : formatRp(pending)}</p>
+          <p className="text-[10px] text-yellow-600 mt-1">Otomatis masuk saldo tersedia setelah pesanan selesai</p>
         </div>
         <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
           <p className="text-xs text-gray-500">Total Dicairkan</p>

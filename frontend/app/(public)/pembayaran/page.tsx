@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { checkoutApi } from "@/lib/api/checkout";
 import { useToast } from "@/components/ui/Toast";
+import api from "@/lib/api/axios";
 
 function formatRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
@@ -20,6 +21,7 @@ function PembayaranContent() {
   const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [bypassing, setBypassing] = useState(false);
    const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
    const isFinishedRef = useRef(false);
  
@@ -104,6 +106,21 @@ function PembayaranContent() {
 
     return () => stopPolling();
   }, [orderId]);
+
+  const simulatePayment = async () => {
+    if (!orderId) return;
+    setBypassing(true);
+    try {
+      await api.post(`/dev/simulate-payment/${orderId}`);
+      isFinishedRef.current = true;
+      stopPolling();
+      toast.success("Simulasi pembayaran berhasil!");
+      router.replace(`/pesanan/${orderId}`);
+    } catch {
+      toast.error("Gagal simulasi pembayaran.");
+      setBypassing(false);
+    }
+  };
 
   // ---- STATE: Loading ----
   if (step === "loading") {
@@ -244,6 +261,17 @@ function PembayaranContent() {
       <Link href="/pesanan" className="block w-full py-3 rounded-xl text-sm font-medium text-gray-600 text-center border border-gray-200 hover:bg-gray-50">
         Bayar Nanti — Lihat Pesanan
       </Link>
+
+      <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-2xl">
+        <p className="text-xs text-yellow-700 font-semibold mb-2">🧪 Mode Testing</p>
+        <button
+          onClick={simulatePayment}
+          disabled={bypassing}
+          className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-yellow-500 hover:bg-yellow-600 disabled:opacity-60"
+        >
+          {bypassing ? "Memproses..." : "Simulasi Bayar (Bypass Xendit)"}
+        </button>
+      </div>
     </div>
   );
 }

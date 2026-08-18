@@ -462,6 +462,11 @@ class ProductController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $validated = $validator->validated();
+        if (empty($validated['is_pre_order'])) {
+            $validated['is_pre_order'] = null;
+        }
+
         DB::beginTransaction();
         try {
             $hasVariant = $request->has('has_variant')

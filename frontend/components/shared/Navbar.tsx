@@ -123,6 +123,7 @@ export default function Navbar() {
     window.addEventListener("notificationsUpdated", fetchNotifications);
     window.addEventListener("wishlistUpdated", fetchWishlist);
     window.addEventListener("cartUpdated", fetchCart);
+    window.addEventListener("cart-updated", fetchCart);
 
     const interval = setInterval(fetchNotifications, 15000);
 
@@ -130,6 +131,7 @@ export default function Navbar() {
       window.removeEventListener("notificationsUpdated", fetchNotifications);
       window.removeEventListener("wishlistUpdated", fetchWishlist);
       window.removeEventListener("cartUpdated", fetchCart);
+      window.removeEventListener("cart-updated", fetchCart);
       clearInterval(interval);
     };
   }, [isCustomer, user]);

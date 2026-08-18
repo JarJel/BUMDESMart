@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Customers;
 
 use App\Http\Controllers\Controller;
+use App\Models\DriverProfile;
+use App\Models\DriverReview;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductReview;
@@ -89,5 +91,64 @@ class ReviewController extends Controller
             ->get(['product_id', 'rating', 'comment']);
 
         return response()->json(['data' => $reviews]);
+    }
+
+    public function storeDriverReview(Request $request, int $orderId)
+    {
+        $customer = $request->user()->customer;
+        if (!$customer) {
+            return response()->json(['message' => 'Bukan customer.'], 403);
+        }
+
+        $order = Order::where('customer_id', $customer->id)
+            ->whereIn('status', ['delivered', 'completed'])
+            ->findOrFail($orderId);
+
+        if (!$order->driver_id) {
+            return response()->json(['message' => 'Pesanan ini tidak memiliki kurir.'], 422);
+        }
+
+        $driverProfile = DriverProfile::where('user_id', $order->driver_id)->first();
+        if (!$driverProfile) {
+            return response()->json(['message' => 'Profil kurir tidak ditemukan.'], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'rating'  => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        DriverReview::updateOrCreate(
+            ['order_id' => $orderId, 'customer_id' => $customer->id],
+            [
+                'driver_profile_id' => $driverProfile->id,
+                'rating'            => $request->rating,
+                'comment'           => $request->comment ?? null,
+            ]
+        );
+
+        $driverProfile->recalculateRating();
+
+        return response()->json(['message' => 'Ulasan kurir berhasil disimpan.']);
+    }
+
+    public function showDriverReview(Request $request, int $orderId)
+    {
+        $customer = $request->user()->customer;
+        if (!$customer) {
+            return response()->json(['message' => 'Bukan customer.'], 403);
+        }
+
+        Order::where('customer_id', $customer->id)->findOrFail($orderId);
+
+        $review = DriverReview::where('order_id', $orderId)
+            ->where('customer_id', $customer->id)
+            ->first(['rating', 'comment']);
+
+        return response()->json(['data' => $review]);
     }
 }

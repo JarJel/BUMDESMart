@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Jobs\ProcessImageToWebp;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -9,145 +10,84 @@ use Illuminate\Support\Str;
 class ImageHelper
 {
     /**
-     * Convert an uploaded image to WebP and save it in the storage.
+     * Store uploaded image and queue WebP conversion.
      *
-     * @param UploadedFile $file The uploaded file.
-     * @param string $folder The destination folder under public disk.
-     * @param int $quality The output quality (1-100).
-     * @return string|null The stored filepath relative to disk root, or original store path on failure.
+     * Saves the original to a temp location immediately, then dispatches
+     * ProcessImageToWebp to convert it in the background.
+     * Returns the target WebP path right away so the controller can store it.
+     *
+     * Falls back to sync conversion when QUEUE_CONNECTION=sync.
      */
     public static function uploadAsWebp(UploadedFile $file, string $folder, int $quality = 80): ?string
     {
-        $mime = $file->getMimeType();
-        
-        // Only convert images, skip pdf / documents / svg
+        $mime = $file->getMimeType() ?? '';
+
+        // SVG / PDF / non-image → store as-is, no conversion
         if (!str_contains($mime, 'image') || str_contains($mime, 'svg') || str_contains($mime, 'xml')) {
             return $file->store($folder, 'public');
         }
 
-        try {
-            // Load the image based on mime type
-            switch ($mime) {
-                case 'image/jpeg':
-                case 'image/jpg':
-                    $image = imagecreatefromjpeg($file->getRealPath());
-                    break;
-                case 'image/png':
-                    $image = imagecreatefrompng($file->getRealPath());
-                    // Preserve alpha transparency
-                    imagepalettetotruecolor($image);
-                    imagealphablending($image, true);
-                    imagesavealpha($image, true);
-                    break;
-                case 'image/gif':
-                    $image = imagecreatefromgif($file->getRealPath());
-                    imagepalettetotruecolor($image);
-                    break;
-                case 'image/webp':
-                    // Already webp, just store it
-                    return $file->store($folder, 'public');
-                default:
-                    // If GD doesn't support, just store normally
-                    return $file->store($folder, 'public');
-            }
-
-            if (!$image) {
-                return $file->store($folder, 'public');
-            }
-
-            // Create temporary file path
-            $tempFile = tempnam(sys_get_temp_dir(), 'webp_');
-            
-            // Convert to webp
-            $result = imagewebp($image, $tempFile, $quality);
-            imagedestroy($image);
-
-            if (!$result) {
-                return $file->store($folder, 'public');
-            }
-
-            // Read the webp file and store it
-            $filename = Str::random(40) . '.webp';
-            $targetPath = rtrim($folder, '/') . '/' . $filename;
-            
-            Storage::disk('public')->put($targetPath, file_get_contents($tempFile));
-            @unlink($tempFile);
-
-            return $targetPath;
-        } catch (\Throwable $e) {
-            // Fallback to standard Laravel store
+        // Already WebP → store directly, no job needed
+        if (str_contains($mime, 'webp')) {
             return $file->store($folder, 'public');
         }
+
+        // Target path (we commit the filename to DB immediately)
+        $filename   = Str::random(40) . '.webp';
+        $targetPath = rtrim($folder, '/') . '/' . $filename;
+
+        // Save original to temp storage (local disk, not public)
+        $ext      = $file->extension() ?: 'tmp';
+        $tempPath = $file->storeAs('temp', Str::random(32) . '.' . $ext, 'local');
+
+        $sourceAbs = storage_path('app/' . $tempPath);
+        $targetAbs = Storage::disk('public')->path($targetPath);
+
+        // Dispatch job — background if queue driver != sync, inline otherwise
+        ProcessImageToWebp::dispatch($sourceAbs, $targetAbs, $quality);
+
+        return $targetPath;
     }
 
     /**
-     * Convert an uploaded image to WebP and save it in a custom absolute path.
+     * Store uploaded image to an absolute destination path and queue WebP conversion.
      *
-     * @param UploadedFile $file The uploaded file.
-     * @param string $destinationPath Absolute destination folder path.
-     * @param int $quality The output quality (1-100).
-     * @return string The filename of the saved file.
+     * Saves the original to temp, dispatches the job, and returns the final
+     * WebP filename immediately. Same contract as the old synchronous version.
      */
     public static function uploadToPathAsWebp(UploadedFile $file, string $destinationPath, int $quality = 80): string
     {
-        $mime = $file->getMimeType();
-        
-        // If it's not an image or is SVG, move normally
+        $mime = $file->getMimeType() ?? '';
+
+        // Non-image → move directly, no conversion
         if (!str_contains($mime, 'image') || str_contains($mime, 'svg') || str_contains($mime, 'xml')) {
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $file->move($destinationPath, $filename);
             return $filename;
         }
 
-        try {
-            switch ($mime) {
-                case 'image/jpeg':
-                case 'image/jpg':
-                    $image = imagecreatefromjpeg($file->getRealPath());
-                    break;
-                case 'image/png':
-                    $image = imagecreatefrompng($file->getRealPath());
-                    imagepalettetotruecolor($image);
-                    imagealphablending($image, true);
-                    imagesavealpha($image, true);
-                    break;
-                case 'image/gif':
-                    $image = imagecreatefromgif($file->getRealPath());
-                    imagepalettetotruecolor($image);
-                    break;
-                case 'image/webp':
-                    $filename = time() . '_' . uniqid() . '.webp';
-                    $file->move($destinationPath, $filename);
-                    return $filename;
-                default:
-                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $file->move($destinationPath, $filename);
-                    return $filename;
-            }
+        // Target filename (WebP)
+        $filename = time() . '_' . uniqid() . '.webp';
 
-            if (!$image) {
-                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->move($destinationPath, $filename);
-                return $filename;
-            }
+        if (!is_dir($destinationPath)) {
+            mkdir($destinationPath, 0755, true);
+        }
 
-            $filename = time() . '_' . uniqid() . '.webp';
-            $targetFile = rtrim($destinationPath, '/') . '/' . $filename;
-            
-            $result = imagewebp($image, $targetFile, $quality);
-            imagedestroy($image);
-
-            if (!$result) {
-                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->move($destinationPath, $filename);
-                return $filename;
-            }
-
-            return $filename;
-        } catch (\Throwable $e) {
-            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        // Already WebP → move directly
+        if (str_contains($mime, 'webp')) {
             $file->move($destinationPath, $filename);
             return $filename;
         }
+
+        // Save original to temp (Laravel local disk)
+        $ext      = $file->extension() ?: 'tmp';
+        $tempPath = $file->storeAs('temp', Str::random(32) . '.' . $ext, 'local');
+
+        $sourceAbs = storage_path('app/' . $tempPath);
+        $targetAbs = rtrim($destinationPath, '/') . '/' . $filename;
+
+        ProcessImageToWebp::dispatch($sourceAbs, $targetAbs, $quality);
+
+        return $filename;
     }
 }

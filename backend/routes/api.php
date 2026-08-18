@@ -77,6 +77,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/orders/{id}/delivered', [OrderController::class, 'confirmDelivered']);
     Route::post('/orders/{orderId}/reviews', [ReviewController::class, 'store']);
     Route::get('/orders/{orderId}/reviews', [ReviewController::class, 'showByOrder']);
+    Route::post('/orders/{orderId}/driver-review', [ReviewController::class, 'storeDriverReview']);
+    Route::get('/orders/{orderId}/driver-review', [ReviewController::class, 'showDriverReview']);
 
     // Seller bank account & withdraw
     Route::get('/seller/bank-accounts', [BankAccountController::class, 'index']);
@@ -198,6 +200,8 @@ Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('ad
     Route::put('/umkm/{umkm}/reapply', [UmkmVerificationController::class, 'reapply']);
 
     Route::get('/reports/mitra', [MitraPerformanceController::class, 'index']);
+    Route::get('/reports/financial', [\App\Http\Controllers\Admin\FinancialReportController::class, 'summary']);
+    Route::get('/reports/financial/mitra/{mitraId}', [\App\Http\Controllers\Admin\FinancialReportController::class, 'mitraDetail']);
 
     // Admin BUMDes - own profile
     Route::get('/profile', [AdminProfileController::class, 'show']);
@@ -339,3 +343,35 @@ Route::get('/categories', function () {
 });
 
 Route::middleware('auth:sanctum')->post('/send-whatsapp', [WhatsappController::class, 'sendWhatsapp']);
+
+// Dev-only: bypass Xendit payment untuk testing
+if (app()->environment('local', 'testing')) {
+    Route::middleware('auth:sanctum')->post('/dev/simulate-payment/{orderId}', function (Request $request, $orderId) {
+        $customer = $request->user()->customer;
+        if (! $customer) {
+            return response()->json(['message' => 'Bukan customer'], 403);
+        }
+
+        $order = Order::with(['items', 'umkmProfile.bumdesProfile', 'umkmProfile.user'])
+            ->where('customer_id', $customer->id)
+            ->findOrFail($orderId);
+
+        \App\Models\Payment::updateOrCreate(
+            ['order_id' => $order->id],
+            [
+                'xendit_invoice_id'  => 'dev-' . $order->order_code,
+                'xendit_external_id' => 'dev-' . $order->order_code . '-' . time(),
+                'payment_code'       => 'DEV' . strtoupper(\Illuminate\Support\Str::random(8)),
+                'amount'             => $order->total,
+                'status'             => 'paid',
+                'paid_at'            => now(),
+                'expired_at'         => now()->addDay(),
+                'xendit_data'        => ['status' => 'PAID', 'note' => 'dev bypass'],
+            ]
+        );
+
+        $order->update(['status' => 'pending']);
+
+        return response()->json(['status' => 'paid', 'order_id' => $orderId]);
+    });
+}

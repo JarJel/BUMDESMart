@@ -83,6 +83,11 @@ export default function DetailPesananPage() {
   const [courierRating, setCourierRating] = useState(0);
   const [courierComment, setCourierComment] = useState("");
 
+  // Driver review state
+  const [driverReview, setDriverReview] = useState<{ rating: number; comment: string } | null>(null);
+  const [driverReviewForm, setDriverReviewForm] = useState({ rating: 0, comment: "" });
+  const [submittingDriverReview, setSubmittingDriverReview] = useState(false);
+
   const fetchOrder = useCallback(async () => {
     try {
       const res = await api.get(`/orders/${id}`);
@@ -109,6 +114,19 @@ export default function DetailPesananPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  const fetchDriverReview = useCallback(async () => {
+    try {
+      const res = await api.get(`/orders/${id}/driver-review`);
+      if (res.data.data) {
+        setDriverReview(res.data.data);
+        setDriverReviewForm({ rating: res.data.data.rating, comment: res.data.data.comment ?? "" });
+      }
+    } catch {
+      // silently ignore
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   useEffect(() => {
     if (id) {
       fetchOrder();
@@ -118,8 +136,9 @@ export default function DetailPesananPage() {
   useEffect(() => {
     if (order?.status === "delivered") {
       fetchExistingReviews();
+      if (order.driver_id) fetchDriverReview();
     }
-  }, [order, fetchExistingReviews]);
+  }, [order, fetchExistingReviews, fetchDriverReview]);
 
   const openReviewModal = () => {
     const firstProductReview = existingReviews[0];
@@ -179,6 +198,24 @@ export default function DetailPesananPage() {
       toast.error("Gagal mengirim ulasan.");
     } finally {
       setSubmittingReview(false);
+    }
+  };
+
+  const handleSubmitDriverReview = async () => {
+    if (driverReviewForm.rating === 0) {
+      toast.error("Pilih rating untuk kurir.");
+      return;
+    }
+    setSubmittingDriverReview(true);
+    try {
+      await api.post(`/orders/${id}/driver-review`, driverReviewForm);
+      toast.success("Ulasan kurir berhasil dikirim!");
+      setDriverReview({ rating: driverReviewForm.rating, comment: driverReviewForm.comment });
+      setShowReview(false);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "Gagal mengirim ulasan kurir.");
+    } finally {
+      setSubmittingDriverReview(false);
     }
   };
 
@@ -575,6 +612,7 @@ export default function DetailPesananPage() {
                 )}
               </div>
 
+<<<<<<< HEAD
               <div className="p-5 border-t border-gray-100 flex gap-3 sticky bottom-0 bg-white rounded-b-2xl">
                 <button onClick={() => setShowReview(false)}
                   className="flex-1 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50">
@@ -586,6 +624,53 @@ export default function DetailPesananPage() {
                   {submittingReview ? "Mengirim..." : "Kirim Ulasan"}
                 </button>
               </div>
+=======
+            {/* Driver review section */}
+            {order.driver_id && order.driver && (
+              <div className="px-5 pb-5">
+                <div className="border-t border-gray-100 pt-5">
+                  <p className="text-sm font-bold text-gray-900 mb-3">Ulasan Kurir</p>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
+                      {getStorageUrl(order.driver.driver_profile?.photo_profile) ? (
+                        <img src={getStorageUrl(order.driver.driver_profile?.photo_profile)!} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold text-gray-400">{(order.driver.name ?? "K")[0].toUpperCase()}</span>
+                      )}
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">{order.driver.name}</span>
+                  </div>
+                  <StarRating value={driverReviewForm.rating} onChange={r => setDriverReviewForm(f => ({ ...f, rating: r }))} />
+                  <textarea
+                    value={driverReviewForm.comment}
+                    onChange={e => setDriverReviewForm(f => ({ ...f, comment: e.target.value }))}
+                    placeholder="Bagaimana pelayanan kurir ini? (opsional)"
+                    rows={2}
+                    className="w-full mt-3 px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50 resize-none"
+                  />
+                  <button
+                    onClick={handleSubmitDriverReview}
+                    disabled={submittingDriverReview}
+                    className="w-full mt-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                    style={{ background: driverReview ? "#6B7280" : "var(--primary)" }}
+                  >
+                    {submittingDriverReview ? "Mengirim..." : driverReview ? "Perbarui Ulasan Kurir" : "Kirim Ulasan Kurir"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="p-5 border-t border-gray-100 flex gap-3 sticky bottom-0 bg-white rounded-b-2xl">
+              <button onClick={() => setShowReview(false)}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50">
+                Batal
+              </button>
+              <button onClick={handleSubmitReviews} disabled={submittingReview}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                style={{ background: "var(--primary)" }}>
+                {submittingReview ? "Mengirim..." : "Kirim Ulasan Produk"}
+              </button>
+>>>>>>> d1a9921 (feat: EVT berita/event, kurir review, laporan keuangan, queue webp)
             </div>
           </div>
         );

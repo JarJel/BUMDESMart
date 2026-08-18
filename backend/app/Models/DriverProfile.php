@@ -47,4 +47,15 @@ class DriverProfile extends Model
     {
         return $this->belongsTo(BumdesProfile::class, 'bumdes_profile_id');
     }
+
+    public function reviews()
+    {
+        return $this->hasMany(DriverReview::class);
+    }
+
+    public function recalculateRating(): void
+    {
+        $avg = $this->reviews()->avg('rating');
+        $this->update(['rating' => $avg !== null ? round((float) $avg, 2) : null]);
+    }
 }
