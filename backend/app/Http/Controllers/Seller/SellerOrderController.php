@@ -131,8 +131,10 @@ class SellerOrderController extends Controller
         }
 
         // Notifikasi ke pembeli
-        $order->load('customer.user');
+        $order->load('customer.user', 'umkmProfile');
         $buyerUserId = $order->customer?->user?->id;
+        $buyerPhone  = $order->customer?->user?->phone;
+        $buyerName   = $order->customer?->user?->name ?? 'Pelanggan';
 
         $buyerNotifs = [
             'confirmed'        => ['Pesanan Sedang Disiapkan',     "Pesanan #{$order->order_code} sedang disiapkan oleh penjual.", 'order'],
@@ -145,6 +147,17 @@ class SellerOrderController extends Controller
         if ($buyerUserId && isset($buyerNotifs[$newStatus])) {
             [$title, $body, $type] = $buyerNotifs[$newStatus];
             Notification::send($buyerUserId, $title, $body, 'order_' . $newStatus, $type, $order->id);
+        }
+
+        // WA vital ke pembeli
+        if ($buyerPhone) {
+            $shopName = $order->umkmProfile?->shop_name ?? 'Toko';
+            match($newStatus) {
+                'confirmed'        => \App\Helpers\WaNotification::pesananDikonfirmasi($buyerPhone, $buyerName, $order->order_code, $order->id),
+                'ready_for_pickup' => \App\Helpers\WaNotification::siapDiambil($buyerPhone, $buyerName, $order->order_code, $order->id, $shopName),
+                'shipped'          => \App\Helpers\WaNotification::dikirimEkspedisi($buyerPhone, $buyerName, $order->order_code, $order->id, $validated['tracking_number'] ?? '-'),
+                default            => null,
+            };
         }
 
         // Notifikasi ke kurir yang available saat order kurir_lokal dikonfirmasi

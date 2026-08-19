@@ -51,4 +51,12 @@ return [
         'endpoint' => env('FONTE_ENDPOINT', 'https://api.fonnte.com/send'),
     ],
 
+    'whatsapp_driver' => env('WHATSAPP_DRIVER', 'fonnte'), // 'fonnte' | 'openwa'
+
+    'openwa' => [
+        'url'        => env('OPENWA_URL', 'http://localhost:2785'),
+        'session_id' => env('OPENWA_SESSION_ID', 'bumdesmart'),
+        'api_key'    => env('OPENWA_API_KEY', ''),
+    ],
+
 ];

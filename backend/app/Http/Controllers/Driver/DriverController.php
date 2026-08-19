@@ -455,6 +455,10 @@ class DriverController extends Controller
         // Notifikasi ke pembeli
         $order->load('customer.user', 'umkmProfile');
         $buyerUserId = $order->customer?->user?->id;
+        $buyerPhone  = $order->customer?->user?->phone;
+        $buyerName   = $order->customer?->user?->name ?? 'Pelanggan';
+        $driverName  = $request->user()->name ?? 'Kurir';
+
         if ($buyerUserId) {
             if ($newStatus === 'shipped') {
                 Notification::send(
@@ -463,6 +467,10 @@ class DriverController extends Controller
                     "Pesanan #{$order->order_code} sedang dalam perjalanan ke alamatmu. Siap-siap menerima ya!",
                     'order_shipped', 'order', $order->id
                 );
+                // WA: kurir OTW antar
+                if ($buyerPhone) {
+                    \App\Helpers\WaNotification::kurirOtwAntar($buyerPhone, $buyerName, $order->order_code, $order->id, $driverName);
+                }
             } elseif ($newStatus === 'delivered') {
                 Notification::send(
                     $buyerUserId,
@@ -470,6 +478,10 @@ class DriverController extends Controller
                     "Pesanan #{$order->order_code} sudah sampai. Jangan lupa konfirmasi penerimaan dan beri ulasan ya!",
                     'order_delivered', 'order', $order->id
                 );
+                // WA: pesanan sampai
+                if ($buyerPhone) {
+                    \App\Helpers\WaNotification::pesananSampai($buyerPhone, $buyerName, $order->order_code, $order->id);
+                }
             }
         }
 
