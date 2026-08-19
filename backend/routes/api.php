@@ -134,6 +134,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/checkout/vouchers', [\App\Http\Controllers\Customers\VoucherController::class, 'available']);
 
     // Seller order management routes
+    Route::get('/seller/orders/count', [SellerOrderController::class, 'count']);
     Route::get('/seller/orders', [SellerOrderController::class, 'index']);
     Route::get('/seller/orders/{id}', [SellerOrderController::class, 'show']);
     Route::patch('/seller/orders/{id}/status', [SellerOrderController::class, 'updateStatus']);
