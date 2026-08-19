@@ -630,13 +630,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
               <p className="text-xs text-gray-400">{toko.owner_name || "-"} · {toko.city || "-"}</p>
             </div>
             <div className="flex gap-2 shrink-0">
-              <Link
-                href="/chat"
-                className="text-xs px-2.5 py-1.5 rounded-lg border font-medium bg-white hover:bg-gray-50 hidden sm:block cursor-pointer"
-                style={{ borderColor: "var(--primary)", color: "var(--primary)" }}
-              >
-                Pesan
-              </Link>
+              {/* Fitur chat belum tersedia */}
               <Link
                 href={`/${toko.slug}`}
                 className="text-xs px-3 py-1.5 rounded-lg text-white font-medium cursor-pointer"

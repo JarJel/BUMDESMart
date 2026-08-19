@@ -48,6 +48,17 @@ class WebhookController extends Controller
 
         $order = $payment->order;
 
+        // Kembalikan stok saat invoice expired/failed agar tidak terkunci permanen
+        if (in_array($newStatus, ['expired', 'failed']) && $order) {
+            $order->load('items.product');
+            foreach ($order->items as $item) {
+                if ($item->product) {
+                    $item->product->increment('stock', $item->quantity);
+                }
+            }
+            $order->update(['status' => 'cancelled']);
+        }
+
         if ($newStatus === 'paid' && $order) {
             $order->update(['status' => 'pending']);
             $order->load('items', 'umkmProfile.bumdesProfile', 'umkmProfile.user');
@@ -84,15 +95,14 @@ class WebhookController extends Controller
                     $order->id
                 );
 
-                // Kirim notifikasi WhatsApp ke Seller via Fonnte
+                // Kirim notifikasi WhatsApp ke Seller via queue (anti-spam, driver-agnostic)
                 $sellerPhone = $order->umkmProfile->phone;
                 if (!$sellerPhone && $order->umkmProfile->user) {
                     $sellerPhone = $order->umkmProfile->user->phone;
                 }
                 if ($sellerPhone) {
-                    $sellerName = $order->umkmProfile->owner_name ?? $order->umkmProfile->user->name ?? 'Mitra BUMDESMart';
-                    $waMessage = "Halo {$sellerName},\n\nAda pesanan baru masuk!\nKode Pesanan: #{$order->order_code}\nTotal Pembayaran: Rp " . number_format($order->total, 0, ',', '.') . "\n\nSilakan periksa detail pesanan dan konfirmasi pesanan ini melalui dashboard seller Anda.\n\nBUMDESMart";
-                    \App\Services\WhatsappService::send($sellerPhone, $waMessage);
+                    $sellerName = $order->umkmProfile->owner_name ?? $order->umkmProfile->user?->name ?? 'Mitra BUMDeSMart';
+                    \App\Helpers\WaNotification::orderMasukSeller($sellerPhone, $sellerName, $order->order_code, (int) $order->total);
                 }
 
                 // Cek stok setelah pesanan: kirim notif kalau ada produk stok menipis

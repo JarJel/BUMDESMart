@@ -1,0 +1,62 @@
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+/**
+ * WhatsApp gateway via OpenWA (self-hosted).
+ * Interface-compatible dengan WhatsappService (Fonnte) —
+ * untuk migrasi cukup ganti nama class di controller/AuthService.
+ *
+ * Env vars yang dibutuhkan:
+ *   OPENWA_URL         = http://localhost:2785   (atau URL tunnel Cloudflare)
+ *   OPENWA_SESSION_ID  = bumdesmart              (nama session di OpenWA)
+ *   OPENWA_API_KEY     = (API key dari dashboard OpenWA, kosongkan jika belum diset)
+ */
+class OpenWAService
+{
+    public static function send(string $target, string $message): array
+    {
+        if (empty($target)) {
+            return ['status' => false, 'error' => 'Target phone number is empty.'];
+        }
+
+        $baseUrl   = rtrim(config('services.openwa.url', 'http://localhost:2785'), '/');
+        $sessionId = config('services.openwa.session_id', 'bumdesmart');
+        $apiKey    = config('services.openwa.api_key', '');
+
+        // Normalise nomor: hilangkan + dan awalan 0, tambah 62
+        $phone = preg_replace('/\D/', '', $target);
+        if (str_starts_with($phone, '0')) {
+            $phone = '62' . substr($phone, 1);
+        } elseif (!str_starts_with($phone, '62')) {
+            $phone = '62' . $phone;
+        }
+
+        try {
+            $headers = ['Content-Type' => 'application/json'];
+            if ($apiKey) {
+                $headers['x-api-key'] = $apiKey;
+            }
+
+            $response = Http::withHeaders($headers)
+                ->withoutVerifying()
+                ->post("{$baseUrl}/api/sessions/{$sessionId}/messages/send-text", [
+                    'chatId'  => "{$phone}@c.us",
+                    'content' => $message,
+                ]);
+
+            if ($response->successful()) {
+                return ['status' => true, 'data' => $response->json()];
+            }
+
+            Log::error('OpenWA send error: ' . $response->body());
+            return ['status' => false, 'error' => $response->json('message') ?? $response->body()];
+        } catch (\Exception $e) {
+            Log::error('OpenWA connection exception: ' . $e->getMessage());
+            return ['status' => false, 'error' => $e->getMessage()];
+        }
+    }
+}

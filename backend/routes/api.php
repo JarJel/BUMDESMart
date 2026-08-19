@@ -203,6 +203,15 @@ Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('ad
     Route::get('/reports/financial', [\App\Http\Controllers\Admin\FinancialReportController::class, 'summary']);
     Route::get('/reports/financial/mitra/{mitraId}', [\App\Http\Controllers\Admin\FinancialReportController::class, 'mitraDetail']);
 
+    // WhatsApp (OpenWA) management
+    Route::prefix('whatsapp')->group(function () {
+        Route::get('/status',      [\App\Http\Controllers\Admin\WhatsappAdminController::class, 'status']);
+        Route::get('/qr',          [\App\Http\Controllers\Admin\WhatsappAdminController::class, 'qr']);
+        Route::post('/send-test',  [\App\Http\Controllers\Admin\WhatsappAdminController::class, 'sendTest']);
+        Route::post('/disconnect', [\App\Http\Controllers\Admin\WhatsappAdminController::class, 'disconnect']);
+        Route::post('/restart',    [\App\Http\Controllers\Admin\WhatsappAdminController::class, 'restart']);
+    });
+
     // Admin BUMDes - own profile
     Route::get('/profile', [AdminProfileController::class, 'show']);
     Route::put('/profile', [AdminProfileController::class, 'update']);
