@@ -5,16 +5,29 @@ namespace App\Http\Controllers\Customers;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
-use App\Models\UmkmBalance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
-    private function xenditAuth(): string
+    private function midtransAuth(): string
     {
-        return base64_encode(config('services.xendit.secret_key') . ':');
+        return base64_encode(config('services.midtrans.server_key') . ':');
+    }
+
+    private function midtransApiUrl(): string
+    {
+        return config('services.midtrans.is_production')
+            ? 'https://api.midtrans.com'
+            : 'https://api.sandbox.midtrans.com';
+    }
+
+    private function snapApiUrl(): string
+    {
+        return config('services.midtrans.is_production')
+            ? 'https://app.midtrans.com'
+            : 'https://app.sandbox.midtrans.com';
     }
 
     public function createInvoice(Request $request, int $orderId)
@@ -29,67 +42,57 @@ class PaymentController extends Controller
 
         if ($order->payment) {
             return response()->json([
-                'invoice_url' => $order->payment->xendit_data['invoice_url'] ?? null,
+                'invoice_url' => $order->payment->xendit_data['redirect_url'] ?? null,
                 'payment_id'  => $order->payment->id,
                 'status'      => $order->payment->status,
             ]);
         }
 
-        $externalId  = 'BUMDES-' . $order->order_code . '-' . time();
-        $paymentCode = strtoupper(Str::random(12));
-
-        $items = $order->items->map(fn($i) => [
-            'name'     => $i->product_name ?: ($i->product->name ?? 'Produk'),
-            'quantity' => $i->quantity,
-            'price'    => (int) $i->product_price,
-        ])->toArray();
+        // xendit_external_id kolom dipakai untuk menyimpan order_id Midtrans
+        $mtOrderId = 'BUMDES-' . $order->order_code . '-' . time();
 
         $payload = [
-            'external_id'      => $externalId,
-            'amount'           => (int) $order->total,
-            'description'      => 'Pembayaran Order ' . $order->order_code . ' - ' . $order->umkmProfile->shop_name,
-            'invoice_duration' => 86400, // 24 jam
-            'customer'         => [
-                'given_names'   => $order->customer->user->name,
-                'email'         => $order->customer->user->email,
+            'transaction_details' => [
+                'order_id'     => $mtOrderId,
+                'gross_amount' => (int) $order->total,
             ],
-            'items'            => $items,
-            'success_redirect_url' => config('app.frontend_url') . '/pembayaran/sukses?order=' . $order->order_code,
-            'failure_redirect_url' => config('app.frontend_url') . '/pembayaran/gagal?order=' . $order->order_code,
+            'customer_details' => [
+                'first_name' => $order->customer->user->name,
+                'email'      => $order->customer->user->email,
+            ],
+            'callbacks' => [
+                'finish' => config('app.frontend_url') . '/pembayaran/sukses?order=' . $order->order_code,
+            ],
         ];
 
-        $response = Http::when(app()->environment('local'), fn($q) => $q->withoutVerifying())
-            ->withHeaders([
-                'Authorization' => 'Basic ' . $this->xenditAuth(),
-                'Content-Type'  => 'application/json',
-            ])->post('https://api.xendit.co/v2/invoices', $payload);
+        $response = Http::withHeaders([
+            'Authorization' => 'Basic ' . $this->midtransAuth(),
+            'Content-Type'  => 'application/json',
+        ])->post($this->snapApiUrl() . '/snap/v1/transactions', $payload);
 
         if ($response->failed()) {
             return response()->json([
-                'message' => 'Gagal membuat invoice pembayaran.',
+                'message' => 'Gagal membuat transaksi pembayaran.',
                 'error'   => $response->json(),
             ], 502);
         }
 
         $data = $response->json();
 
-        Payment::create([
-            'order_id'          => $order->id,
-            'xendit_invoice_id' => $data['id'],
-            'xendit_external_id'=> $externalId,
-            'payment_code'      => $paymentCode,
-            'amount'            => $order->total,
-            'status'            => 'pending',
-            'expired_at'        => now()->addDay(),
-            'xendit_data'       => $data,
+        $payment = Payment::create([
+            'order_id'           => $order->id,
+            'xendit_invoice_id'  => $data['token'] ?? null,    // snap token
+            'xendit_external_id' => $mtOrderId,                 // midtrans order_id
+            'payment_code'       => strtoupper(Str::random(12)),
+            'amount'             => $order->total,
+            'status'             => 'pending',
+            'expired_at'         => now()->addDay(),
+            'xendit_data'        => $data,
         ]);
 
-        // Balance UMKM dan BUMDes dikreditkan di webhook saat payment confirmed (paid)
-        // Tidak diincrement di sini agar tidak salah jika invoice expired/failed
-
         return response()->json([
-            'invoice_url' => $data['invoice_url'],
-            'payment_id'  => Payment::where('xendit_invoice_id', $data['id'])->first()->id,
+            'invoice_url' => $data['redirect_url'] ?? null,
+            'payment_id'  => $payment->id,
             'status'      => 'pending',
         ]);
     }
@@ -109,42 +112,55 @@ class PaymentController extends Controller
             return response()->json(['status' => 'no_payment']);
         }
 
-        // Jika sudah paid/expired di DB, langsung kembalikan
         if (in_array($payment->status, ['paid', 'expired', 'failed'])) {
             return response()->json([
-                'status'    => $payment->status,
+                'status'       => $payment->status,
                 'order_status' => $order->status,
-                'paid_at'   => $payment->paid_at,
+                'paid_at'      => $payment->paid_at,
             ]);
         }
 
-        // Cek langsung ke Xendit
-        $response = Http::when(app()->environment('local'), fn($q) => $q->withoutVerifying())
-            ->withHeaders([
-                'Authorization' => 'Basic ' . $this->xenditAuth(),
-            ])->get('https://api.xendit.co/v2/invoices/' . $payment->xendit_invoice_id);
+        // Cek status ke Midtrans
+        $response = Http::withHeaders([
+            'Authorization' => 'Basic ' . $this->midtransAuth(),
+        ])->get($this->midtransApiUrl() . '/v2/' . $payment->xendit_external_id . '/status');
 
         if ($response->failed()) {
             return response()->json(['status' => $payment->status]);
         }
 
-        $data = $response->json();
-
-        $xenditStatus = strtolower($data['status'] ?? 'pending');
-        $map = ['pending' => 'pending', 'paid' => 'paid', 'settled' => 'paid', 'expired' => 'expired'];
-        $newStatus = $map[$xenditStatus] ?? 'pending';
+        $data       = $response->json();
+        $txStatus   = strtolower($data['transaction_status'] ?? 'pending');
+        $map        = [
+            'settlement' => 'paid',
+            'capture'    => 'paid',
+            'pending'    => 'pending',
+            'expire'     => 'expired',
+            'cancel'     => 'failed',
+            'deny'       => 'failed',
+        ];
+        $newStatus = $map[$txStatus] ?? 'pending';
 
         if ($newStatus !== $payment->status) {
             $payment->update([
                 'status'      => $newStatus,
-                'paid_at'     => $xenditStatus === 'paid' ? now() : null,
+                'paid_at'     => $newStatus === 'paid' ? now() : null,
                 'xendit_data' => $data,
             ]);
+
+            if (in_array($newStatus, ['expired', 'failed'])) {
+                $order->load('items.product');
+                foreach ($order->items as $item) {
+                    if ($item->product) {
+                        $item->product->increment('stock', $item->quantity);
+                    }
+                }
+                $order->update(['status' => 'cancelled']);
+            }
 
             if ($newStatus === 'paid') {
                 $order->update(['status' => 'pending']);
 
-                // Kirim notifikasi WhatsApp ke Seller via Fonnte
                 $sellerPhone = $order->umkmProfile->phone ?? null;
                 if (!$sellerPhone && $order->umkmProfile && $order->umkmProfile->user) {
                     $sellerPhone = $order->umkmProfile->user->phone;

@@ -15,6 +15,130 @@ use Illuminate\Support\Str;
 
 class WebhookController extends Controller
 {
+    public function midtrans(Request $request)
+    {
+        $data = $request->all();
+        Log::info('Midtrans notification received', $data);
+
+        $orderId     = $data['order_id'] ?? '';
+        $statusCode  = $data['status_code'] ?? '';
+        $grossAmount = $data['gross_amount'] ?? '';
+        $serverKey   = config('services.midtrans.server_key');
+
+        $expectedSig = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
+        if (($data['signature_key'] ?? '') !== $expectedSig) {
+            return response()->json(['message' => 'Invalid signature'], 401);
+        }
+
+        $txStatus  = strtolower($data['transaction_status'] ?? '');
+        $map       = [
+            'settlement' => 'paid',
+            'capture'    => 'paid',
+            'pending'    => 'pending',
+            'expire'     => 'expired',
+            'cancel'     => 'failed',
+            'deny'       => 'failed',
+        ];
+        $newStatus = $map[$txStatus] ?? null;
+
+        if (! $newStatus || $newStatus === 'pending') {
+            return response()->json(['message' => 'ok']);
+        }
+
+        $payment = Payment::where('xendit_external_id', $orderId)->first();
+        if (! $payment) {
+            return response()->json(['message' => 'Payment not found'], 404);
+        }
+
+        if ($payment->status === $newStatus) {
+            return response()->json(['message' => 'ok']);
+        }
+
+        $payment->update([
+            'status'      => $newStatus,
+            'paid_at'     => $newStatus === 'paid' ? now() : null,
+            'xendit_data' => $data,
+        ]);
+
+        $order = $payment->order;
+
+        if (in_array($newStatus, ['expired', 'failed']) && $order) {
+            $order->load('items.product');
+            foreach ($order->items as $item) {
+                if ($item->product) {
+                    $item->product->increment('stock', $item->quantity);
+                }
+            }
+            $order->update(['status' => 'cancelled']);
+        }
+
+        if ($newStatus === 'paid' && $order) {
+            $order->update(['status' => 'pending']);
+            $order->load('items', 'umkmProfile.bumdesProfile', 'umkmProfile.user');
+
+            foreach ($order->items as $item) {
+                \App\Models\ProductDiscount::applyUsage($item->product_id);
+            }
+
+            $commission = $this->calculateCommission((float) $order->sub_total);
+            $bumdesFee  = (float) ($order->bumdes_fee ?? 0);
+            $umkmAmount = max(0, (float) $order->sub_total - $commission - $bumdesFee);
+
+            $umkmBalance = UmkmBalance::findOrCreateFor($order->umkm_profile_id, 'umkm');
+            $umkmBalance->increment('pending', $umkmAmount);
+
+            $serviceFee  = (float) ($order->service_fee ?? 0);
+            $totalBumdes = $bumdesFee + $serviceFee;
+            if ($totalBumdes > 0 && $order->umkmProfile?->bumdesProfile) {
+                $bumdesBalance = UmkmBalance::findOrCreateFor($order->umkmProfile->bumdesProfile->id, 'bumdes');
+                $bumdesBalance->increment('pending', $totalBumdes);
+            }
+
+            if ($order->umkmProfile?->user_id) {
+                $totalItems = $order->items->sum('quantity');
+                Notification::send(
+                    $order->umkmProfile->user_id,
+                    '🛍️ Pesanan Baru Masuk!',
+                    "Pesanan #{$order->order_code} sudah dibayar. {$totalItems} item perlu disiapkan. Segera proses pesanan ini.",
+                    'order_new',
+                    'order',
+                    $order->id
+                );
+
+                $sellerPhone = $order->umkmProfile->phone;
+                if (!$sellerPhone && $order->umkmProfile->user) {
+                    $sellerPhone = $order->umkmProfile->user->phone;
+                }
+                if ($sellerPhone) {
+                    $sellerName = $order->umkmProfile->owner_name ?? $order->umkmProfile->user?->name ?? 'Mitra BUMDeSMart';
+                    \App\Helpers\WaNotification::orderMasukSeller($sellerPhone, $sellerName, $order->order_code, (int) $order->total);
+                }
+
+                $order->load('items.product');
+                foreach ($order->items as $item) {
+                    $product  = $item->product;
+                    if (!$product) continue;
+                    $newStock = $product->stock - $item->quantity;
+                    if ($newStock <= 5 && $newStock >= 0) {
+                        $msg = $newStock === 0
+                            ? "Stok produk \"{$product->name}\" sudah habis setelah pesanan #{$order->order_code}. Segera isi ulang agar pembeli bisa memesan lagi."
+                            : "Stok produk \"{$product->name}\" tinggal {$newStock} unit setelah pesanan #{$order->order_code}. Segera isi ulang sebelum kehabisan.";
+                        Notification::send(
+                            $order->umkmProfile->user_id,
+                            $newStock === 0 ? '❌ Stok Produk Habis!' : '⚠️ Stok Produk Hampir Habis',
+                            $msg,
+                            'stock_warning',
+                            'product',
+                            $product->id
+                        );
+                    }
+                }
+            }
+        }
+
+        return response()->json(['message' => 'ok']);
+    }
+
     public function xendit(Request $request)
     {
         $token = $request->header('x-callback-token');

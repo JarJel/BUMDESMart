@@ -327,8 +327,8 @@ Route::middleware('auth:sanctum')->post('/my/berita/{id}/register', [\App\Http\C
 Route::middleware('auth:sanctum')->delete('/my/berita/{id}/register', [\App\Http\Controllers\Public\BeritaController::class, 'unregister']);
 Route::middleware('auth:sanctum')->get('/my/berita/{id}/peserta', [\App\Http\Controllers\Public\BeritaController::class, 'peserta']);
 
-// Webhook Xendit (tidak perlu auth Sanctum)
-Route::post('/webhooks/xendit', [WebhookController::class, 'xendit']);
+// Webhook payment gateway (tidak perlu auth Sanctum)
+Route::post('/webhooks/midtrans', [WebhookController::class, 'midtrans']);
 
 // Validate promo code (public — checkout page needs it before login check)
 Route::get('/promotions/validate', [SellerPromotionController::class, 'validate']);
