@@ -1,0 +1,23 @@
+# Untuk testing di jaringan kampus (tanpa domain): biarkan ":80"
+# Setelah domain aktif: ganti ":80" dengan nama domain, contoh: bumdesmartnukita.com
+:80 {
+    # Webhook Midtrans
+    handle /api/webhooks/* {
+        reverse_proxy backend:80
+    }
+
+    # File storage publik (foto produk, dll)
+    handle /storage/* {
+        reverse_proxy backend:80
+    }
+
+    # API Backend Laravel
+    handle /api/* {
+        reverse_proxy backend:80
+    }
+
+    # Frontend Next.js (semua route lain)
+    handle {
+        reverse_proxy frontend:3000
+    }
+}

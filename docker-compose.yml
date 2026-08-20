@@ -1,0 +1,82 @@
+services:
+  db:
+    image: mariadb:11
+    container_name: bumdesmart_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: bumdesmart_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build: ./backend
+    container_name: bumdesmart_be
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend/.env:/var/www/html/.env:ro
+      - backend_storage:/var/www/html/storage
+
+  queue:
+    build: ./backend
+    container_name: bumdesmart_queue
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend/.env:/var/www/html/.env:ro
+      - backend_storage:/var/www/html/storage
+    entrypoint: []
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=60
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://192.168.1.206/api/v1}
+    container_name: bumdesmart_fe
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: bumdesmart_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  db_data:
+  redis_data:
+  backend_storage:
+  caddy_data:
+  caddy_config:
