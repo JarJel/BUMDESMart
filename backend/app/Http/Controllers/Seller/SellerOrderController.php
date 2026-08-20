@@ -29,6 +29,19 @@ class SellerOrderController extends Controller
         return 'kurir_lokal';
     }
 
+    public function count(Request $request)
+    {
+        $umkm = $this->getUmkm($request);
+
+        $activeStatuses = ['pending', 'confirmed', 'ready_for_pickup', 'picking_up', 'shipped'];
+
+        $count = Order::where('umkm_profile_id', $umkm->id)
+            ->whereIn('status', $activeStatuses)
+            ->count();
+
+        return response()->json(['count' => $count]);
+    }
+
     public function index(Request $request)
     {
         $umkm = $this->getUmkm($request);

@@ -120,6 +120,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
   const [profile, setProfile] = useState<SellerProfileData | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeOrderCount, setActiveOrderCount] = useState(0);
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -145,6 +146,18 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
       })
       .catch(() => { router.push("/login"); })
       .finally(() => setLoadingProfile(false));
+  }, []);
+
+  // Polling jumlah pesanan aktif (pending + sedang dikerjakan) untuk badge sidebar
+  useEffect(() => {
+    const fetchOrderCount = () => {
+      api.get('/seller/orders/count')
+        .then(res => setActiveOrderCount(res.data.count ?? 0))
+        .catch(() => {});
+    };
+    fetchOrderCount();
+    const timer = setInterval(fetchOrderCount, 30_000);
+    return () => clearInterval(timer);
   }, []);
 
   const handleLogout = async () => {
@@ -232,7 +245,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
                   {item.label}
                   <svg className="w-3 h-3 ml-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                 </div>
-              ) : (
+                ) : (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -241,6 +254,11 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
                 >
                   <span className={active ? "text-white" : "text-gray-400"}>{item.icon}</span>
                   {item.label}
+                  {item.href === "/seller/pesanan" && activeOrderCount > 0 && (
+                    <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                      {activeOrderCount > 99 ? "99+" : activeOrderCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}
