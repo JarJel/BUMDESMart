@@ -10,24 +10,13 @@ import { checkoutApi } from "@/lib/api/checkout";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useAuth } from "@/hooks/useAuth";
+import { getFileUrl } from "@/lib/storage";
 
 const MapPicker = dynamic(() => import("@/components/shared/MapPicker"), { ssr: false });
 
 function formatRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
 }
-
-const getAssetUrl = (path: string | undefined) => {
-  if (!path) return "";
-  if (path.startsWith("http")) return path;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
-  try {
-    const origin = new URL(apiUrl).origin;
-    return `${origin}${path.startsWith("/") ? "" : "/"}${path}`;
-  } catch {
-    return `http://localhost:8000/${path.startsWith("/") ? path.substring(1) : path}`;
-  }
-};
 
 interface CartItem {
   id: number;
@@ -521,7 +510,7 @@ export default function CheckoutPage() {
                   </p>
                   <div className="space-y-3">
                     {group.items.map((item) => {
-                      const imgUrl = getAssetUrl(item.product?.images?.[0]?.file_path);
+                      const imgUrl = getFileUrl(item.product?.images?.[0]?.file_path) ?? "";
                       const price = getProductPrice(item);
                       const originalPrice = item.variant ? Number(item.variant.price) : Number(item.product?.price || 0);
                       const hasDiscount = !item.variant && !!item.product?.active_discount;
