@@ -29,6 +29,10 @@ interface DashboardStats {
   pesanan_hari_ini: number;
   pendapatan_bulan_ini: number;
   total_produk: number;
+  total_pembeli: number;
+  total_transaksi: number;
+  pendapatan_umkm_bulan_ini: number;
+  pendapatan_umkm_total: number;
 }
 
 interface PendingUmkm {
@@ -38,11 +42,13 @@ interface PendingUmkm {
   created_at: string;
   documents: { id: number }[];
 }
-type ChartKey = "umkm" | "pendapatan";
+type ChartKey = "umkm" | "pendapatan" | "transaksi" | "pendapatan_umkm";
 
 const CHART_META: Record<ChartKey, { label: string; color: string; unit: string }> = {
-  umkm:       { label: "UMKM Baru",  color: "#16a34a", unit: " mitra" },
-  pendapatan: { label: "Pendapatan", color: "#f59e0b", unit: " Jt"    },
+  umkm:           { label: "UMKM Baru",       color: "#16a34a", unit: " mitra" },
+  pendapatan:     { label: "Fee BUMDes",       color: "#f59e0b", unit: " Jt"   },
+  transaksi:      { label: "Transaksi",        color: "#3b82f6", unit: " order" },
+  pendapatan_umkm:{ label: "Pendapatan UMKM", color: "#8b5cf6", unit: " Jt"   },
 };
 
 
@@ -82,9 +88,12 @@ export default function BumdesDashboard() {
   }, [activeYear]);
 
   const meta       = CHART_META[activeChart];
-  const seriesData = chartData.map(d =>
-    activeChart === "umkm" ? d.umkm : d.revenue / 1_000_000
-  );
+  const seriesData = chartData.map(d => {
+    if (activeChart === "umkm")            return d.umkm;
+    if (activeChart === "transaksi")       return d.transaksi;
+    if (activeChart === "pendapatan_umkm") return d.pendapatan_umkm / 1_000_000;
+    return d.revenue / 1_000_000;
+  });
   const chartLabels = chartData.map(d => d.label);
   const growth      = seriesData.length >= 2
     ? (((seriesData[seriesData.length - 1] - (seriesData[0] || 1)) / (seriesData[0] || 1)) * 100).toFixed(0)
@@ -116,8 +125,15 @@ export default function BumdesDashboard() {
   const stats = [
     { label: "UMKM Aktif",          value: dashStats ? String(dashStats.umkm_aktif) : "—",              sub: `${pendingList.length} menunggu verifikasi`,  Icon: IconStore,       bg: "bg-green-50",  fg: "text-green-600"  },
     { label: "Pesanan Hari Ini",     value: dashStats ? String(dashStats.pesanan_hari_ini) : "—",        sub: "masuk hari ini",                             Icon: IconBox,         bg: "bg-blue-50",   fg: "text-blue-500"   },
-    { label: "Pendapatan Bulan Ini", value: dashStats ? rupiah(dashStats.pendapatan_bulan_ini) : "—",    sub: "dari fee BUMDes bulan ini",                  Icon: IconMoney,       bg: "bg-yellow-50", fg: "text-yellow-500" },
+    { label: "Pendapatan Bulan Ini", value: dashStats ? rupiah(dashStats.pendapatan_bulan_ini) : "—",    sub: "fee BUMDes bulan ini",                       Icon: IconMoney,       bg: "bg-yellow-50", fg: "text-yellow-500" },
     { label: "Total Produk",         value: dashStats ? String(dashStats.total_produk) : "—",            sub: "di marketplace",                             Icon: IconShoppingBag, bg: "bg-purple-50", fg: "text-purple-600" },
+  ];
+
+  const impactStats = [
+    { label: "Total Pembeli Unik",       value: dashStats ? dashStats.total_pembeli.toLocaleString("id-ID") : "—",      sub: "pembeli terdaftar"              },
+    { label: "Total Transaksi Selesai",  value: dashStats ? dashStats.total_transaksi.toLocaleString("id-ID") : "—",    sub: "pesanan selesai"                },
+    { label: "Pendapatan UMKM Bulan Ini",value: dashStats ? rupiah(dashStats.pendapatan_umkm_bulan_ini) : "—",          sub: "yang diterima UMKM mitra"       },
+    { label: "Total Pendapatan UMKM",    value: dashStats ? rupiah(dashStats.pendapatan_umkm_total) : "—",              sub: "sepanjang waktu"                },
   ];
 
   const quickLinks = [
@@ -145,6 +161,23 @@ export default function BumdesDashboard() {
             <p className="text-xs mt-1 text-gray-400">{sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* Dampak BUMDESMart */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-sm font-semibold text-gray-900">Dampak BUMDESMart</h2>
+          <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold">Kumulatif</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {impactStats.map(({ label, value, sub }) => (
+            <div key={label} className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1 leading-tight">{label}</p>
+              <p className="text-base font-bold text-gray-900">{value}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Saldo BUMDes — ringkasan, detail di /bumdes/saldo */}

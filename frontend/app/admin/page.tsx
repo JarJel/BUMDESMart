@@ -11,7 +11,7 @@ import type { ApexOptions } from "apexcharts";
 
 const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 
-type ChartKey = "pengguna" | "pesanan" | "pendapatan";
+type ChartKey = "pengguna" | "pesanan" | "pendapatan" | "pendapatan_umkm";
 
 const roleBadge: Record<string, string> = {
   customer:    "bg-blue-50 text-blue-600",
@@ -44,9 +44,10 @@ export default function AdminDashboard() {
   const reg7       = overview?.recent_registrations ?? [];
   const monthly    = overview?.monthly_data ?? [];
   const CHART_DATA: Record<ChartKey, { label: string; data: number[]; color: string; unit: string; labels: string[] }> = {
-    pengguna:   { label: "Pengguna",   data: reg7.length    ? reg7.map((d: any) => d.count)              : Array(7).fill(0),   color: "#6366f1", unit: "",    labels: reg7.map((d: any) => d.label) },
-    pesanan:    { label: "Pesanan",    data: monthly.length  ? monthly.map((d: any) => d.orders)          : Array(12).fill(0), color: "#0ea5e9", unit: "",    labels: months },
-    pendapatan: { label: "Pendapatan", data: monthly.length  ? monthly.map((d: any) => d.revenue / 1e6)  : Array(12).fill(0), color: "#16a34a", unit: " Jt", labels: months },
+    pengguna:        { label: "Pengguna",        data: reg7.length    ? reg7.map((d: any) => d.count)                      : Array(7).fill(0),   color: "#6366f1", unit: "",    labels: reg7.map((d: any) => d.label) },
+    pesanan:         { label: "Pesanan",         data: monthly.length ? monthly.map((d: any) => d.orders)                  : Array(12).fill(0), color: "#0ea5e9", unit: "",    labels: months },
+    pendapatan:      { label: "Fee Platform",    data: monthly.length ? monthly.map((d: any) => d.revenue / 1e6)           : Array(12).fill(0), color: "#16a34a", unit: " Jt", labels: months },
+    pendapatan_umkm: { label: "Pendapatan UMKM", data: monthly.length ? monthly.map((d: any) => d.pendapatan_umkm / 1e6)  : Array(12).fill(0), color: "#8b5cf6", unit: " Jt", labels: months },
   };
 
   const chart = CHART_DATA[activeChart];
@@ -125,6 +126,27 @@ export default function AdminDashboard() {
             <p className="text-xs mt-1 text-gray-400">{sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* Dampak Platform */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-sm font-semibold text-gray-900">Dampak Platform</h2>
+          <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold">Kumulatif</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { label: "Total Transaksi Selesai",  value: overview ? (overview.total_transaksi ?? 0).toLocaleString("id-ID") : "—",                                              sub: "pesanan selesai di seluruh BUMDes" },
+            { label: "Total Pembeli Unik",       value: overview ? (overview.total_pembeli ?? 0).toLocaleString("id-ID") : "—",                                                sub: "customer yang pernah bertransaksi" },
+            { label: "Total Pendapatan UMKM",    value: overview ? `Rp ${Math.round(overview.total_pendapatan_umkm ?? 0).toLocaleString("id-ID")}` : "—",                     sub: "yang diterima seluruh UMKM mitra"  },
+          ].map(({ label, value, sub }) => (
+            <div key={label} className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1 leading-tight">{label}</p>
+              <p className="text-base font-bold text-gray-900">{value}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Chart */}
