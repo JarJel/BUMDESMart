@@ -18,7 +18,7 @@ class OrderController extends Controller
             'items.product:id,name,slug',
             'items.product.primaryImage:id,product_id,file_path',
             'umkmProfile:id,shop_name,logo,slug',
-            'payment:id,order_id,status,xendit_data',
+            'payment:id,order_id,status,payment_data',
         ])->where('customer_id', $customerId);
 
         if ($request->filled('status')) {

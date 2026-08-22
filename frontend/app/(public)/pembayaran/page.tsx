@@ -1,15 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef, Suspense } from "react";
+import Script from "next/script";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { checkoutApi } from "@/lib/api/checkout";
 import { useToast } from "@/components/ui/Toast";
 import api from "@/lib/api/axios";
 
-function formatRupiah(n: number) {
-  return "Rp " + n.toLocaleString("id-ID");
+declare global {
+  interface Window {
+    snap?: {
+      pay: (token: string, options: {
+        onSuccess?: (result: unknown) => void;
+        onPending?: (result: unknown) => void;
+        onError?: (result: unknown) => void;
+        onClose?: () => void;
+      }) => void;
+    };
+  }
 }
+
+type Step = "loading" | "snap_pending" | "polling" | "redirect" | "success" | "expired" | "error";
+
+const snapUrl = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true"
+  ? "https://app.midtrans.com/snap/snap.js"
+  : "https://app.sandbox.midtrans.com/snap/snap.js";
 
 function PembayaranContent() {
   const router = useRouter();
@@ -17,95 +33,119 @@ function PembayaranContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("order_id");
 
-  const [step, setStep] = useState<"loading" | "redirect" | "polling" | "success" | "expired" | "error">("loading");
+  const [step, setStep] = useState<Step>("loading");
   const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
-  const [orderCode, setOrderCode] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string>("");
+  const [errorMsg, setErrorMsg] = useState("");
   const [bypassing, setBypassing] = useState(false);
-   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-   const isFinishedRef = useRef(false);
- 
-   const stopPolling = () => {
-     if (pollIntervalRef.current) {
-       clearInterval(pollIntervalRef.current);
-       pollIntervalRef.current = null;
-     }
-   };
- 
-   const startPolling = (id: number) => {
-     const poll = async () => {
-       if (isFinishedRef.current) return;
- 
-       try {
-         const res = await checkoutApi.checkPaymentStatus(id);
-         const data = res.data;
-         const payStatus = data?.status;
- 
-         if (payStatus === "paid") {
-           isFinishedRef.current = true;
-           stopPolling();
-           toast.success("Pembayaran berhasil!");
-           router.replace(`/pesanan/${id}`);
-         } else if (payStatus === "expired" || payStatus === "failed") {
-           isFinishedRef.current = true;
-           stopPolling();
-           setStep("expired");
-         }
-       } catch {
-         // Tetap polling jika ada error sementara
-       }
-     };
- 
-     poll(); // Langsung cek sekali
-     if (!isFinishedRef.current) {
-       pollIntervalRef.current = setInterval(poll, 3000);
-     }
-   };
+
+  const snapReadyRef    = useRef(false);
+  const pendingTokenRef = useRef<string | null>(null);
+  const isFinishedRef   = useRef(false);
+  const pollRef         = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopPolling = () => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+  };
+
+  const startPolling = useCallback((id: number) => {
+    const check = async () => {
+      if (isFinishedRef.current) return;
+      try {
+        const res = await checkoutApi.checkPaymentStatus(id);
+        const status = res.data?.status;
+        if (status === "paid") {
+          isFinishedRef.current = true;
+          stopPolling();
+          toast.success("Pembayaran berhasil!");
+          router.replace(`/pesanan/${id}`);
+        } else if (status === "expired" || status === "failed") {
+          isFinishedRef.current = true;
+          stopPolling();
+          setStep("expired");
+        }
+      } catch { /* Tetap polling jika error sementara */ }
+    };
+    check();
+    if (!isFinishedRef.current) {
+      pollRef.current = setInterval(check, 3000);
+    }
+  }, [router, toast]);
+
+  const openSnap = useCallback((token: string) => {
+    if (!window.snap) return;
+    const id = Number(orderId);
+    window.snap.pay(token, {
+      onSuccess: () => {
+        isFinishedRef.current = true;
+        stopPolling();
+        toast.success("Pembayaran berhasil!");
+        router.replace(`/pesanan/${id}`);
+      },
+      onPending: () => {
+        setStep("polling");
+        startPolling(id);
+      },
+      onError: () => {
+        setStep("error");
+        setErrorMsg("Pembayaran gagal. Silakan coba lagi.");
+      },
+      onClose: () => {
+        // User menutup popup — mulai polling, tampilkan UI "buka kembali"
+        setStep("polling");
+        startPolling(id);
+      },
+    });
+  }, [orderId, router, toast, startPolling]);
+
+  const handleSnapReady = () => {
+    snapReadyRef.current = true;
+    if (pendingTokenRef.current) {
+      openSnap(pendingTokenRef.current);
+      setStep("snap_pending");
+    }
+  };
 
   useEffect(() => {
-    if (!orderId) {
-      setErrorMsg("ID pesanan tidak ditemukan.");
-      setStep("error");
-      return;
-    }
+    if (!orderId) { setErrorMsg("ID pesanan tidak ditemukan."); setStep("error"); return; }
 
     const init = async () => {
       try {
-        const res = await checkoutApi.createPayment(Number(orderId));
+        const res  = await checkoutApi.createPayment(Number(orderId));
         const data = res.data;
 
-        if (data.status === "paid") {
-          router.replace(`/pesanan/${orderId}`);
-          return;
+        if (data.status === "paid") { router.replace(`/pesanan/${orderId}`); return; }
+
+        const snapToken  = data.snap_token as string | null;
+        const fallbackUrl = data.invoice_url as string | null;
+        setInvoiceUrl(fallbackUrl);
+
+        if (snapToken) {
+          if (snapReadyRef.current) {
+            openSnap(snapToken);
+          } else {
+            pendingTokenRef.current = snapToken;
+          }
+          setStep("snap_pending");
+        } else if (fallbackUrl) {
+          // Fallback: buka redirect_url di tab baru
+          window.open(fallbackUrl, "_blank");
+          setStep("redirect");
+          startPolling(Number(orderId));
+        } else {
+          setErrorMsg("Gagal mendapatkan token pembayaran.");
+          setStep("error");
         }
-
-        const url = data.invoice_url;
-        setInvoiceUrl(url);
-
-        // Extract order code dari URL atau pakai orderId
-        const code = url?.split("/").at(-1) || `ORD-${orderId}`;
-        setOrderCode(code);
-
-        setStep("redirect");
-
-        // Buka Xendit invoice di tab yang sama
-        if (url) {
-          window.open(url, "_blank");
-        }
-
-        // Mulai polling setelah membuka invoice
-        startPolling(Number(orderId));
-      } catch (err: any) {
-        const msg = err.response?.data?.message || "Gagal membuat invoice pembayaran.";
+      } catch (err: unknown) {
+        const msg = (err as { response?: { data?: { message?: string } } })
+          ?.response?.data?.message ?? "Gagal membuat invoice pembayaran.";
         setErrorMsg(msg);
         setStep("error");
       }
     };
 
     init();
-
     return () => stopPolling();
-  }, [orderId]);
+  }, [orderId]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const simulatePayment = async () => {
     if (!orderId) return;
@@ -122,17 +162,19 @@ function PembayaranContent() {
     }
   };
 
-  // ---- STATE: Loading ----
-  if (step === "loading") {
+  // ── Loading ──
+  if (step === "loading" || step === "snap_pending") {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600" />
-        <p className="text-sm text-gray-500">Menyiapkan pembayaran...</p>
+        <p className="text-sm text-gray-500">
+          {step === "snap_pending" ? "Membuka jendela pembayaran..." : "Menyiapkan pembayaran..."}
+        </p>
       </div>
     );
   }
 
-  // ---- STATE: Error ----
+  // ── Error ──
   if (step === "error") {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
@@ -152,7 +194,7 @@ function PembayaranContent() {
     );
   }
 
-  // ---- STATE: Expired ----
+  // ── Expired ──
   if (step === "expired") {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
@@ -163,7 +205,7 @@ function PembayaranContent() {
             </svg>
           </div>
           <h2 className="text-lg font-bold text-gray-900 mb-2">Waktu Pembayaran Habis</h2>
-          <p className="text-sm text-gray-500 mb-6">Invoice kamu sudah kadaluarsa. Silakan buat pesanan baru.</p>
+          <p className="text-sm text-gray-500 mb-6">Invoice sudah kadaluarsa. Silakan buat pesanan baru.</p>
           <Link href="/produk" className="inline-block px-6 py-2.5 rounded-xl text-white font-semibold text-sm" style={{ background: "var(--primary)" }}>
             Belanja Lagi
           </Link>
@@ -172,83 +214,60 @@ function PembayaranContent() {
     );
   }
 
-  // ---- STATE: Success ----
-  if (step === "success") {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center px-4">
-        <div className="text-center max-w-sm">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "var(--primary-muted)" }}>
-            <svg className="w-10 h-10" style={{ color: "var(--primary)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Pembayaran Berhasil!</h2>
-          <p className="text-sm text-gray-500 mb-1">No. Pesanan: <strong>{orderCode}</strong></p>
-          <p className="text-sm text-gray-500 mb-6">Pesanan kamu sedang diproses oleh penjual.</p>
-          <div className="flex flex-col gap-2">
-            <Link href="/pesanan" className="py-2.5 rounded-xl text-sm font-semibold text-white text-center" style={{ background: "var(--primary)" }}>
-              Lihat Status Pesanan
-            </Link>
-            <Link href="/" className="py-2.5 rounded-xl text-sm font-medium text-gray-600 text-center border border-gray-200 hover:bg-gray-50">
-              Kembali ke Beranda
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ---- STATE: Redirect + Polling ----
+  // ── Polling (popup ditutup, menunggu webhook) ──
+  // ── Redirect fallback (tab baru) ──
   return (
     <div className="max-w-lg mx-auto px-4 py-10">
       <h1 className="text-xl font-bold text-gray-900 mb-2 text-center">Selesaikan Pembayaran</h1>
-      <p className="text-sm text-gray-500 text-center mb-6">Halaman Xendit sudah dibuka di tab baru. Bayar di sana, halaman ini otomatis update.</p>
+      <p className="text-sm text-gray-500 text-center mb-6">
+        {step === "redirect"
+          ? "Halaman pembayaran sudah dibuka di tab baru. Bayar di sana, halaman ini otomatis update."
+          : "Menunggu konfirmasi dari Midtrans. Jika jendela tertutup, buka kembali di bawah."}
+      </p>
 
       <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-4">
-        {/* Indikator polling */}
         <div className="flex items-center justify-center gap-2 mb-6 py-4 bg-blue-50 rounded-xl">
           <div className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500" />
           </div>
           <span className="text-sm text-blue-700 font-medium">Menunggu konfirmasi pembayaran...</span>
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-            <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
-              <span className="text-xs font-bold text-green-700">1</span>
+          {[
+            {
+              num: "1", color: "green",
+              title: step === "redirect" ? "Tab pembayaran sudah terbuka" : "Jendela Midtrans Snap",
+              sub:   step === "redirect" ? "Selesaikan di tab tersebut" : "Selesaikan pembayaran di jendela popup",
+            },
+            { num: "2", color: "blue",  title: "Pilih metode & bayar", sub: "QRIS, Transfer Bank, GoPay, OVO, dll" },
+            { num: "3", color: "gray",  title: "Halaman ini otomatis update", sub: "Tidak perlu reload manual" },
+          ].map(({ num, color, title, sub }) => (
+            <div key={num} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+              <div className={`w-6 h-6 rounded-full bg-${color}-100 flex items-center justify-center shrink-0 mt-0.5`}>
+                <span className={`text-xs font-bold text-${color}-700`}>{num}</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">{title}</p>
+                <p className="text-xs text-gray-500">{sub}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">Tab Xendit sudah terbuka</p>
-              <p className="text-xs text-gray-500">Selesaikan pembayaran di tab tersebut</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
-              <span className="text-xs font-bold text-blue-700">2</span>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">Pilih metode & bayar</p>
-              <p className="text-xs text-gray-500">QRIS, Transfer Bank, E-Wallet, dll</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-            <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5">
-              <span className="text-xs font-bold text-gray-500">3</span>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-500">Halaman ini otomatis update</p>
-              <p className="text-xs text-gray-400">Tidak perlu reload manual</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Tombol buka ulang jika tab tertutup */}
-      {invoiceUrl && (
+      {/* Buka kembali: Snap popup atau redirect URL */}
+      {step === "polling" && pendingTokenRef.current && (
+        <button
+          onClick={() => openSnap(pendingTokenRef.current!)}
+          className="w-full py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 mb-3"
+          style={{ background: "var(--primary)" }}
+        >
+          Buka Kembali Jendela Pembayaran
+        </button>
+      )}
+      {step === "redirect" && invoiceUrl && (
         <button
           onClick={() => window.open(invoiceUrl, "_blank")}
           className="w-full py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 mb-3"
@@ -262,28 +281,40 @@ function PembayaranContent() {
         Bayar Nanti — Lihat Pesanan
       </Link>
 
-      <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-2xl">
-        <p className="text-xs text-yellow-700 font-semibold mb-2">🧪 Mode Testing</p>
-        <button
-          onClick={simulatePayment}
-          disabled={bypassing}
-          className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-yellow-500 hover:bg-yellow-600 disabled:opacity-60"
-        >
-          {bypassing ? "Memproses..." : "Simulasi Bayar (Bypass Xendit)"}
-        </button>
-      </div>
+      {process.env.NODE_ENV === "development" && (
+        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-2xl">
+          <p className="text-xs text-yellow-700 font-semibold mb-2">🧪 Mode Testing (Dev Only)</p>
+          <button
+            onClick={simulatePayment}
+            disabled={bypassing}
+            className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-yellow-500 hover:bg-yellow-600 disabled:opacity-60"
+          >
+            {bypassing ? "Memproses..." : "Simulasi Bayar (Dev)"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 export default function PembayaranPage() {
+  const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY ?? "";
+
   return (
-    <Suspense fallback={
-      <div className="min-h-[70vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-600" />
-      </div>
-    }>
-      <PembayaranContent />
-    </Suspense>
+    <>
+      <Script
+        src={snapUrl}
+        data-client-key={clientKey}
+        strategy="afterInteractive"
+        id="midtrans-snap"
+      />
+      <Suspense fallback={
+        <div className="min-h-[70vh] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-600" />
+        </div>
+      }>
+        <PembayaranContent />
+      </Suspense>
+    </>
   );
 }

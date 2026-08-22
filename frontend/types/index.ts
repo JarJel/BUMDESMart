@@ -165,14 +165,14 @@ export interface OrderHistory {
 export interface Payment {
   id: number
   order_id: number
-  xendit_invoice_id: string | null
-  xendit_external_id: string
+  snap_token: string | null
+  midtrans_order_id: string
   payment_code: string
   channel: 'bank_transfer' | 'ewallet' | 'qris' | 'convenience_store' | 'credit_card' | 'cod' | null
   channel_code: string | null
   amount: number
   fee_amount: number
-  xendit_data: Record<string, unknown> | null
+  payment_data: Record<string, unknown> | null
   status: 'pending' | 'paid' | 'settled' | 'expired' | 'failed' | 'refunded'
   paid_at: string | null
   expired_at: string | null

@@ -45,7 +45,7 @@ class WebhookController extends Controller
             return response()->json(['message' => 'ok']);
         }
 
-        $payment = Payment::where('xendit_external_id', $orderId)->first();
+        $payment = Payment::where('midtrans_order_id', $orderId)->first();
         if (! $payment) {
             return response()->json(['message' => 'Payment not found'], 404);
         }
@@ -55,9 +55,9 @@ class WebhookController extends Controller
         }
 
         $payment->update([
-            'status'      => $newStatus,
-            'paid_at'     => $newStatus === 'paid' ? now() : null,
-            'xendit_data' => $data,
+            'status'       => $newStatus,
+            'paid_at'      => $newStatus === 'paid' ? now() : null,
+            'payment_data' => $data,
         ]);
 
         $order = $payment->order;
