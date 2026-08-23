@@ -1,6 +1,16 @@
-# Untuk testing di jaringan kampus (tanpa domain): biarkan ":80"
-# Setelah domain aktif: ganti ":80" dengan nama domain, contoh: bumdesmartnukita.com
-:80 {
+# CADDY_DOMAIN diset via environment variable di docker-compose / root .env
+# Lokal/kampus  → CADDY_DOMAIN tidak diset, default ke :80 (HTTP biasa)
+# Production    → CADDY_DOMAIN=bumdesmartnukita.com → Caddy auto-HTTPS via Let's Encrypt
+{$CADDY_DOMAIN} {
+    encode gzip
+
+    header {
+        X-Content-Type-Options  nosniff
+        X-Frame-Options         SAMEORIGIN
+        Referrer-Policy         strict-origin-when-cross-origin
+        -Server
+    }
+
     # Webhook Midtrans
     handle /api/webhooks/* {
         reverse_proxy backend:80
@@ -11,13 +21,21 @@
         reverse_proxy backend:80
     }
 
-    # API Backend Laravel
+    # API Backend Laravel — teruskan IP asli user
     handle /api/* {
-        reverse_proxy backend:80
+        reverse_proxy backend:80 {
+            header_up X-Real-IP        {remote_host}
+            header_up X-Forwarded-For  {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
     }
 
     # Frontend Next.js (semua route lain)
     handle {
-        reverse_proxy frontend:3000
+        reverse_proxy frontend:3000 {
+            header_up X-Real-IP        {remote_host}
+            header_up X-Forwarded-For  {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
     }
 }

@@ -149,7 +149,6 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // File serving — workaround nginx /storage 403 block
-// Checks storage/app/public/ first (driver photos, etc.), then public/ (product uploads, etc.)
 Route::get('/files/{path}', function (string $path) {
     $candidates = [
         storage_path('app/public/' . $path),
@@ -164,6 +163,19 @@ Route::get('/files/{path}', function (string $path) {
     }
     if (!$fullPath) {
         abort(404);
+    }
+    // Cegah path traversal: pastikan file masih di dalam direktori yang diizinkan
+    $realPath    = realpath($fullPath);
+    $allowedDirs = [realpath(storage_path('app/public')), realpath(public_path())];
+    $allowed     = false;
+    foreach ($allowedDirs as $dir) {
+        if ($dir && str_starts_with($realPath, $dir . DIRECTORY_SEPARATOR)) {
+            $allowed = true;
+            break;
+        }
+    }
+    if (!$allowed) {
+        abort(403);
     }
     $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
     return response()->file($fullPath, ['Content-Type' => $mime]);
@@ -185,7 +197,6 @@ Route::middleware('throttle:5,1')->group(function () {
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
-Route::post('/auth/google', [AuthController::class, 'loginWithGoogle']);
 
 Route::post('/appeal', [App\Http\Controllers\AppealController::class, 'submit'])
     ->middleware('throttle:5,60');
@@ -344,7 +355,8 @@ Route::middleware('auth:sanctum')->get('/my/berita/{id}/peserta', [\App\Http\Con
 Route::post('/webhooks/midtrans', [WebhookController::class, 'midtrans']);
 
 // Validate promo code (public — checkout page needs it before login check)
-Route::get('/promotions/validate', [SellerPromotionController::class, 'validate']);
+Route::get('/promotions/validate', [SellerPromotionController::class, 'validate'])
+    ->middleware('throttle:30,1');
 
 // Product public routes for customers
 Route::get('/products/search', [\App\Http\Controllers\Customers\ProductSearchController::class, 'search']);

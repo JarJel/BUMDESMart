@@ -12,8 +12,10 @@ php artisan storage:link --force 2>/dev/null || true
 # Jalankan migrasi
 php artisan migrate --force
 
-# Cache config & route untuk performa
+# Cache semua untuk performa production
 php artisan config:cache
 php artisan route:cache
+php artisan view:cache
+php artisan event:cache
 
 exec "$@"

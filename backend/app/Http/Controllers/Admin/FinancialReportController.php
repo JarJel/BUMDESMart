@@ -55,6 +55,7 @@ class FinancialReportController extends Controller
             ->get();
 
         // Monthly breakdown (group by month)
+        $request->validate(['period' => 'sometimes|in:day,week,month']);
         $period = $request->period ?? 'month';
         if ($period === 'day') {
             $dateFormat = '%Y-%m-%d';

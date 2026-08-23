@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /bumdes/
+Disallow: /seller/
+Disallow: /pengirim/
+Disallow: /api/
+
+Sitemap: https://bumdesmartnukita.com/sitemap.xml

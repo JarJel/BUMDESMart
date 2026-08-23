@@ -1,0 +1,38 @@
+{
+  "name": "BUMDeSMart — Dari Desa, Untuk Semua",
+  "short_name": "BUMDeSMart",
+  "description": "Platform marketplace digital UMKM desa. Temukan produk lokal, belanja mudah, bayar aman via Midtrans.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2D6A4F",
+  "orientation": "portrait-primary",
+  "lang": "id",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["shopping", "business"],
+  "shortcuts": [
+    {
+      "name": "Belanja Produk",
+      "url": "/produk",
+      "description": "Jelajahi produk UMKM desa"
+    },
+    {
+      "name": "Pesanan Saya",
+      "url": "/pesanan",
+      "description": "Lacak pesanan aktif"
+    }
+  ]
+}
