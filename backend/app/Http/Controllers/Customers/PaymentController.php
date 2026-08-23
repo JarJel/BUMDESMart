@@ -80,17 +80,18 @@ class PaymentController extends Controller
         $data = $response->json();
 
         $payment = Payment::create([
-            'order_id'           => $order->id,
-            'xendit_invoice_id'  => $data['token'] ?? null,    // snap token
-            'xendit_external_id' => $mtOrderId,                 // midtrans order_id
-            'payment_code'       => strtoupper(Str::random(12)),
-            'amount'             => $order->total,
-            'status'             => 'pending',
-            'expired_at'         => now()->addDay(),
-            'xendit_data'        => $data,
+            'order_id'          => $order->id,
+            'snap_token'        => $data['token'] ?? null,
+            'midtrans_order_id' => $mtOrderId,
+            'payment_code'      => strtoupper(Str::random(12)),
+            'amount'            => $order->total,
+            'status'            => 'pending',
+            'expired_at'        => now()->addDay(),
+            'payment_data'      => $data,
         ]);
 
         return response()->json([
+            'snap_token'  => $data['token'] ?? null,
             'invoice_url' => $data['redirect_url'] ?? null,
             'payment_id'  => $payment->id,
             'status'      => 'pending',
@@ -143,9 +144,9 @@ class PaymentController extends Controller
 
         if ($newStatus !== $payment->status) {
             $payment->update([
-                'status'      => $newStatus,
-                'paid_at'     => $newStatus === 'paid' ? now() : null,
-                'xendit_data' => $data,
+                'status'       => $newStatus,
+                'paid_at'      => $newStatus === 'paid' ? now() : null,
+                'payment_data' => $data,
             ]);
 
             if (in_array($newStatus, ['expired', 'failed'])) {

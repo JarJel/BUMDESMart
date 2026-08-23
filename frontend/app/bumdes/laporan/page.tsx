@@ -48,6 +48,15 @@ function formatRpFull(n: number) {
   return "Rp " + Math.round(n).toLocaleString("id-ID");
 }
 
+function downloadCSV(rows: string[][], filename: string) {
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
 function BarChart({ data }: { data: TrendItem[] }) {
   if (!data.length) return <p className="text-xs text-gray-400 text-center py-4">Tidak ada data.</p>;
   const maxGmv = Math.max(...data.map((d) => d.gmv), 1);
@@ -139,9 +148,66 @@ export default function BumdesLaporanPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Laporan Keuangan</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Rekap pendapatan & transaksi BUMDes</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Laporan Keuangan</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Rekap pendapatan & transaksi BUMDes</p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={() => {
+              if (tab === "keuangan" && financial) {
+                const rows = [
+                  ["Laporan Keuangan BUMDes"],
+                  ["Periode", financial.period.from + " s/d " + financial.period.to],
+                  [],
+                  ["Ringkasan"],
+                  ["Total GMV", formatRpFull(financial.summary.gmv)],
+                  ["Pendapatan BUMDes", formatRpFull(financial.summary.bumdes_fee)],
+                  ["Biaya Layanan", formatRpFull(financial.summary.service_fee)],
+                  ["Jumlah Pesanan", String(financial.summary.orders_count)],
+                  ["Rata-rata Nilai Pesanan", formatRpFull(financial.summary.avg_order)],
+                  [],
+                  ["Detail Tren"],
+                  ["Periode", "GMV", "Fee BUMDes", "Pesanan"],
+                  ...financial.trend.map(t => [t.period, formatRpFull(t.gmv), formatRpFull(t.bumdes_fee), String(t.order_count)]),
+                  [],
+                  ["Top Mitra"],
+                  ["Nama Toko", "GMV", "Pesanan"],
+                  ...financial.top_mitra.map(m => [m.shop_name, formatRpFull(m.revenue), String(m.order_count)]),
+                ];
+                downloadCSV(rows, `laporan-keuangan-${from}-${to}.csv`);
+              } else if (tab === "mitra") {
+                const rows = [
+                  ["Laporan Performa Mitra UMKM"],
+                  ["Nama Toko", "Pemilik", "Status", "Pesanan Bln Ini", "Pendapatan Bln Ini", "Total Pesanan", "Total Pendapatan", "Bergabung"],
+                  ...filtered.map(m => [
+                    m.shop_name, m.owner_name, m.status,
+                    String(m.orders_this_month), formatRpFull(m.revenue_this_month),
+                    String(m.total_orders), formatRpFull(m.total_revenue),
+                    new Date(m.joined_at).toLocaleDateString("id-ID"),
+                  ]),
+                ];
+                downloadCSV(rows, `laporan-mitra-${new Date().toISOString().slice(0,10)}.csv`);
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-xl transition"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Unduh Excel
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Cetak PDF
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

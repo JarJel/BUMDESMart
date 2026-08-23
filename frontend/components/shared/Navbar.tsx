@@ -10,6 +10,7 @@ import { cartApi, CartItemData } from "@/lib/api/cart";
 import { NotificationData } from "@/lib/api/notification";
 import { useToast } from "@/components/ui/Toast";
 import SearchBar from "./SearchBar";
+import { getFileUrl } from "@/lib/storage";
 
 const navLinks = [
   { href: "/", label: "Beranda" },
@@ -164,17 +165,7 @@ export default function Navbar() {
     });
   };
 
-  const getAssetUrl = (path: string | undefined) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-    try {
-      const origin = new URL(apiUrl).origin;
-      return `${origin}${path.startsWith('/') ? '' : '/'}${path}`;
-    } catch (e) {
-      return `http://localhost:8000/${path.startsWith('/') ? path.substring(1) : path}`;
-    }
-  };
+  const getAssetUrl = (path: string | undefined) => getFileUrl(path) ?? '';
 
   const formatPrice = (price: string | number | undefined) => {
     if (price === undefined) return "Rp 0";

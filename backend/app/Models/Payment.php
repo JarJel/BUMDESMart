@@ -12,14 +12,14 @@ class Payment extends Model
 
     protected $fillable = [
         'order_id',
-        'xendit_invoice_id',
-        'xendit_external_id',
+        'snap_token',
+        'midtrans_order_id',
         'payment_code',
         'channel',
         'channel_code',
         'amount',
         'fee_amount',
-        'xendit_data',
+        'payment_data',
         'status',
         'paid_at',
         'expired_at',
@@ -29,10 +29,10 @@ class Payment extends Model
     protected function casts(): array
     {
         return [
-            'xendit_data' => 'array',
-            'paid_at'     => 'datetime',
-            'expired_at'  => 'datetime',
-            'refunded_at' => 'datetime',
+            'payment_data' => 'array',
+            'paid_at'      => 'datetime',
+            'expired_at'   => 'datetime',
+            'refunded_at'  => 'datetime',
         ];
     }
 

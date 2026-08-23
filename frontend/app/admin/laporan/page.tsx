@@ -27,6 +27,19 @@ function formatRp(n: number) {
   return `Rp ${Math.round(n).toLocaleString("id")}`;
 }
 
+function formatRpFull(n: number) {
+  return "Rp " + Math.round(n).toLocaleString("id-ID");
+}
+
+function downloadCSV(rows: string[][], filename: string) {
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function LaporanPage() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [bumdes, setBumdes] = useState<BumdesRow[]>([]);
@@ -54,9 +67,58 @@ export default function LaporanPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Laporan Platform</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Ringkasan data &amp; kinerja seluruh ekosistem BUMDESmart</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Laporan Platform</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Ringkasan data &amp; kinerja seluruh ekosistem BUMDESmart</p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={() => {
+              if (!overview) return;
+              const year = new Date().getFullYear();
+              const rows = [
+                ["Laporan Platform BUMDESmart"],
+                ["Tahun", String(year)],
+                [],
+                ["Ringkasan Pengguna"],
+                ["Total Pengguna", String(overview.users.total)],
+                ["Customer", String(overview.users.customer)],
+                ["UMKM / Seller", String(overview.users.umkm)],
+                ["Admin BUMDes", String(overview.users.admin_bumdes)],
+                [],
+                ["Ringkasan Platform"],
+                ["BUMDes Aktif", String(overview.bumdes.active) + " / " + String(overview.bumdes.total)],
+                ["UMKM Aktif", String(overview.umkm.active) + " / " + String(overview.umkm.total)],
+                ["Produk Aktif", String(overview.products.active) + " / " + String(overview.products.total)],
+                [],
+                ["Tren Bulanan " + year],
+                ["Bulan", "Pesanan", "Pendapatan Platform"],
+                ...overview.monthly_data.map(d => [d.label, String(d.orders), formatRpFull(d.revenue)]),
+                [],
+                ["Top BUMDes"],
+                ["Nama BUMDes", "Kota", "UMKM Aktif"],
+                ...bumdes.map(b => [b.name, b.city, String(b.active_umkm) + " / " + String(b.total_umkm)]),
+              ];
+              downloadCSV(rows, `laporan-platform-${year}.csv`);
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Unduh Excel
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Cetak PDF
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}

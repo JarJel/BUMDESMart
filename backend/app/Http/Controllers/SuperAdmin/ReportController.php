@@ -77,8 +77,17 @@ class ReportController extends Controller
             ->get()
             ->keyBy('month');
 
+        $completedStatuses = ['completed', 'delivered'];
+
         $revenuePerMonth = Order::selectRaw('MONTH(created_at) as month, SUM(bumdes_fee + COALESCE(service_fee, 0)) as total')
-            ->whereIn('status', ['completed', 'delivered'])
+            ->whereIn('status', $completedStatuses)
+            ->whereYear('created_at', now()->year)
+            ->groupBy('month')
+            ->get()
+            ->keyBy('month');
+
+        $pendapatanUmkmPerMonth = Order::selectRaw('MONTH(created_at) as month, SUM(sub_total - bumdes_fee - COALESCE(service_fee, 0)) as total')
+            ->whereIn('status', $completedStatuses)
             ->whereYear('created_at', now()->year)
             ->groupBy('month')
             ->get()
@@ -86,20 +95,30 @@ class ReportController extends Controller
 
         $monthLabels = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
         $monthlyData = collect(range(1, 12))->map(fn ($m) => [
-            'label'   => $monthLabels[$m - 1],
-            'orders'  => $ordersPerMonth->get($m)?->count ?? 0,
-            'revenue' => (float) ($revenuePerMonth->get($m)?->total ?? 0),
+            'label'          => $monthLabels[$m - 1],
+            'orders'         => $ordersPerMonth->get($m)?->count ?? 0,
+            'revenue'        => (float) ($revenuePerMonth->get($m)?->total ?? 0),
+            'pendapatan_umkm'=> (float) ($pendapatanUmkmPerMonth->get($m)?->total ?? 0),
         ]);
+
+        $totalTransaksi    = Order::whereIn('status', $completedStatuses)->count();
+        $totalPembeli      = Order::whereIn('status', $completedStatuses)->distinct('user_id')->count('user_id');
+        $totalPendapatanUmkm = Order::whereIn('status', $completedStatuses)
+            ->selectRaw('SUM(sub_total - bumdes_fee - COALESCE(service_fee, 0)) as total')
+            ->value('total') ?? 0;
 
         return response()->json([
             'data' => [
-                'users'                => $userStats,
-                'bumdes'               => $bumdesStats,
-                'umkm'                 => $umkmStats,
-                'products'             => $productStats,
-                'recent_registrations' => $last7Days,
-                'top_bumdes'           => $topBumdes,
-                'monthly_data'         => $monthlyData,
+                'users'                 => $userStats,
+                'bumdes'                => $bumdesStats,
+                'umkm'                  => $umkmStats,
+                'products'              => $productStats,
+                'recent_registrations'  => $last7Days,
+                'top_bumdes'            => $topBumdes,
+                'monthly_data'          => $monthlyData,
+                'total_transaksi'       => $totalTransaksi,
+                'total_pembeli'         => $totalPembeli,
+                'total_pendapatan_umkm' => (float) $totalPendapatanUmkm,
             ],
         ]);
     }
