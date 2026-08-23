@@ -335,6 +335,7 @@ Route::post('/webhooks/midtrans', [WebhookController::class, 'midtrans']);
 Route::get('/promotions/validate', [SellerPromotionController::class, 'validate']);
 
 // Product public routes for customers
+Route::get('/products/search', [\App\Http\Controllers\Customers\ProductSearchController::class, 'search']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{idOrSlug}', [ProductController::class, 'show']);
 
