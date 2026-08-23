@@ -137,6 +137,11 @@ class AuthService
         $user = Auth::user();
 
         // Cek status keaktifan user
+        if ($user->status === 'suspended') {
+            Auth::logout();
+            throw new Exception('Akun Anda sedang ditangguhkan. Silakan ajukan permohonan pengaktifan kembali.');
+        }
+        
         if ($user->status !== 'active') {
             Auth::logout();
             throw new Exception('Akun Anda dinonaktifkan.');

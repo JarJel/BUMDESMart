@@ -383,7 +383,20 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
               </div>
             )}
 
-            <button className="w-full py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: "var(--primary)" }}>
+            <button 
+              onClick={() => {
+                let phone = toko.phone || "";
+                if (phone.startsWith("0")) phone = "62" + phone.slice(1);
+                if (phone) {
+                  const text = encodeURIComponent(`Halo ${shopName}, saya melihat toko Anda di BUMDESMart dan tertarik dengan produk Anda.`);
+                  window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+                } else {
+                  toast.error("Nomor WhatsApp toko tidak tersedia");
+                }
+              }}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity" 
+              style={{ background: "var(--primary)" }}
+            >
               Kirim Pesan ke Toko
             </button>
           </aside>

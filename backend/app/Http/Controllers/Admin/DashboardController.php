@@ -45,8 +45,8 @@ class DashboardController extends Controller
 
         $totalPembeli = Order::whereIn('umkm_profile_id', $umkmIds)
             ->whereIn('status', $completedStatuses)
-            ->distinct('user_id')
-            ->count('user_id');
+            ->distinct('customer_id')
+            ->count('customer_id');
 
         $totalTransaksi = Order::whereIn('umkm_profile_id', $umkmIds)
             ->whereIn('status', $completedStatuses)

@@ -249,8 +249,8 @@ export default function Navbar() {
             <span className="text-base font-bold hidden sm:block" style={{ color: "var(--primary-dark)" }}>BUMDESmart</span>
           </Link>
 
-          {/* Search Form (Desktop) */}
-          <div className="hidden md:block max-w-[180px] lg:max-w-xs xl:max-w-md w-full mx-4">
+          {/* Search Form */}
+          <div className="flex-1 max-w-[200px] sm:max-w-xs lg:max-w-md w-full mx-2 md:mx-4">
             <SearchBar placeholder="Cari produk desa..." />
           </div>
 
@@ -547,10 +547,7 @@ export default function Navbar() {
         {/* Mobile Menu Dropdown Overlay */}
         {open && (
           <div className="absolute top-full left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-2xl py-4 px-4 space-y-2 md:hidden">
-            {/* Search Input for Mobile */}
-            <div className="px-3 pb-3">
-              <SearchBar placeholder="Cari produk desa..." onCloseMobile={() => setOpen(false)} />
-            </div>
+
             {navLinks.map((l) => (
               <Link key={l.href} href={l.href} className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setOpen(false)}>
                 {l.label}

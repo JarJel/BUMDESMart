@@ -23,6 +23,7 @@ function LoginForm() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [isSuspended, setIsSuspended] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState({
@@ -70,6 +71,11 @@ function LoginForm() {
         err.response?.data?.errors?.email?.[0] ||
         err.response?.data?.error ||
         "Email atau password salah.";
+        
+      if (msg.includes("ditangguhkan")) {
+        setIsSuspended(true);
+      }
+      
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -100,6 +106,11 @@ function LoginForm() {
       const msg =
         err.response?.data?.error ||
         "Gagal login dengan Google. Silakan coba lagi.";
+        
+      if (msg.includes("ditangguhkan")) {
+        setIsSuspended(true);
+      }
+      
       toast.error(msg);
     } finally {
       setGoogleLoading(false);
@@ -159,6 +170,15 @@ function LoginForm() {
           {registered === "mitra" && (
             <div className="mb-4 p-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700">
               Pendaftaran mitra berhasil! Silakan login dan tunggu verifikasi dari Admin BUMDes.
+            </div>
+          )}
+
+          {isSuspended && (
+            <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex flex-col gap-2">
+              <p>Akun Anda sedang ditangguhkan. Anda tidak dapat masuk ke sistem.</p>
+              <Link href="/appeal" className="inline-block text-center bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                Ajukan Pengaktifan Kembali
+              </Link>
             </div>
           )}
 

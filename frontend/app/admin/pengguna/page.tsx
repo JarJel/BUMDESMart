@@ -46,6 +46,33 @@ export default function AdminPenggunaPage() {
   const [page, setPage]             = useState(1);
   const [lastPage, setLastPage]     = useState(1);
   const [total, setTotal]           = useState(0);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [suspendReason, setSuspendReason] = useState("");
+
+  const handleSuspend = async (user: User) => {
+    const isSuspending = user.status !== "suspended";
+    
+    if (isSuspending && !suspendReason.trim()) {
+      toast.error("Alasan penangguhan wajib diisi.");
+      return;
+    }
+
+    const actionText = isSuspending ? "suspend" : "aktifkan kembali";
+    if (!confirm(`Apakah Anda yakin ingin me-${actionText} pengguna "${user.name}"?`)) return;
+    try {
+      if (isSuspending) {
+        await api.post(`/super-admin/users/${user.id}/suspend`, { reason: suspendReason });
+      } else {
+        await api.post(`/super-admin/users/${user.id}/unsuspend`);
+      }
+      toast.success(`Pengguna berhasil di-${actionText}.`);
+      setSelectedUser(null);
+      setSuspendReason("");
+      fetchUsers(page);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? `Gagal me-${actionText} pengguna.`);
+    }
+  };
 
   const fetchUsers = useCallback(async (p = 1) => {
     setLoading(true);
@@ -179,10 +206,10 @@ export default function AdminPenggunaPage() {
                     <td className="px-5 py-3.5">
                       {user.role !== "super_admin" && (
                         <button
-                          onClick={() => handleDelete(user)}
-                          className="text-xs text-red-400 hover:text-red-600 font-medium transition-colors"
+                          onClick={() => setSelectedUser(user)}
+                          className="text-xs text-indigo-500 hover:text-indigo-700 font-medium transition-colors bg-indigo-50 px-3 py-1.5 rounded-lg"
                         >
-                          Hapus
+                          Tinjau
                         </button>
                       )}
                     </td>
@@ -215,6 +242,94 @@ export default function AdminPenggunaPage() {
             >
               Berikutnya →
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* User Detail Modal */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedUser(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-bold text-gray-900">Detail Pengguna</h3>
+              <button onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-gray-600 font-bold text-xl leading-none">
+                &times;
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Nama Lengkap</p>
+                <p className="text-sm font-semibold text-gray-900">{selectedUser.name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Alamat Email</p>
+                <p className="text-sm font-semibold text-gray-900">{selectedUser.email}</p>
+              </div>
+              {selectedUser.phone && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Nomor Telepon</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedUser.phone}</p>
+                </div>
+              )}
+              <div className="flex gap-6">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Role</p>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_COLOR[selectedUser.role] ?? "bg-gray-100 text-gray-600"}`}>
+                    {ROLE_LABEL[selectedUser.role] ?? selectedUser.role}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Status</p>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_COLOR[selectedUser.status] ?? "bg-gray-100 text-gray-500"}`}>
+                    {selectedUser.status}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Tanggal Terdaftar</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {new Date(selectedUser.created_at).toLocaleDateString("id-ID", {
+                    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
+                  })}
+                </p>
+              </div>
+            </div>
+            <div className="p-5 bg-gray-50 border-t border-gray-100 space-y-4">
+              {selectedUser.role !== 'super_admin' && selectedUser.role !== 'admin_bumdes' && selectedUser.status !== 'suspended' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Alasan Penangguhan (Wajib jika ingin Suspend)</label>
+                  <textarea
+                    value={suspendReason}
+                    onChange={(e) => setSuspendReason(e.target.value)}
+                    placeholder="Masukkan alasan..."
+                    rows={2}
+                    className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-red-400 resize-none"
+                  />
+                </div>
+              )}
+              
+              <div className="flex gap-3">
+                <button onClick={() => {
+                  setSelectedUser(null);
+                  setSuspendReason("");
+                }} className="flex-1 py-2.5 text-sm font-semibold border border-gray-200 bg-white rounded-xl text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer">
+                  Tutup
+                </button>
+                {(selectedUser.role === 'customer' || selectedUser.role === 'umkm') ? (
+                  <button onClick={() => handleSuspend(selectedUser)} className="flex-1 py-2.5 text-sm font-semibold bg-orange-100 text-orange-700 rounded-xl hover:bg-orange-200 transition-colors cursor-pointer">
+                    {selectedUser.status === 'suspended' ? 'Buka Suspend' : 'Suspend'}
+                  </button>
+                ) : (
+                  <button onClick={() => {
+                    setSelectedUser(null);
+                    setSuspendReason("");
+                    handleDelete(selectedUser);
+                  }} className="flex-1 py-2.5 text-sm font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors cursor-pointer">
+                    Hapus
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

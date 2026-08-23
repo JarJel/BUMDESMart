@@ -21,6 +21,7 @@ class User extends Authenticatable
         'phone',
         'avatar',
         'status',
+        'suspend_reason',
         'email_verified_at',
     ];
 

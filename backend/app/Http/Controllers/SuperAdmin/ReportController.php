@@ -102,7 +102,7 @@ class ReportController extends Controller
         ]);
 
         $totalTransaksi    = Order::whereIn('status', $completedStatuses)->count();
-        $totalPembeli      = Order::whereIn('status', $completedStatuses)->distinct('user_id')->count('user_id');
+        $totalPembeli      = Order::whereIn('status', $completedStatuses)->distinct('customer_id')->count('customer_id');
         $totalPendapatanUmkm = Order::whereIn('status', $completedStatuses)
             ->selectRaw('SUM(sub_total - bumdes_fee - COALESCE(service_fee, 0)) as total')
             ->value('total') ?? 0;

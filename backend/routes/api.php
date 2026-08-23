@@ -176,6 +176,10 @@ Route::middleware('throttle:10,1')->group(function () {
 });
 
 Route::middleware('throttle:5,1')->group(function () {
+    Route::post('/login/google', [AuthController::class, 'loginWithGoogle']);
+    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+
+
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
@@ -183,6 +187,8 @@ Route::middleware('throttle:5,1')->group(function () {
 });
 Route::post('/auth/google', [AuthController::class, 'loginWithGoogle']);
 
+Route::post('/appeal', [App\Http\Controllers\AppealController::class, 'submit'])
+    ->middleware('throttle:5,60');
 // Seller/UMKM public routes for customers
 Route::get('/sellers', [SellerController::class, 'index']);
 Route::get('/sellers/{idOrSlug}', [SellerController::class, 'show']);
@@ -270,6 +276,12 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('super-admin')->
     Route::get('/users/{user}', [SuperAdminUserController::class, 'show']);
     Route::put('/users/{user}', [SuperAdminUserController::class, 'update']);
     Route::delete('/users/{user}', [SuperAdminUserController::class, 'destroy']);
+    Route::post('/users/{user}/suspend', [SuperAdminUserController::class, 'suspend']);
+    Route::post('/users/{user}/unsuspend', [SuperAdminUserController::class, 'unsuspend']);
+
+    // Appeals
+    Route::get('/appeals', [App\Http\Controllers\SuperAdmin\AppealController::class, 'index']);
+    Route::post('/appeals/{appeal}/resolve', [App\Http\Controllers\SuperAdmin\AppealController::class, 'resolve']);
 
     // UMKM management
     Route::get('/umkm', [SuperAdminUmkmController::class, 'index']);

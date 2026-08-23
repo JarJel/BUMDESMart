@@ -510,6 +510,9 @@ class AuthController extends Controller
                 }
 
                 // Cek status keaktifan user
+                if ($user->status === 'suspended') {
+                    return response()->json(['error' => 'Akun Anda sedang ditangguhkan. Silakan ajukan permohonan pengaktifan kembali.'], 403);
+                }
                 if ($user->status !== 'active') {
                     return response()->json(['error' => 'Akun Anda dinonaktifkan.'], 403);
                 }
