@@ -1,14 +1,24 @@
 FROM php:8.3-apache
 
-RUN apt-get update && apt-get install -y \
-    libpng-dev libonig-dev libxml2-dev libzip-dev libgd-dev \
-    zip unzip git curl \
-    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd zip \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+# 1. Install sistem dependensi
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    libgd-dev \
+    zip \
+    unzip \
+    git \
+    curl \
+ && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd zip \
+ && rm -rf /var/lib/apt/lists/*
 
-# Enable mod_rewrite (dibutuhkan Laravel .htaccess)
+# Redis client pakai predis/predis (pure PHP, via Composer/Packagist) —
+# menghindari kebutuhan compile ekstensi native yang butuh akses GitHub/PECL,
+# yang diblokir di jaringan kampus. Lihat REDIS_CLIENT=predis di .env
+
+# 2. Enable mod_rewrite Apache untuk Laravel
 RUN a2enmod rewrite
 
 # Arahkan document root ke folder public Laravel
@@ -20,6 +30,11 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Pakai mirror Aliyun untuk packagist — mirror ini menyimpan file ZIP paket
+# sendiri (bukan cuma metadata), jadi tidak perlu akses api.github.com yang
+# diblokir/timeout di jaringan kampus
+RUN composer config -g repos.packagist composer https://mirrors.aliyun.com/composer/
 
 WORKDIR /var/www/html
 
