@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
+const geist = { variable: GeistSans.variable, className: GeistSans.className };
 
 export const metadata: Metadata = {
   title: "BUMDeSMart — Dari Desa, Untuk Semua",
