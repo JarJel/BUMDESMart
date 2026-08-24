@@ -133,31 +133,6 @@ class BankAccountController extends Controller
             'status'         => 'pending',
         ]);
 
-        try {
-            $xenditKey = config('services.xendit.secret_key');
-            if ($xenditKey) {
-                $response = Http::withBasicAuth($xenditKey, '')
-                    ->post('https://api.xendit.co/disbursements', [
-                        'external_id'         => $referenceId,
-                        'bank_code'           => $bankAccount->channel_code,
-                        'account_holder_name' => $bankAccount->account_name,
-                        'account_number'      => $bankAccount->account_number,
-                        'description'         => 'Pencairan saldo ' . $ownerType,
-                        'amount'              => $validated['amount'],
-                    ]);
-
-                if ($response->successful()) {
-                    $data = $response->json();
-                    $disb->update([
-                        'xendit_disbursement_id' => $data['id'] ?? null,
-                        'status'                 => strtolower($data['status'] ?? 'pending'),
-                    ]);
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Xendit disbursement gagal: ' . $e->getMessage());
-        }
-
         return response()->json([
             'message' => 'Permintaan pencairan berhasil diajukan.',
             'data'    => $disb,

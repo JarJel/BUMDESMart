@@ -14,7 +14,7 @@ class Disbursement extends Model
         'account_number',
         'account_name',
         'amount',
-        'xendit_disbursement_id',
+        'gateway_disbursement_id',
         'reference_id',
         'status',
         'failure_reason',
