@@ -127,32 +127,6 @@ class BalanceController extends Controller
             'status'         => 'pending',
         ]);
 
-        // Kirim ke Xendit jika ada API key
-        try {
-            $xenditKey = config('services.xendit.secret_key');
-            if ($xenditKey) {
-                $response = \Illuminate\Support\Facades\Http::withBasicAuth($xenditKey, '')
-                    ->post('https://api.xendit.co/disbursements', [
-                        'external_id'    => $referenceId,
-                        'bank_code'      => $bankAccount->channel_code,
-                        'account_holder_name' => $bankAccount->account_name,
-                        'account_number' => $bankAccount->account_number,
-                        'description'    => 'Pencairan saldo BUMDes ' . $bumdes->name,
-                        'amount'         => $validated['amount'],
-                    ]);
-
-                if ($response->successful()) {
-                    $data = $response->json();
-                    $disb->update([
-                        'xendit_disbursement_id' => $data['id'] ?? null,
-                        'status'                 => strtolower($data['status'] ?? 'pending'),
-                    ]);
-                }
-            }
-        } catch (\Throwable $e) {
-            \Log::warning('Xendit disbursement BUMDes gagal: ' . $e->getMessage());
-        }
-
         return response()->json([
             'message' => 'Permintaan pencairan berhasil diajukan.',
             'data'    => $disb,

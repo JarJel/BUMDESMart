@@ -888,7 +888,7 @@ export default function CheckoutPage() {
             >
               {submitting ? "Membuat Pesanan..." : "Lanjut ke Pembayaran →"}
             </button>
-            <p className="text-xs text-gray-400 text-center mt-2">Pembayaran aman via Xendit</p>
+            <p className="text-xs text-gray-400 text-center mt-2">Pembayaran aman via Midtrans</p>
           </div>
         </div>
       </div>

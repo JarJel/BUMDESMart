@@ -42,13 +42,12 @@ class PaymentController extends Controller
 
         if ($order->payment) {
             return response()->json([
-                'invoice_url' => $order->payment->xendit_data['redirect_url'] ?? null,
+                'invoice_url' => $order->payment->payment_data['redirect_url'] ?? null,
                 'payment_id'  => $order->payment->id,
                 'status'      => $order->payment->status,
             ]);
         }
 
-        // xendit_external_id kolom dipakai untuk menyimpan order_id Midtrans
         $mtOrderId = 'BUMDES-' . $order->order_code . '-' . time();
 
         $payload = [
@@ -124,7 +123,7 @@ class PaymentController extends Controller
         // Cek status ke Midtrans
         $response = Http::withHeaders([
             'Authorization' => 'Basic ' . $this->midtransAuth(),
-        ])->get($this->midtransApiUrl() . '/v2/' . $payment->xendit_external_id . '/status');
+        ])->get($this->midtransApiUrl() . '/v2/' . $payment->midtrans_order_id . '/status');
 
         if ($response->failed()) {
             return response()->json(['status' => $payment->status]);
