@@ -22,9 +22,9 @@ class WhatsappAdminController extends Controller
         return $http;
     }
 
-    private function sessionId(): string
+    private function sessionId(): ?string
     {
-        return config('services.openwa.session_id', 'bumdesmart');
+        return OpenWAService::resolveSessionId();
     }
 
     /** GET /admin/whatsapp/status */
@@ -32,6 +32,9 @@ class WhatsappAdminController extends Controller
     {
         try {
             $session = $this->sessionId();
+            if (!$session) {
+                return response()->json(['connected' => false, 'status' => 'error', 'error' => 'Gagal resolve session OpenWA.']);
+            }
             $res = $this->openwaHttp()->get("/api/sessions/{$session}");
 
             if ($res->status() === 404) {
@@ -55,11 +58,11 @@ class WhatsappAdminController extends Controller
     {
         try {
             $session = $this->sessionId();
+            if (!$session) {
+                return response()->json(['error' => 'Gagal resolve session OpenWA.'], 500);
+            }
 
-            // Buat session kalau belum ada
-            $this->openwaHttp()->post('/api/sessions', ['id' => $session])->json();
-
-            // Start session
+            // Start session (session sudah dibuat otomatis oleh sessionId())
             $this->openwaHttp()->post("/api/sessions/{$session}/start")->json();
 
             // Ambil QR
