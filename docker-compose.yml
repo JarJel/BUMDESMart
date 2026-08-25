@@ -109,9 +109,19 @@ services:
     depends_on:
       - caddy
 
+  openwa:
+    image: ghcr.io/rmyndharis/openwa:latest
+    container_name: bumdesmart_openwa
+    restart: unless-stopped
+    volumes:
+      - openwa_data:/app/sessions
+    ports:
+      - "2785:2785"
+
 volumes:
   db_data:
   redis_data:
   backend_storage:
   caddy_data:
   caddy_config:
+  openwa_data:
