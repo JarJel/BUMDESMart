@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { productApi, ProductData } from "@/lib/api/product";
 import { Button } from "@/components/ui/Button";
@@ -33,6 +33,8 @@ function ProdukContent() {
   const [showLoginAlert, setShowLoginAlert] = useState(false);
   const [showConflictAlert, setShowConflictAlert] = useState(false);
   const [pendingProductId, setPendingProductId] = useState<number | null>(null);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
   
   // State untuk sticky bar keranjang
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -70,6 +72,17 @@ function ProdukContent() {
     return () => {
       window.removeEventListener("cart-updated", handleCartUpdated);
     };
+  }, []);
+
+  // Tutup dropdown sort saat klik di luar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setSortDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -282,16 +295,48 @@ function ProdukContent() {
                   </span>
                 )}
               </div>
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none"
-              >
-                <option value="terlaris">Terlaris</option>
-                <option value="harga_asc">Harga Terendah</option>
-                <option value="harga_desc">Harga Tertinggi</option>
-                <option value="terbaru">Terbaru</option>
-              </select>
+              <div className="relative" ref={sortDropdownRef}>
+                <button
+                  onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                  className="flex items-center gap-2 text-sm border border-gray-200 rounded-xl px-3.5 py-2 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
+                >
+                  <span className="font-medium">
+                    {sort === "terlaris" && "Terlaris"}
+                    {sort === "harga_asc" && "Harga Terendah"}
+                    {sort === "harga_desc" && "Harga Tertinggi"}
+                    {sort === "terbaru" && "Terbaru"}
+                  </span>
+                  <svg className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${sortDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {sortDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-1 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    {[
+                      { value: 'terlaris', label: 'Terlaris' },
+                      { value: 'harga_asc', label: 'Harga Terendah' },
+                      { value: 'harga_desc', label: 'Harga Tertinggi' },
+                      { value: 'terbaru', label: 'Terbaru' }
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setSort(option.value);
+                          setSortDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                          sort === option.value 
+                            ? 'bg-primary/5 text-primary font-semibold' 
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {loading ? (

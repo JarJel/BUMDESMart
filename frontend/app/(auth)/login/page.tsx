@@ -154,7 +154,7 @@ function LoginForm() {
     <div className="min-h-screen flex flex-col" style={{ background: "#F0F7F4" }}>
 
       {/* Card */}
-      <div className="flex-1 flex items-center justify-center px-4 pb-12">
+      <div className="flex-1 flex items-center justify-center px-4 mt-10 pb-12">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-md border border-gray-100 p-8">
           {/* Logo */}
           <div className="flex flex-col items-center mb-5">

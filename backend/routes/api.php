@@ -353,6 +353,7 @@ Route::middleware('auth:sanctum')->get('/my/berita/{id}/peserta', [\App\Http\Con
 
 // Webhook payment gateway (tidak perlu auth Sanctum)
 Route::post('/webhooks/midtrans', [WebhookController::class, 'midtrans']);
+Route::post('/webhooks/sentry', [\App\Http\Controllers\SentryWebhookController::class, 'handle']);
 
 // Validate promo code (public — checkout page needs it before login check)
 Route::get('/promotions/validate', [SellerPromotionController::class, 'validate'])
