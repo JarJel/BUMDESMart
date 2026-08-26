@@ -75,17 +75,6 @@ export default function AdminBumdesPage() {
     }
   };
 
-  const handleToggleStatus = async (bumdes: BumdesProfile) => {
-    try {
-      await api.put(`/super-admin/bumdes/${bumdes.id}`, {
-        status: bumdes.status === "active" ? "inactive" : "active",
-      });
-      fetchList();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Gagal mengubah status BUMDes.");
-    }
-  };
-
   return (
     <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
@@ -211,7 +200,11 @@ export default function AdminBumdesPage() {
         ) : (
           <div className="divide-y divide-gray-50">
             {list.map((b) => (
-              <div key={b.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 hover:bg-gray-50 transition-colors">
+              <Link
+                key={b.id}
+                href={`/admin/bumdes/${b.id}`}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 hover:bg-gray-50 transition-colors"
+              >
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-900">{b.name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
@@ -223,20 +216,8 @@ export default function AdminBumdesPage() {
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${b.status === "active" ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                     {b.status === "active" ? "Aktif" : "Nonaktif"}
                   </span>
-                  <Link
-                    href={`/admin/bumdes/${b.id}`}
-                    className="text-xs px-3 py-1.5 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-medium whitespace-nowrap"
-                  >
-                    Detail
-                  </Link>
-                  <button
-                    onClick={() => handleToggleStatus(b)}
-                    className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium whitespace-nowrap"
-                  >
-                    {b.status === "active" ? "Nonaktifkan" : "Aktifkan"}
-                  </button>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
