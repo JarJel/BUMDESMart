@@ -62,11 +62,11 @@ class WhatsappAdminController extends Controller
                 return response()->json(['error' => 'Gagal resolve session OpenWA.'], 500);
             }
 
-            // Start session (session sudah dibuat otomatis oleh sessionId())
-            $this->openwaHttp()->post("/api/sessions/{$session}/start")->json();
+            // Start session — timeout panjang karena WA butuh waktu inisialisasi
+            $this->openwaHttp()->timeout(60)->post("/api/sessions/{$session}/start");
 
             // Ambil QR
-            $res = $this->openwaHttp()->get("/api/sessions/{$session}/qr");
+            $res = $this->openwaHttp()->timeout(30)->get("/api/sessions/{$session}/qr");
             $data = $res->json();
 
             return response()->json([
