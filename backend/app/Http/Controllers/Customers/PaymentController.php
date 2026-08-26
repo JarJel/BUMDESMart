@@ -32,69 +32,77 @@ class PaymentController extends Controller
 
     public function createInvoice(Request $request, int $orderId)
     {
-        $customer = $request->user()->customer;
+        try {
+            $customer = $request->user()->customer;
 
-        $order = Order::with(['items.product', 'customer.user', 'umkmProfile'])
-            ->where('id', $orderId)
-            ->where('customer_id', $customer->id)
-            ->where('status', 'pending')
-            ->firstOrFail();
+            $order = Order::with(['items.product', 'customer.user', 'umkmProfile'])
+                ->where('id', $orderId)
+                ->where('customer_id', $customer->id)
+                ->where('status', 'pending')
+                ->firstOrFail();
 
-        if ($order->payment) {
-            return response()->json([
-                'invoice_url' => $order->payment->payment_data['redirect_url'] ?? null,
-                'payment_id'  => $order->payment->id,
-                'status'      => $order->payment->status,
+            if ($order->payment) {
+                return response()->json([
+                    'invoice_url' => $order->payment->payment_data['redirect_url'] ?? null,
+                    'payment_id'  => $order->payment->id,
+                    'status'      => $order->payment->status,
+                ]);
+            }
+
+            $mtOrderId = 'BUMDES-' . $order->order_code . '-' . time();
+
+            $payload = [
+                'transaction_details' => [
+                    'order_id'     => $mtOrderId,
+                    'gross_amount' => (int) $order->total,
+                ],
+                'customer_details' => [
+                    'first_name' => $order->customer->user->name,
+                    'email'      => $order->customer->user->email,
+                ],
+                'callbacks' => [
+                    'finish' => config('app.frontend_url') . '/pembayaran/sukses?order=' . $order->order_code,
+                ],
+            ];
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Basic ' . $this->midtransAuth(),
+                'Content-Type'  => 'application/json',
+            ])->post($this->snapApiUrl() . '/snap/v1/transactions', $payload);
+
+            if ($response->failed()) {
+                return response()->json([
+                    'message' => 'Gagal membuat transaksi pembayaran.',
+                    'error'   => $response->json(),
+                ], 502);
+            }
+
+            $data = $response->json();
+
+            $payment = Payment::create([
+                'order_id'          => $order->id,
+                'snap_token'        => $data['token'] ?? null,
+                'midtrans_order_id' => $mtOrderId,
+                'payment_code'      => strtoupper(Str::random(12)),
+                'amount'            => $order->total,
+                'status'            => 'pending',
+                'expired_at'        => now()->addDay(),
+                'payment_data'      => $data,
             ]);
-        }
 
-        $mtOrderId = 'BUMDES-' . $order->order_code . '-' . time();
-
-        $payload = [
-            'transaction_details' => [
-                'order_id'     => $mtOrderId,
-                'gross_amount' => (int) $order->total,
-            ],
-            'customer_details' => [
-                'first_name' => $order->customer->user->name,
-                'email'      => $order->customer->user->email,
-            ],
-            'callbacks' => [
-                'finish' => config('app.frontend_url') . '/pembayaran/sukses?order=' . $order->order_code,
-            ],
-        ];
-
-        $response = Http::withHeaders([
-            'Authorization' => 'Basic ' . $this->midtransAuth(),
-            'Content-Type'  => 'application/json',
-        ])->post($this->snapApiUrl() . '/snap/v1/transactions', $payload);
-
-        if ($response->failed()) {
             return response()->json([
-                'message' => 'Gagal membuat transaksi pembayaran.',
-                'error'   => $response->json(),
-            ], 502);
+                'snap_token'  => $data['token'] ?? null,
+                'invoice_url' => $data['redirect_url'] ?? null,
+                'payment_id'  => $payment->id,
+                'status'      => 'pending',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
-
-        $data = $response->json();
-
-        $payment = Payment::create([
-            'order_id'          => $order->id,
-            'snap_token'        => $data['token'] ?? null,
-            'midtrans_order_id' => $mtOrderId,
-            'payment_code'      => strtoupper(Str::random(12)),
-            'amount'            => $order->total,
-            'status'            => 'pending',
-            'expired_at'        => now()->addDay(),
-            'payment_data'      => $data,
-        ]);
-
-        return response()->json([
-            'snap_token'  => $data['token'] ?? null,
-            'invoice_url' => $data['redirect_url'] ?? null,
-            'payment_id'  => $payment->id,
-            'status'      => 'pending',
-        ]);
     }
 
     public function checkStatus(Request $request, int $orderId)
