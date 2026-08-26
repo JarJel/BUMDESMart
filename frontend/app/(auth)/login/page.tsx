@@ -137,7 +137,7 @@ function LoginForm() {
           window.google.accounts.id.renderButton(googleBtnRef.current, {
             theme: "outline",
             size: "large",
-            width: "100%",
+            width: googleBtnRef.current?.offsetWidth || 400,
             text: "continue_with",
           });
         }
@@ -216,7 +216,7 @@ function LoginForm() {
                   value={form.password}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-12 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
+                  className="w-full pl-10 pr-12 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50 [&::-ms-reveal]:hidden [&::-webkit-contacts-auto-fill-button]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
                 />
                 <button
                   type="button"

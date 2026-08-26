@@ -274,6 +274,26 @@ export default function BerandaPage() {
         </div>
       </section>
 
+      {/* ===== DIDUKUNG OLEH ===== */}
+      <section className="py-6 bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-xs font-semibold uppercase tracking-widest text-gray-400 mb-5">
+            Didukung oleh
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-14">
+            <a href="https://kemdiktisaintek.go.id" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
+              <img src="/images/sponsors/tut-wuri.jpeg" alt="Kemdiktisaintek — Tut Wuri Handayani" className="h-14 w-auto object-contain" />
+            </a>
+            <a href="https://kemdiktisaintek.go.id" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
+              <img src="/images/sponsors/diktisaintek.jpeg" alt="Diktisaintek Berdampak" className="h-14 w-auto object-contain" />
+            </a>
+            <a href="https://bima.kemdiktisaintek.go.id" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
+              <img src="/images/sponsors/bima.jpeg" alt="BiMA — Kemdiktisaintek" className="h-10 w-auto object-contain" />
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ===== KARYA TERBAIK ===== */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

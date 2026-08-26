@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { StarIcon } from "@/components/ui/StarIcon";
+import { getFileUrl } from "@/lib/storage";
 
 export function ProductCard({ product, compact = false, storeHref, highlighted = false, onAddToCart }: {
   product: any;
@@ -21,22 +22,12 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
 
   const rating = product.rating ?? null;
   
-  let imageUrl = "";
-  if (product.primary_image?.file_path) {
-    imageUrl = product.primary_image.file_path;
-  } else if (product.images?.[0]?.file_path) {
-    imageUrl = product.images[0].file_path;
-  } else if (product.foto) {
-    imageUrl = product.foto;
-  }
-  
-  if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
-    imageUrl = '/' + imageUrl;
-  }
-  if (imageUrl && !imageUrl.startsWith('http')) {
-    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").replace("/api/v1", "");
-    imageUrl = `${base}${imageUrl}`;
-  }
+  const rawImagePath =
+    product.primary_image?.file_path ??
+    product.images?.[0]?.file_path ??
+    product.foto ??
+    null;
+  const imageUrl = getFileUrl(rawImagePath) ?? "";
 
   const shopName = product.tokNama || product.umkm_profile?.shop_name || "BUMDESMARTNUKITA";
   const soldCount = product.sold_count ?? product.terjual ?? 0;

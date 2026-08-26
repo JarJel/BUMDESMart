@@ -143,6 +143,17 @@ export default function DaftarKurirPage() {
   };
 
   const handleSubmit = async () => {
+    const MAX_MB = 5;
+    if (photoProfile && photoProfile.size > MAX_MB * 1024 * 1024) {
+      toast.error(`Foto profil terlalu besar. Maksimal ${MAX_MB}MB.`);
+      setStep(2);
+      return;
+    }
+    if (photoKtp && photoKtp.size > MAX_MB * 1024 * 1024) {
+      toast.error(`Foto KTP terlalu besar. Maksimal ${MAX_MB}MB.`);
+      setStep(2);
+      return;
+    }
     setLoading(true);
     try {
       const fd = new FormData();
@@ -184,16 +195,19 @@ export default function DaftarKurirPage() {
           vehicle_plate:      "Nomor plat tidak valid.",
           vehicle_year:       "Tahun kendaraan tidak valid.",
           sim_type:           "Jenis SIM tidak valid.",
+          photo_profile:      "Format foto profil tidak didukung. Gunakan JPG, PNG, atau WebP (maks 5MB).",
+          photo_ktp:          "Format foto KTP tidak didukung. Gunakan JPG, PNG, atau WebP (maks 5MB).",
         };
         const step1Fields = ["email","bumdes_profile_id","name","phone","id_number","password","password_confirmation"];
         const step3Fields = ["vehicle_brand","vehicle_plate","vehicle_year","sim_type","vehicle_type"];
         const failedField = Object.keys(errs)[0];
         if (step1Fields.includes(failedField)) setStep(1);
         else if (step3Fields.includes(failedField)) setStep(3);
+        else if (["photo_profile","photo_ktp"].includes(failedField)) setStep(2);
         const msg = fieldMessages[failedField] ?? (Object.values(errs)[0] as string[])[0];
         toast.error(msg);
       } else {
-        toast.error(err.response?.data?.message ?? "Pendaftaran gagal. Coba lagi.");
+        toast.error(err.response?.data?.message ?? err.response?.data?.error ?? "Pendaftaran gagal. Coba lagi.");
       }
     } finally {
       setLoading(false);

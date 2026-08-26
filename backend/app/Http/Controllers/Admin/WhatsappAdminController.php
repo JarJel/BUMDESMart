@@ -62,17 +62,27 @@ class WhatsappAdminController extends Controller
                 return response()->json(['error' => 'Gagal resolve session OpenWA.'], 500);
             }
 
-            // Start session (session sudah dibuat otomatis oleh sessionId())
-            $this->openwaHttp()->post("/api/sessions/{$session}/start")->json();
+            // Cek status session — start hanya jika belum qr_ready/connected
+            $statusRes = $this->openwaHttp()->timeout(10)->get("/api/sessions/{$session}");
+            $status    = $statusRes->json('status') ?? '';
 
-            // Ambil QR
-            $res = $this->openwaHttp()->get("/api/sessions/{$session}/qr");
-            $data = $res->json();
+            if (!in_array($status, ['qr_ready', 'CONNECTED', 'connected'])) {
+                $this->openwaHttp()->timeout(60)->post("/api/sessions/{$session}/start");
+                // Tunggu QR generate
+                sleep(5);
+            }
 
-            return response()->json([
-                'qr'      => $data['qr']      ?? $data['data'] ?? null,
-                'timeout' => $data['timeout'] ?? 60,
-            ]);
+            // Retry ambil QR sampai 5x
+            $qr = null;
+            for ($i = 0; $i < 5; $i++) {
+                $res  = $this->openwaHttp()->timeout(15)->get("/api/sessions/{$session}/qr");
+                $data = $res->json();
+                $qr   = $data['qrCode'] ?? $data['qr'] ?? $data['data'] ?? null;
+                if ($qr) break;
+                sleep(3);
+            }
+
+            return response()->json(['qr' => $qr, 'timeout' => 60]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

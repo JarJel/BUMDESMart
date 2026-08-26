@@ -10,6 +10,17 @@ interface Setting {
   description: string | null;
 }
 
+// Key WA dikelola di halaman /admin/whatsapp
+const WA_KEYS = ["wa_max_attempts", "wa_retry_delay"];
+
+const LABELS: Record<string, string> = {
+  site_name:        "Nama Platform",
+  site_tagline:     "Tagline",
+  contact_email:    "Email Kontak",
+  contact_phone:    "Nomor Telepon",
+  maintenance_mode: "Mode Maintenance",
+};
+
 export default function AdminPengaturanPage() {
   const toast = useToast();
   const [settings, setSettings] = useState<Setting[]>([]);
@@ -20,7 +31,7 @@ export default function AdminPengaturanPage() {
   useEffect(() => {
     api.get("/super-admin/settings")
       .then(res => {
-        const data: Setting[] = res.data.data ?? [];
+        const data: Setting[] = (res.data.data ?? []).filter((s: Setting) => !WA_KEYS.includes(s.key));
         setSettings(data);
         const initial: Record<string, string> = {};
         data.forEach(s => { initial[s.key] = s.value; });
@@ -57,14 +68,27 @@ export default function AdminPengaturanPage() {
         ) : (
           settings.map(s => (
             <div key={s.key} className="px-5 py-4">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">{s.key}</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                {LABELS[s.key] ?? s.key}
+              </label>
               {s.description && <p className="text-xs text-gray-400 mb-2">{s.description}</p>}
-              <input
-                type="text"
-                value={form[s.key] ?? ""}
-                onChange={e => setForm({ ...form, [s.key]: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-400"
-              />
+              {s.key === "maintenance_mode" ? (
+                <select
+                  value={form[s.key] ?? "0"}
+                  onChange={e => setForm({ ...form, [s.key]: e.target.value })}
+                  className="w-48 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-400"
+                >
+                  <option value="0">Nonaktif (normal)</option>
+                  <option value="1">Aktif (maintenance)</option>
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={form[s.key] ?? ""}
+                  onChange={e => setForm({ ...form, [s.key]: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-400"
+                />
+              )}
             </div>
           ))
         )}

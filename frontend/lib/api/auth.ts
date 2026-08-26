@@ -44,5 +44,5 @@ export const authApi = {
   }) => api.post('/reset-password', data),
 
   loginWithGoogle: (idToken: string) =>
-    api.post('/auth/google', { id_token: idToken }),
+    api.post('/login/google', { id_token: idToken }),
 }
