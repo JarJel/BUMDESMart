@@ -140,15 +140,32 @@ export default function VoucherPage() {
       toast.error("Nilai syarat wajib diisi dan harus lebih besar dari 0.");
       return;
     }
+    if (form.trigger_type === "item_count" && triggerVal > 1000) {
+      toast.error("Syarat jumlah item maksimal 1.000.");
+      return;
+    }
+    if (form.trigger_type === "order_frequency" && triggerVal > 1000) {
+      toast.error("Syarat frekuensi beli maksimal 1.000.");
+      return;
+    }
+    if (form.trigger_type === "order_amount" && triggerVal > 100000000) {
+      toast.error("Syarat total belanja maksimal Rp 100.000.000.");
+      return;
+    }
+
     const rewardVal = Number(form.reward_value);
-    if (form.reward_type !== "free_shipping" && (isNaN(rewardVal) || rewardVal <= 0)) {
-      toast.error("Nilai reward wajib diisi dan harus lebih besar dari 0.");
+    if (form.reward_type === "percentage" && (isNaN(rewardVal) || rewardVal <= 0 || rewardVal > 100)) {
+      toast.error("Nilai persentase diskon harus antara 1 hingga 100.");
+      return;
+    }
+    if (form.reward_type === "flat" && (isNaN(rewardVal) || rewardVal <= 0 || rewardVal > 100000000)) {
+      toast.error("Nilai diskon nominal maksimal Rp 100.000.000.");
       return;
     }
     if (form.max_discount) {
       const maxDiscountVal = Number(form.max_discount);
-      if (isNaN(maxDiscountVal) || maxDiscountVal <= 0) {
-        toast.error("Maksimal diskon harus lebih besar dari 0.");
+      if (isNaN(maxDiscountVal) || maxDiscountVal <= 0 || maxDiscountVal > 100000000) {
+        toast.error("Maksimal diskon (Rp) harus di antara Rp 1 hingga Rp 100.000.000.");
         return;
       }
     }

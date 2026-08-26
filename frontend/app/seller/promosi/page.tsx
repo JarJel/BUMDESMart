@@ -89,6 +89,14 @@ export default function PromosiPage() {
       toast.error("Nilai diskon nominal harus lebih dari 0.");
       return;
     }
+    
+    if (form.max_discount_amount) {
+      const maxAmount = Number(form.max_discount_amount);
+      if (isNaN(maxAmount) || maxAmount <= 0 || maxAmount > 100000000) {
+        toast.error("Maksimal diskon (Rp) harus di antara Rp 1 hingga Rp 100.000.000.");
+        return;
+      }
+    }
 
     setSaving(true);
     const body: any = {

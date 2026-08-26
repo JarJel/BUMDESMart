@@ -34,15 +34,31 @@ class VoucherProgramController extends Controller
     {
         $umkm = $this->getUmkm($request);
 
-        $validated = $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'trigger_type'  => 'required|in:item_count,order_amount,order_frequency',
             'trigger_value' => 'required|integer|min:1',
             'reward_type'   => 'required|in:flat,percentage,free_shipping',
-            'reward_value'  => 'required_unless:reward_type,free_shipping|integer|min:1',
-            'max_discount'  => 'nullable|integer|min:1',
+            'reward_value'  => 'required_unless:reward_type,free_shipping|integer|min:0',
+            'max_discount'  => 'nullable|integer|min:1|max:100000000',
             'label'         => 'nullable|string|max:100',
             'is_active'     => 'boolean',
         ]);
+
+        $validator->after(function ($validator) use ($request) {
+            $tt = $request->input('trigger_type');
+            $tv = $request->input('trigger_value');
+            if ($tt === 'item_count' && $tv > 1000) $validator->errors()->add('trigger_value', 'Maksimal 1000.');
+            if ($tt === 'order_frequency' && $tv > 1000) $validator->errors()->add('trigger_value', 'Maksimal 1000.');
+            if ($tt === 'order_amount' && $tv > 100000000) $validator->errors()->add('trigger_value', 'Maksimal 100.000.000.');
+
+            $rt = $request->input('reward_type');
+            $rv = $request->input('reward_value');
+            if ($rt !== 'free_shipping' && $rv < 1) $validator->errors()->add('reward_value', 'Minimal 1.');
+            if ($rt === 'percentage' && $rv > 100) $validator->errors()->add('reward_value', 'Maksimal 100%.');
+            if ($rt === 'flat' && $rv > 100000000) $validator->errors()->add('reward_value', 'Maksimal 100.000.000.');
+        });
+
+        $validated = $validator->validate();
 
         // Nonaktifkan semua program lama kalau yang baru aktif
         if ($validated['is_active'] ?? true) {
@@ -66,15 +82,31 @@ class VoucherProgramController extends Controller
         $umkm    = $this->getUmkm($request);
         $program = UmkmVoucherProgram::where('umkm_profile_id', $umkm->id)->findOrFail($id);
 
-        $validated = $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'trigger_type'  => 'sometimes|in:item_count,order_amount,order_frequency',
             'trigger_value' => 'sometimes|integer|min:1',
             'reward_type'   => 'sometimes|in:flat,percentage,free_shipping',
-            'reward_value'  => 'sometimes|integer|min:1',
-            'max_discount'  => 'nullable|integer|min:1',
+            'reward_value'  => 'sometimes|integer|min:0',
+            'max_discount'  => 'nullable|integer|min:1|max:100000000',
             'label'         => 'nullable|string|max:100',
             'is_active'     => 'boolean',
         ]);
+
+        $validator->after(function ($validator) use ($request, $program) {
+            $tt = $request->input('trigger_type', $program->trigger_type);
+            $tv = $request->input('trigger_value', $program->trigger_value);
+            if ($tt === 'item_count' && $tv > 1000) $validator->errors()->add('trigger_value', 'Maksimal 1000.');
+            if ($tt === 'order_frequency' && $tv > 1000) $validator->errors()->add('trigger_value', 'Maksimal 1000.');
+            if ($tt === 'order_amount' && $tv > 100000000) $validator->errors()->add('trigger_value', 'Maksimal 100.000.000.');
+
+            $rt = $request->input('reward_type', $program->reward_type);
+            $rv = $request->input('reward_value', $program->reward_value);
+            if ($rt !== 'free_shipping' && $rv < 1) $validator->errors()->add('reward_value', 'Minimal 1.');
+            if ($rt === 'percentage' && $rv > 100) $validator->errors()->add('reward_value', 'Maksimal 100%.');
+            if ($rt === 'flat' && $rv > 100000000) $validator->errors()->add('reward_value', 'Maksimal 100.000.000.');
+        });
+
+        $validated = $validator->validate();
 
         if (isset($validated['is_active']) && $validated['is_active']) {
             UmkmVoucherProgram::where('umkm_profile_id', $umkm->id)

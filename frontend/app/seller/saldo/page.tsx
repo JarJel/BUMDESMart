@@ -17,14 +17,14 @@ interface Balance {
 }
 
 const BANK_OPTIONS = [
-  { code: "BCA",     name: "BCA"        },
-  { code: "BNI",     name: "BNI"        },
-  { code: "BRI",     name: "BRI"        },
-  { code: "MANDIRI", name: "Mandiri"    },
-  { code: "PERMATA", name: "Permata"    },
-  { code: "DANAMON", name: "Danamon"    },
-  { code: "BSI",     name: "BSI"        },
-  { code: "CIMB",    name: "CIMB Niaga" },
+  { code: "BCA",     name: "BCA",        minLen: 10, maxLen: 10 },
+  { code: "BNI",     name: "BNI",        minLen: 10, maxLen: 10 },
+  { code: "BRI",     name: "BRI",        minLen: 15, maxLen: 15 },
+  { code: "MANDIRI", name: "Mandiri",    minLen: 13, maxLen: 13 },
+  { code: "PERMATA", name: "Permata",    minLen: 10, maxLen: 10 },
+  { code: "DANAMON", name: "Danamon",    minLen: 10, maxLen: 14 },
+  { code: "BSI",     name: "BSI",        minLen: 10, maxLen: 10 },
+  { code: "CIMB",    name: "CIMB Niaga", minLen: 13, maxLen: 14 },
 ];
 
 function formatRp(n: number) {
@@ -40,7 +40,7 @@ export default function SellerSaldoPage() {
   const [withdrawMsg, setWithdrawMsg]       = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [showAddForm, setShowAddForm]       = useState(false);
   const [addLoading, setAddLoading]         = useState(false);
-  const [form, setForm]                     = useState({ channel_code: "BCA", account_number: "", account_name: "" });
+  const [form, setForm]                     = useState({ channel_code: "", account_number: "", account_name: "" });
   const [addMsg, setAddMsg]                 = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   const fetchData = () => {
@@ -85,16 +85,32 @@ export default function SellerSaldoPage() {
   };
 
   const handleAddAccount = async () => {
+    if (!form.channel_code) {
+      setAddMsg({ type: "err", text: "Pilih bank terlebih dahulu." });
+      return;
+    }
     if (!form.account_number.trim() || !form.account_name.trim()) {
       setAddMsg({ type: "err", text: "Isi semua field rekening." });
       return;
     }
+    const selectedBank = BANK_OPTIONS.find(b => b.code === form.channel_code);
+    if (selectedBank) {
+      const accLen = form.account_number.trim().length;
+      if (accLen < selectedBank.minLen || accLen > selectedBank.maxLen) {
+        const lenText = selectedBank.minLen === selectedBank.maxLen 
+          ? `${selectedBank.minLen} digit` 
+          : `${selectedBank.minLen}-${selectedBank.maxLen} digit`;
+        setAddMsg({ type: "err", text: `Nomor rekening ${selectedBank.name} harus ${lenText}.` });
+        return;
+      }
+    }
+    
     setAddLoading(true);
     setAddMsg(null);
     try {
       await api.post("/seller/bank-accounts", form);
       setAddMsg({ type: "ok", text: "Rekening berhasil ditambahkan." });
-      setForm({ channel_code: "BCA", account_number: "", account_name: "" });
+      setForm({ channel_code: "", account_number: "", account_name: "" });
       setShowAddForm(false);
       fetchData();
     } catch (e: any) {
@@ -202,16 +218,21 @@ export default function SellerSaldoPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <select
                 value={form.channel_code}
-                onChange={e => setForm(f => ({ ...f, channel_code: e.target.value }))}
+                onChange={e => setForm(f => ({ ...f, channel_code: e.target.value, account_number: "" }))}
                 className="px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400"
               >
+                <option value="" disabled>Pilih Bank...</option>
                 {BANK_OPTIONS.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
               </select>
               <input
                 type="text"
                 placeholder="Nomor rekening"
                 value={form.account_number}
-                onChange={e => setForm(f => ({ ...f, account_number: e.target.value }))}
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, "");
+                  const max = BANK_OPTIONS.find(b => b.code === form.channel_code)?.maxLen || 20;
+                  setForm(f => ({ ...f, account_number: val.slice(0, max) }));
+                }}
                 className="px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400"
               />
               <input
