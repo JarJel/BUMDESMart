@@ -137,7 +137,7 @@ function LoginForm() {
           window.google.accounts.id.renderButton(googleBtnRef.current, {
             theme: "outline",
             size: "large",
-            width: "100%",
+            width: googleBtnRef.current?.offsetWidth || 400,
             text: "continue_with",
           });
         }
