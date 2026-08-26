@@ -92,12 +92,12 @@ class BumdesController extends Controller
         return response()->json(['message' => 'BUMDes berhasil didaftarkan', 'data' => $bumdes->load('user')], 201);
     }
 
-    public function show(BumdesProfile $bumdes)
+    public function show(BumdesProfile $bumde)
     {
-        return response()->json(['data' => $bumdes->load('user', 'requiredDocuments', 'umkmProfiles')]);
+        return response()->json(['data' => $bumde->load('user', 'requiredDocuments', 'umkmProfiles')]);
     }
 
-    public function update(Request $request, BumdesProfile $bumdes)
+    public function update(Request $request, BumdesProfile $bumde)
     {
         $validated = $request->validate([
             'name'        => 'sometimes|string|max:255',
@@ -116,14 +116,14 @@ class BumdesController extends Controller
             $validated['slug'] = Str::slug($validated['name']);
         }
 
-        $bumdes->update($validated);
+        $bumde->update($validated);
 
-        return response()->json(['message' => 'BUMDes berhasil diperbarui', 'data' => $bumdes]);
+        return response()->json(['message' => 'BUMDes berhasil diperbarui', 'data' => $bumde]);
     }
 
-    public function destroy(BumdesProfile $bumdes)
+    public function destroy(BumdesProfile $bumde)
     {
-        $bumdes->delete();
+        $bumde->delete();
 
         return response()->json(['message' => 'BUMDes berhasil dihapus']);
     }
