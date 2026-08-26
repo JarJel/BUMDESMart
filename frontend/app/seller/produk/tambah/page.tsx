@@ -150,6 +150,7 @@ export default function TambahProdukPage() {
     if (!form.category_id) e.category_id = "Kategori wajib dipilih";
     if (!form.description.trim()) e.description = "Deskripsi wajib diisi";
     if (!form.weight || Number(form.weight) <= 0) e.weight = "Berat wajib diisi (gram)";
+    else if (Number(form.weight) > 999999) e.weight = "Berat maksimal 999.999 gram (±1 ton)";
 
     if (form.is_pre_order) {
       if (!form.pre_order_days || Number(form.pre_order_days) < 1) {
@@ -367,7 +368,7 @@ export default function TambahProdukPage() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-700 mb-1.5 block">Berat (gram) <span className="text-red-500">*</span></label>
-                  <input value={form.weight} onChange={setField("weight")} type="number" min="0" placeholder="200"
+                  <input value={form.weight} onChange={setField("weight")} type="number" min="1" max="999999" placeholder="200"
                     className={`w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none focus:border-green-400 ${errors.weight ? "border-red-300" : "border-gray-200"}`} />
                   {errors.weight && <p className="text-xs text-red-500 mt-1">{errors.weight}</p>}
                 </div>
@@ -380,7 +381,7 @@ export default function TambahProdukPage() {
                 {/* Berat tetap ditampilkan */}
                 <div className="max-w-xs">
                   <label className="text-xs font-medium text-gray-700 mb-1.5 block">Berat (gram) <span className="text-red-500">*</span></label>
-                  <input value={form.weight} onChange={setField("weight")} type="number" min="0" placeholder="200"
+                  <input value={form.weight} onChange={setField("weight")} type="number" min="1" max="999999" placeholder="200"
                     className={`w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none focus:border-green-400 ${errors.weight ? "border-red-300" : "border-gray-200"}`} />
                   {errors.weight && <p className="text-xs text-red-500 mt-1">{errors.weight}</p>}
                 </div>

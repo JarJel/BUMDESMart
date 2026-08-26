@@ -80,6 +80,17 @@ function MediaUpload({
 
   const handleFile = async (file: File) => {
     setErr("");
+
+    const MAX_MB = 3;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setErr(`Ukuran file terlalu besar. Maksimal ${MAX_MB}MB.`);
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setErr("Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.");
+      return;
+    }
+
     setPreview(URL.createObjectURL(file));
     setUploading(true);
     try {
@@ -90,7 +101,11 @@ function MediaUpload({
       });
       onDone(res.data.path);
     } catch (e: any) {
-      setErr(e.response?.data?.message ?? "Gagal mengunggah.");
+      const errs = e.response?.data?.errors;
+      const msg = errs
+        ? (Object.values(errs).flat() as string[]).join(", ")
+        : (e.response?.data?.message ?? "Gagal mengunggah. Coba lagi.");
+      setErr(msg);
       setPreview(null);
     } finally {
       setUploading(false);
