@@ -435,10 +435,10 @@ export default function LupaPasswordPage() {
         <div className="w-full max-w-md bg-white rounded-2xl shadow-md border border-gray-100 p-8">
           <div className="flex flex-col items-center mb-6">
             <Link href="/">
-              <img src="/logo.png" alt="BUMDESmart" className="h-14 w-auto" />
+              <img src="/logo.png" alt="BUMDESMARTNUKITA" className="h-14 w-auto" />
             </Link>
             <span className="font-bold text-base mt-1" style={{ color: "var(--primary-dark)" }}>
-              BUMDESmart
+              BUMDESMARTNUKITA
             </span>
           </div>
 

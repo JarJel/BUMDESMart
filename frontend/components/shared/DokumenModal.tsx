@@ -22,13 +22,13 @@ function buildWatermarkUrl(text: string): string {
 export function DokumenModal({ doc, onClose }: Props) {
   const meta = DOKUMEN_META[doc.type as DokumenType];
   const [blurred, setBlurred] = useState(false);
-  const [userLabel, setUserLabel] = useState("BumdesMart User");
+  const [userLabel, setUserLabel] = useState("BUMDESMARTNUKITA User");
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const email = localStorage.getItem("user_email");
     const ts = new Date().toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" });
-    setUserLabel(email ? `${email} · ${ts}` : `Pembeli BumdesMart · ${ts}`);
+    setUserLabel(email ? `${email} · ${ts}` : `Pembeli BUMDESMARTNUKITA · ${ts}`);
   }, []);
 
   // Blur saat user pindah tab

@@ -6,23 +6,23 @@ import { ToastProvider } from "@/components/ui/Toast";
 const geist = { variable: GeistSans.variable, className: GeistSans.className };
 
 export const metadata: Metadata = {
-  title: "BUMDeSMart — Dari Desa, Untuk Semua",
+  title: "BUMDESMARTNUKITA — Dari Desa, Untuk Semua",
   description: "Platform marketplace digital UMKM Desa Lengkong, Kecamatan Bojongsoang, Kabupaten Bandung. Temukan produk lokal berkualitas, dukung ekonomi desa.",
   keywords: ["UMKM desa", "marketplace desa", "BUMDes", "produk lokal", "Lengkong", "Bojongsoang", "Bandung"],
-  authors: [{ name: "BUMDeSMart" }],
+  authors: [{ name: "BUMDESMARTNUKITA" }],
   manifest: "/manifest.json",
   openGraph: {
     type: "website",
     locale: "id_ID",
     url: "https://bumdesmartnukita.com",
-    siteName: "BUMDeSMart",
-    title: "BUMDeSMart — Dari Desa, Untuk Semua",
+    siteName: "BUMDESMARTNUKITA",
+    title: "BUMDESMARTNUKITA — Dari Desa, Untuk Semua",
     description: "Platform marketplace digital UMKM Desa Lengkong. Belanja produk lokal, bayar aman via Midtrans, dukung ekonomi desa.",
-    images: [{ url: "/logo-with-text.png", width: 1200, height: 630, alt: "BUMDeSMart" }],
+    images: [{ url: "/logo-with-text.png", width: 1200, height: 630, alt: "BUMDESMARTNUKITA" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "BUMDeSMart — Dari Desa, Untuk Semua",
+    title: "BUMDESMARTNUKITA — Dari Desa, Untuk Semua",
     description: "Platform marketplace digital UMKM desa. Belanja produk lokal, dukung ekonomi desa.",
     images: ["/logo-with-text.png"],
   },
@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="BUMDeSMart" />
+        <meta name="apple-mobile-web-app-title" content="BUMDESMARTNUKITA" />
         <link rel="apple-touch-icon" href="/logo.png" />
         <link
           rel="stylesheet"

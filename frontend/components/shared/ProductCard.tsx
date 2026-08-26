@@ -38,7 +38,7 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
     imageUrl = `${base}${imageUrl}`;
   }
 
-  const shopName = product.tokNama || product.umkm_profile?.shop_name || "BumdesMart";
+  const shopName = product.tokNama || product.umkm_profile?.shop_name || "BUMDESMARTNUKITA";
   const soldCount = product.sold_count ?? product.terjual ?? 0;
   const activeDiscount = product.active_discount ?? null;
   const finalPrice = activeDiscount

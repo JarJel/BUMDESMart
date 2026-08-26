@@ -70,7 +70,7 @@ export default function LaporanPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Laporan Platform</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Ringkasan data &amp; kinerja seluruh ekosistem BUMDESmart</p>
+          <p className="text-sm text-gray-500 mt-0.5">Ringkasan data &amp; kinerja seluruh ekosistem BUMDESMARTNUKITA</p>
         </div>
         <div className="flex gap-2 shrink-0">
           <button
@@ -78,7 +78,7 @@ export default function LaporanPage() {
               if (!overview) return;
               const year = new Date().getFullYear();
               const rows = [
-                ["Laporan Platform BUMDESmart"],
+                ["Laporan Platform BUMDESMARTNUKITA"],
                 ["Tahun", String(year)],
                 [],
                 ["Ringkasan Pengguna"],

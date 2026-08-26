@@ -413,7 +413,7 @@ export default function BerandaPage() {
             JADI MITRA KAMI DI BUMDESMART
           </h2>
           <p className="text-green-200 text-sm mb-8 leading-relaxed max-w-md mx-auto">
-            Daftarkan bisnis Anda dan jangkau lebih banyak pelanggan. Bersama BumdesMart, UMKM Desa Lengkong semakin maju dan dikenal.
+            Daftarkan bisnis Anda dan jangkau lebih banyak pelanggan. Bersama BUMDESMARTNUKITA, UMKM Desa Lengkong semakin maju dan dikenal.
           </p>
           <Link
             href="/mitra"

@@ -40,7 +40,7 @@ export default function WhatsappAdminPage() {
 
   // Test kirim
   const [testPhone, setTestPhone]     = useState("");
-  const [testMessage, setTestMessage] = useState("Halo! Ini pesan test dari sistem BUMDeSMart.");
+  const [testMessage, setTestMessage] = useState("Halo! Ini pesan test dari sistem BUMDESMARTNUKITA.");
   const [sendingTest, setSendingTest] = useState(false);
 
   const fetchStatus = useCallback(async () => {

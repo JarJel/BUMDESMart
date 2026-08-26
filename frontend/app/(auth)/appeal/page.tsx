@@ -55,9 +55,9 @@ export default function AppealPage() {
         <div className="w-full max-w-md bg-white rounded-2xl shadow-md border border-gray-100 p-8">
           <div className="flex flex-col items-center mb-5">
             <Link href="/">
-              <img src="/logo.png" alt="BUMDESmart" className="h-16 w-auto" />
+              <img src="/logo.png" alt="BUMDESMARTNUKITA" className="h-16 w-auto" />
             </Link>
-            <span className="font-bold text-lg mt-1" style={{ color: "var(--primary-dark)" }}>BUMDESmart</span>
+            <span className="font-bold text-lg mt-1" style={{ color: "var(--primary-dark)" }}>BUMDESMARTNUKITA</span>
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Pengajuan Pengaktifan Akun</h1>

@@ -87,9 +87,9 @@ export default function DaftarPage() {
           {/* Logo */}
           <div className="flex flex-col items-center mb-5">
             <Link href="/">
-              <img src="/logo.png" alt="BUMDESmart" className="h-16 w-auto" />
+              <img src="/logo.png" alt="BUMDESMARTNUKITA" className="h-16 w-auto" />
             </Link>
-            <span className="font-bold text-lg mt-1" style={{ color: "var(--primary-dark)" }}>BUMDESmart</span>
+            <span className="font-bold text-lg mt-1" style={{ color: "var(--primary-dark)" }}>BUMDESMARTNUKITA</span>
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Buat Akun Baru</h1>
@@ -176,7 +176,7 @@ export default function DaftarPage() {
                 <Link href="#" className="font-medium" style={{ color: "var(--primary)" }}>Syarat dan Ketentuan</Link>
                 {" "}serta{" "}
                 <Link href="#" className="font-medium" style={{ color: "var(--primary)" }}>Kebijakan Privasi</Link>
-                {" "}BumdesMart.
+                {" "}BUMDESMARTNUKITA.
               </span>
             </label>
 
