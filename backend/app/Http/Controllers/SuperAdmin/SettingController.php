@@ -3,30 +3,22 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
-use App\Models\PlatformSetting;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 
 class SettingController extends Controller
 {
     public function index()
     {
-        $settings = PlatformSetting::orderBy('group')->orderBy('key')->get();
-
-        $grouped = $settings->groupBy('group')->map(fn($items) => $items->values());
-
-        return response()->json(['data' => $grouped]);
+        return response()->json(['data' => Setting::all()]);
     }
 
     public function update(Request $request)
     {
-        $validated = $request->validate([
-            'settings'       => 'required|array',
-            'settings.*.key' => 'required|string|exists:platform_settings,key',
-            'settings.*.value' => 'nullable|string',
-        ]);
+        $settings = $request->validate(['settings' => 'required|array']);
 
-        foreach ($validated['settings'] as $item) {
-            PlatformSetting::where('key', $item['key'])->update(['value' => $item['value'] ?? '']);
+        foreach ($settings['settings'] as $key => $value) {
+            Setting::where('key', $key)->update(['value' => $value]);
         }
 
         return response()->json(['message' => 'Pengaturan berhasil disimpan.']);

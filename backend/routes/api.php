@@ -314,6 +314,15 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('super-admin')->
     // Pengaturan platform
     Route::get('/settings', [SuperAdminSettingController::class, 'index']);
     Route::put('/settings', [SuperAdminSettingController::class, 'update']);
+
+    // WhatsApp queue management
+    Route::prefix('whatsapp-queue')->group(function () {
+        Route::get('/',      [\App\Http\Controllers\SuperAdmin\WhatsappQueueController::class, 'index']);
+        Route::post('/',     [\App\Http\Controllers\SuperAdmin\WhatsappQueueController::class, 'store']);
+        Route::get('/{whatsappQueue}',    [\App\Http\Controllers\SuperAdmin\WhatsappQueueController::class, 'show']);
+        Route::delete('/{whatsappQueue}', [\App\Http\Controllers\SuperAdmin\WhatsappQueueController::class, 'destroy']);
+    });
+    Route::put('/whatsapp-settings', [\App\Http\Controllers\SuperAdmin\WhatsappQueueController::class, 'updateSettings']);
 });
 
 // Driver routes
