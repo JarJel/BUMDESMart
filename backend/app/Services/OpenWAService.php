@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -12,11 +13,54 @@ use Illuminate\Support\Facades\Log;
  *
  * Env vars yang dibutuhkan:
  *   OPENWA_URL         = http://localhost:2785   (atau URL tunnel Cloudflare)
- *   OPENWA_SESSION_ID  = bumdesmart              (nama session di OpenWA)
+ *   OPENWA_SESSION_ID  = bumdesmart              (nama/label session, BUKAN UUID)
  *   OPENWA_API_KEY     = (API key dari dashboard OpenWA, kosongkan jika belum diset)
+ *
+ * OpenWA API mensyaratkan session diidentifikasi via UUID yang di-generate
+ * server saat create — nama di .env cuma label. resolveSessionId() otomatis
+ * cari UUID berdasarkan nama (atau create baru kalau belum ada), lalu cache.
  */
 class OpenWAService
 {
+    /**
+     * Resolve UUID session OpenWA dari nama/label (config: OPENWA_SESSION_ID).
+     * Auto-create session baru di OpenWA kalau belum ada.
+     */
+    public static function resolveSessionId(): ?string
+    {
+        $baseUrl = rtrim(config('services.openwa.url', 'http://localhost:2785'), '/');
+        $name    = config('services.openwa.session_id', 'bumdesmart');
+        $apiKey  = config('services.openwa.api_key', '');
+        $cacheKey = 'openwa_session_uuid_' . $name;
+
+        return Cache::remember($cacheKey, 3600, function () use ($baseUrl, $name, $apiKey) {
+            $headers = ['Content-Type' => 'application/json'];
+            if ($apiKey) {
+                $headers['x-api-key'] = $apiKey;
+            }
+            $http = Http::withHeaders($headers)->withoutVerifying()->timeout(10);
+
+            // Cari session yang sudah ada dengan nama ini
+            $list = $http->get("{$baseUrl}/api/sessions");
+            if ($list->successful()) {
+                foreach ((array) $list->json() as $session) {
+                    if (($session['name'] ?? null) === $name) {
+                        return $session['id'];
+                    }
+                }
+            }
+
+            // Belum ada — buat session baru
+            $created = $http->post("{$baseUrl}/api/sessions", ['name' => $name]);
+            if ($created->successful()) {
+                return $created->json('id');
+            }
+
+            Log::error('OpenWA gagal resolve/buat session: ' . $created->body());
+            return null;
+        });
+    }
+
     public static function send(string $target, string $message): array
     {
         if (empty($target)) {
@@ -24,8 +68,12 @@ class OpenWAService
         }
 
         $baseUrl   = rtrim(config('services.openwa.url', 'http://localhost:2785'), '/');
-        $sessionId = config('services.openwa.session_id', 'bumdesmart');
+        $sessionId = self::resolveSessionId();
         $apiKey    = config('services.openwa.api_key', '');
+
+        if (!$sessionId) {
+            return ['status' => false, 'error' => 'Gagal resolve session OpenWA.'];
+        }
 
         // Normalise nomor: hilangkan + dan awalan 0, tambah 62
         $phone = preg_replace('/\D/', '', $target);

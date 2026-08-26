@@ -1,0 +1,2 @@
+# Skrip shell WAJIB pakai LF — CRLF bikin shebang rusak saat dijalankan di Linux/Docker
+*.sh text eol=lf

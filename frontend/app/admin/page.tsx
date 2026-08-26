@@ -41,8 +41,8 @@ export default function AdminDashboard() {
       .catch(() => {});
   }, []);
 
-  const reg7       = overview?.recent_registrations ?? [];
-  const monthly    = overview?.monthly_data ?? [];
+  const reg7       = Array.isArray(overview?.recent_registrations) ? overview.recent_registrations : [];
+  const monthly    = Array.isArray(overview?.monthly_data) ? overview.monthly_data : [];
   const CHART_DATA: Record<ChartKey, { label: string; data: number[]; color: string; unit: string; labels: string[] }> = {
     pengguna:        { label: "Pengguna",        data: reg7.length    ? reg7.map((d: any) => d.count)                      : Array(7).fill(0),   color: "#6366f1", unit: "",    labels: reg7.map((d: any) => d.label) },
     pesanan:         { label: "Pesanan",         data: monthly.length ? monthly.map((d: any) => d.orders)                  : Array(12).fill(0), color: "#0ea5e9", unit: "",    labels: months },
