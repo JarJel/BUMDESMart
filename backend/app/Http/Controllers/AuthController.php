@@ -126,9 +126,13 @@ class AuthController extends Controller
             'sim_type.in'              => 'Jenis SIM tidak valid.',
             'id_number.digits'         => 'Nomor KTP harus tepat 16 digit angka.',
             'photo_profile.image'      => 'File foto profil harus berupa gambar.',
+            'photo_profile.mimes'      => 'Format foto profil tidak didukung. Gunakan JPG, PNG, atau WebP.',
             'photo_profile.max'        => 'Ukuran foto profil maksimal 5MB.',
+            'photo_profile.uploaded'   => 'Upload foto profil gagal. Pastikan ukuran file tidak melebihi 5MB.',
             'photo_ktp.image'          => 'File foto KTP harus berupa gambar.',
+            'photo_ktp.mimes'          => 'Format foto KTP tidak didukung. Gunakan JPG, PNG, atau WebP.',
             'photo_ktp.max'            => 'Ukuran foto KTP maksimal 5MB.',
+            'photo_ktp.uploaded'       => 'Upload foto KTP gagal. Pastikan ukuran file tidak melebihi 5MB.',
         ]);
 
         if ($validator->fails()) {
@@ -460,22 +464,37 @@ class AuthController extends Controller
         try {
             $idToken = $request->id_token;
 
-            // 1. Verifikasi token ke Google API
-            $response = Http::when(app()->environment('local'), fn($q) => $q->withoutVerifying())
-                ->get('https://oauth2.googleapis.com/tokeninfo', [
-                    'id_token' => $idToken
-                ]);
-
-            if (!$response->successful()) {
-                return response()->json(['error' => 'Token Google tidak valid.'], 401);
+            // 1. Decode JWT payload lokal (tanpa call ke Google API)
+            $parts = explode('.', $idToken);
+            if (count($parts) !== 3) {
+                return response()->json(['error' => 'Format token tidak valid.'], 401);
             }
 
-            $payload = $response->json();
+            $payloadJson = base64_decode(strtr($parts[1], '-_', '+/'));
+            $payload = json_decode($payloadJson, true);
 
-            // Verifikasi aud (Client ID) jika dikonfigurasi di env
+            if (!$payload) {
+                return response()->json(['error' => 'Token tidak dapat didekode.'], 401);
+            }
+
+            // Validasi issuer
+            if (!in_array($payload['iss'] ?? '', ['accounts.google.com', 'https://accounts.google.com'])) {
+                return response()->json(['error' => 'Token bukan dari Google.'], 401);
+            }
+
+            // Validasi expiry
+            if (($payload['exp'] ?? 0) < time()) {
+                return response()->json(['error' => 'Token Google sudah kedaluwarsa.'], 401);
+            }
+
+            // Validasi audience (Client ID)
             $clientId = env('GOOGLE_CLIENT_ID');
             if ($clientId && $payload['aud'] !== $clientId) {
                 return response()->json(['error' => 'Audience token tidak cocok.'], 401);
+            }
+
+            if (empty($payload['email']) || empty($payload['email_verified'])) {
+                return response()->json(['error' => 'Email Google tidak terverifikasi.'], 401);
             }
 
             $email = $payload['email'];

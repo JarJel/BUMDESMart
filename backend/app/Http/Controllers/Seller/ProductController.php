@@ -240,9 +240,9 @@ class ProductController extends Controller
             }
 
             if ($request->hasFile('images')) {
-                $destinationPath = public_path('uploads/products');
+                $destinationPath = storage_path('app/public/uploads/products');
                 if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0755, true);
+                    mkdir($destinationPath, 0775, true);
                 }
 
                 foreach ($request->file('images') as $index => $file) {
@@ -250,7 +250,7 @@ class ProductController extends Controller
 
                     ProductImage::create([
                         'product_id' => $product->id,
-                        'file_path'  => '/uploads/products/' . $filename,
+                        'file_path'  => 'uploads/products/' . $filename,
                         'is_primary' => $index === 0,
                         'sort_order' => $index,
                     ]);
@@ -507,18 +507,20 @@ class ProductController extends Controller
 
                 // Hapus file dari filesystem dulu
                 foreach ($imagesToDelete as $img) {
-                    if (file_exists(public_path($img->file_path))) {
-                        @unlink(public_path($img->file_path));
-                    }
+                    $p = storage_path('app/public/' . ltrim($img->file_path, '/'));
+                    if (file_exists($p)) @unlink($p);
+                    // fallback ke public/ untuk data lama
+                    $pOld = public_path($img->file_path);
+                    if (file_exists($pOld)) @unlink($pOld);
                 }
                 // Hapus DB record sekaligus (1 query, bukan N)
                 ProductImage::whereIn('id', $deleteIds)->where('product_id', $product->id)->delete();
             }
 
             if ($request->hasFile('images')) {
-                $destinationPath = public_path('uploads/products');
+                $destinationPath = storage_path('app/public/uploads/products');
                 if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0755, true);
+                    mkdir($destinationPath, 0775, true);
                 }
 
                 $currentImagesCount = ProductImage::where('product_id', $product->id)->count();
@@ -528,7 +530,7 @@ class ProductController extends Controller
 
                     ProductImage::create([
                         'product_id' => $product->id,
-                        'file_path'  => '/uploads/products/' . $filename,
+                        'file_path'  => 'uploads/products/' . $filename,
                         'is_primary' => ($currentImagesCount === 0 && $index === 0),
                         'sort_order' => $currentImagesCount + $index,
                     ]);
@@ -671,9 +673,10 @@ class ProductController extends Controller
         try {
             $productImages = ProductImage::where('product_id', $product->id)->get();
             foreach ($productImages as $img) {
-                if (file_exists(public_path($img->file_path))) {
-                    @unlink(public_path($img->file_path));
-                }
+                $p = storage_path('app/public/' . ltrim($img->file_path, '/'));
+                if (file_exists($p)) @unlink($p);
+                $pOld = public_path($img->file_path);
+                if (file_exists($pOld)) @unlink($pOld);
             }
 
             $product->delete();
