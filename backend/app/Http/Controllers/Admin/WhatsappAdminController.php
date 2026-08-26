@@ -62,17 +62,24 @@ class WhatsappAdminController extends Controller
                 return response()->json(['error' => 'Gagal resolve session OpenWA.'], 500);
             }
 
-            // Start session — timeout panjang karena WA butuh waktu inisialisasi
-            $this->openwaHttp()->timeout(60)->post("/api/sessions/{$session}/start");
+            // Cek status session — start hanya jika belum qr_ready/connected
+            $statusRes = $this->openwaHttp()->timeout(10)->get("/api/sessions/{$session}");
+            $status    = $statusRes->json('status') ?? '';
 
-            // Tunggu QR generate, retry sampai 5x dengan jeda 3 detik
+            if (!in_array($status, ['qr_ready', 'CONNECTED', 'connected'])) {
+                $this->openwaHttp()->timeout(60)->post("/api/sessions/{$session}/start");
+                // Tunggu QR generate
+                sleep(5);
+            }
+
+            // Retry ambil QR sampai 5x
             $qr = null;
             for ($i = 0; $i < 5; $i++) {
-                sleep(3);
                 $res  = $this->openwaHttp()->timeout(15)->get("/api/sessions/{$session}/qr");
                 $data = $res->json();
-                $qr   = $data['qr'] ?? $data['data'] ?? null;
+                $qr   = $data['qrCode'] ?? $data['qr'] ?? $data['data'] ?? null;
                 if ($qr) break;
+                sleep(3);
             }
 
             return response()->json(['qr' => $qr, 'timeout' => 60]);
