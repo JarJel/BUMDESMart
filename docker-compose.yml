@@ -32,9 +32,6 @@ services:
     image: dzakiawal24/bumdesmart-backend:latest
     container_name: bumdesmart_be
     restart: unless-stopped
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
     extra_hosts:
       - "oauth2.googleapis.com:142.250.185.74"
       - "www.googleapis.com:142.250.185.74"
@@ -57,9 +54,6 @@ services:
     image: dzakiawal24/bumdesmart-backend:latest
     container_name: bumdesmart_queue
     restart: unless-stopped
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
     extra_hosts:
       - "oauth2.googleapis.com:142.250.185.74"
       - "www.googleapis.com:142.250.185.74"
