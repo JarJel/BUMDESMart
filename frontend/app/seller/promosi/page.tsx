@@ -79,6 +79,17 @@ export default function PromosiPage() {
       toast.error("Kode, nama, dan nilai wajib diisi.");
       return;
     }
+
+    const numValue = Number(form.value);
+    if (form.type === "percentage" && (numValue <= 0 || numValue > 100)) {
+      toast.error("Nilai persentase diskon harus antara 1 hingga 100.");
+      return;
+    }
+    if (form.type === "fixed" && numValue <= 0) {
+      toast.error("Nilai diskon nominal harus lebih dari 0.");
+      return;
+    }
+
     setSaving(true);
     const body: any = {
       code:  form.code.toUpperCase().trim(),

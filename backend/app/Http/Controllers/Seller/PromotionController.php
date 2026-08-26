@@ -39,6 +39,12 @@ class PromotionController extends Controller
             'usage_limit'        => 'nullable|integer|min:1',
         ]);
 
+        $validator->after(function ($validator) use ($request) {
+            if ($request->input('type') === 'percentage' && $request->input('value') > 100) {
+                $validator->errors()->add('value', 'Diskon persentase tidak boleh lebih dari 100%.');
+            }
+        });
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
@@ -74,6 +80,16 @@ class PromotionController extends Controller
             'end_date'           => 'nullable|date|after_or_equal:start_date',
             'usage_limit'        => 'nullable|integer|min:1',
         ]);
+
+        $validator->after(function ($validator) use ($request, $promo) {
+            $type = $request->input('type', $promo->type);
+            // $promo->type might be 'fixed_amount', which doesn't trigger the >100 check.
+            $type = $type === 'fixed_amount' ? 'fixed' : $type; 
+            $value = $request->input('value', $promo->value);
+            if ($type === 'percentage' && $value > 100) {
+                $validator->errors()->add('value', 'Diskon persentase tidak boleh lebih dari 100%.');
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
