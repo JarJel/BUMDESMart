@@ -123,7 +123,7 @@ export default function WishlistPage() {
           const isOutOfStock = product.stock <= 0;
           const storeName = product.umkm_profile?.name_umkm || "Toko BUMDES";
           const storeSlug = slugify(storeName);
-          const imagePath = product.images?.[0]?.image_path ?? product.images?.[0]?.file_path;
+          const imagePath = product.images?.[0]?.image_path ?? (product.images?.[0] as any)?.file_path;
           const imageUrl = getFileUrl(imagePath) ?? "";
 
           return (
