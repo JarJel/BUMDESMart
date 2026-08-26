@@ -135,16 +135,17 @@ class ProfileController extends Controller
 
         try {
             if ($request->hasFile('avatar')) {
-                if ($user->avatar && !str_starts_with($user->avatar, 'http') && file_exists(public_path($user->avatar))) {
-                    @unlink(public_path($user->avatar));
+                if ($user->avatar && !str_starts_with($user->avatar, 'http')) {
+                    $oldFile = storage_path('app/public/' . ltrim($user->avatar, '/'));
+                    if (file_exists($oldFile)) @unlink($oldFile);
                 }
 
                 $file = $request->file('avatar');
-                $destinationPath = public_path('uploads/avatars');
-                if (!file_exists($destinationPath)) mkdir($destinationPath, 0755, true);
+                $destinationPath = storage_path('app/public/uploads/avatars');
+                if (!file_exists($destinationPath)) mkdir($destinationPath, 0775, true);
 
                 $filename = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $destinationPath);
-                $user->avatar = '/uploads/avatars/' . $filename;
+                $user->avatar = 'uploads/avatars/' . $filename;
                 $user->save();
             }
 
@@ -187,16 +188,17 @@ class ProfileController extends Controller
 
         try {
             $profile = $user->umkmProfile;
-            if ($profile->halal_cert && file_exists(public_path($profile->halal_cert))) {
-                @unlink(public_path($profile->halal_cert));
+            if ($profile->halal_cert) {
+                $oldFile = storage_path('app/public/' . ltrim($profile->halal_cert, '/'));
+                if (file_exists($oldFile)) @unlink($oldFile);
             }
 
             $file = $request->file('file');
-            $dir = public_path('uploads/documents');
-            if (!file_exists($dir)) mkdir($dir, 0755, true);
+            $dir = storage_path('app/public/uploads/documents');
+            if (!file_exists($dir)) mkdir($dir, 0775, true);
 
             $filename = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $dir);
-            $path = '/uploads/documents/' . $filename;
+            $path = 'uploads/documents/' . $filename;
             $profile->update(['halal_cert' => $path]);
 
             return response()->json([
@@ -225,16 +227,17 @@ class ProfileController extends Controller
 
         try {
             $profile = $user->umkmProfile;
-            if ($profile->$field && !str_starts_with($profile->$field, 'http') && file_exists(public_path($profile->$field))) {
-                @unlink(public_path($profile->$field));
+            $storagePath = storage_path("app/public/uploads/shop/{$folder}");
+            if ($profile->$field) {
+                $oldFile = storage_path('app/public/' . ltrim($profile->$field, '/'));
+                if (file_exists($oldFile)) @unlink($oldFile);
             }
 
             $file = $request->file('file');
-            $dir = public_path("uploads/shop/{$folder}");
-            if (!file_exists($dir)) mkdir($dir, 0755, true);
+            if (!file_exists($storagePath)) mkdir($storagePath, 0775, true);
 
-            $filename = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $dir);
-            $path = "/uploads/shop/{$folder}/{$filename}";
+            $filename = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $storagePath);
+            $path = "uploads/shop/{$folder}/{$filename}";
             $profile->update([$field => $path]);
 
             return response()->json([

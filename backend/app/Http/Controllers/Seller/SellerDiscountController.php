@@ -76,7 +76,7 @@ class SellerDiscountController extends Controller
             'value'      => 'required|numeric|min:0.01',
             'start_date' => 'nullable|date',
             'end_date'   => 'nullable|date|after_or_equal:start_date',
-            'max_uses'   => 'nullable|integer|min:1',
+            'max_uses'   => 'nullable|integer|min:1|max:2147483647',
         ]);
 
         $product = Product::where('id', $validated['product_id'])
@@ -131,7 +131,7 @@ class SellerDiscountController extends Controller
         if ($discount->used_count > 0) {
             // Sudah pernah dipakai: kunci type dan value
             $validated = $request->validate([
-                'max_uses' => 'nullable|integer|min:' . $discount->used_count,
+                'max_uses' => 'nullable|integer|min:' . $discount->used_count . '|max:2147483647',
                 'end_date' => 'nullable|date',
                 'is_active' => 'sometimes|boolean',
             ]);
@@ -142,7 +142,7 @@ class SellerDiscountController extends Controller
                 'value'      => 'sometimes|numeric|min:0.01',
                 'start_date' => 'nullable|date',
                 'end_date'   => 'nullable|date',
-                'max_uses'   => 'nullable|integer|min:1',
+                'max_uses'   => 'nullable|integer|min:1|max:2147483647',
                 'is_active'  => 'sometimes|boolean',
             ]);
 

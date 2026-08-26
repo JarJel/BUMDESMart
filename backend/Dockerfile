@@ -29,6 +29,10 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 # Izinkan .htaccess override
 RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
+# Naikkan batas upload PHP ke 10MB (default 2MB tidak cukup untuk foto 5MB)
+RUN echo "upload_max_filesize = 10M\npost_max_size = 12M\nmax_execution_time = 120" \
+    > /usr/local/etc/php/conf.d/uploads.ini
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Pakai mirror Aliyun untuk packagist — mirror ini menyimpan file ZIP paket

@@ -59,6 +59,10 @@ class ImageHelper
     {
         $mime = $file->getMimeType() ?? '';
 
+        if (!is_dir($destinationPath)) {
+            mkdir($destinationPath, 0775, true);
+        }
+
         // Non-image → move directly, no conversion
         if (!str_contains($mime, 'image') || str_contains($mime, 'svg') || str_contains($mime, 'xml')) {
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
@@ -66,26 +70,23 @@ class ImageHelper
             return $filename;
         }
 
-        // Target filename (WebP)
-        $filename = time() . '_' . uniqid() . '.webp';
-
-        if (!is_dir($destinationPath)) {
-            mkdir($destinationPath, 0755, true);
-        }
-
         // Already WebP → move directly
         if (str_contains($mime, 'webp')) {
+            $filename = time() . '_' . uniqid() . '.webp';
             $file->move($destinationPath, $filename);
             return $filename;
         }
 
-        // Save original to temp (Laravel local disk)
-        $ext      = $file->extension() ?: 'tmp';
-        $tempPath = $file->storeAs('temp', Str::random(32) . '.' . $ext, 'local');
-
-        $sourceAbs = storage_path('app/' . $tempPath);
+        $filename  = time() . '_' . uniqid() . '.webp';
         $targetAbs = rtrim($destinationPath, '/') . '/' . $filename;
 
+        // Simpan file asli dulu agar langsung bisa diakses
+        $ext      = $file->extension() ?: 'tmp';
+        $tempPath = $file->storeAs('temp', Str::random(32) . '.' . $ext, 'local');
+        $sourceAbs = storage_path('app/' . $tempPath);
+        @copy($sourceAbs, $targetAbs); // file langsung tersedia sebelum konversi
+
+        // Dispatch job untuk convert ke WebP di background
         ProcessImageToWebp::dispatch($sourceAbs, $targetAbs, $quality);
 
         return $filename;

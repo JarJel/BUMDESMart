@@ -55,12 +55,12 @@ class BroadcastController extends Controller
         // Upload multiple foto
         $photoPaths = [];
         if ($request->hasFile('photos')) {
-            $dir = public_path('uploads/broadcasts');
-            if (!file_exists($dir)) mkdir($dir, 0755, true);
+            $dir = storage_path('app/public/uploads/broadcasts');
+            if (!file_exists($dir)) mkdir($dir, 0775, true);
 
             foreach ($request->file('photos') as $file) {
                 $filename    = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $dir);
-                $photoPaths[] = '/uploads/broadcasts/' . $filename;
+                $photoPaths[] = 'uploads/broadcasts/' . $filename;
             }
         }
 
@@ -164,8 +164,10 @@ class BroadcastController extends Controller
         // Hapus foto dari disk
         if ($broadcast->photos) {
             foreach ($broadcast->photos as $path) {
-                $fullPath = public_path($path);
-                if (file_exists($fullPath)) @unlink($fullPath);
+                $p = storage_path('app/public/' . ltrim($path, '/'));
+                if (file_exists($p)) @unlink($p);
+                $pOld = public_path($path);
+                if (file_exists($pOld)) @unlink($pOld);
             }
         }
 
