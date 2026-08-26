@@ -122,12 +122,27 @@ export default function DaftarMerchantPage() {
       setRegistered(true);
     } catch (err: any) {
       const errs = err.response?.data?.errors;
-      if (errs) {
-        toast.error(Object.values(errs).flat().join(", "));
-      } else {
-        toast.error(err.response?.data?.message ?? "Pendaftaran gagal. Coba lagi.");
+      const msg: string = errs
+        ? (Object.values(errs).flat() as string[]).join(", ")
+        : (err.response?.data?.message ?? "Pendaftaran gagal. Coba lagi.");
+
+      const isEmailTaken =
+        msg.toLowerCase().includes("email has already been taken") ||
+        msg.toLowerCase().includes("email sudah");
+
+      if (isEmailTaken) {
+        toast.error("Email ini sudah terdaftar. Silakan masuk ke akun Anda.");
+        router.push("/login");
+        return;
       }
-      setStep(1);
+
+      toast.error(msg);
+      // Kembali ke step bermasalah sesuai field error
+      if (errs && (errs.email || errs.phone || errs.password || errs.name)) {
+        setStep(1);
+      } else if (errs && (errs.shop_name || errs.business_category || errs.description)) {
+        setStep(2);
+      }
     } finally {
       setSubmitting(false);
     }
