@@ -287,6 +287,7 @@ function DiscountModal({
               value={form.max_uses}
               onChange={handleChange}
               min={1}
+              max={2147483647}
               placeholder="Mis: 50, kosongkan = unlimited"
               className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
             />
