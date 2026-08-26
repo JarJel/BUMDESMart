@@ -616,7 +616,7 @@ export default function SellerSummaryPage() {
                       const isTop1 = i === 0, isTop2 = i === 1, isTop3 = i === 2;
                       const medalBg = isTop1 ? "bg-amber-50 border-l-2 border-amber-300" : isTop2 ? "bg-gray-50 border-l-2 border-gray-300" : isTop3 ? "bg-orange-50 border-l-2 border-orange-200" : "";
                       const rankColor = isTop1 ? "text-amber-600" : isTop2 ? "text-gray-500" : isTop3 ? "text-orange-600" : "text-gray-300";
-                      const photoUrl = p.photo ? (p.photo.startsWith("http") ? p.photo : `${process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "")}${p.photo}`) : null;
+                      const photoUrl = getFileUrl(p.photo);
                       return (
                         <div key={p.user_id} className={`flex items-center gap-3 px-5 py-3 ${p.is_me ? "bg-green-50 border-l-2 border-green-500" : medalBg}`}>
                           {/* Rank / medal */}

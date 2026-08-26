@@ -43,7 +43,14 @@ class ImageHelper
         $sourceAbs = storage_path('app/' . $tempPath);
         $targetAbs = Storage::disk('public')->path($targetPath);
 
-        // Dispatch job — background if queue driver != sync, inline otherwise
+        // Copy file asli langsung agar bisa diakses sebelum konversi selesai
+        $targetDir = dirname($targetAbs);
+        if (!is_dir($targetDir)) {
+            mkdir($targetDir, 0775, true);
+        }
+        @copy($sourceAbs, $targetAbs);
+
+        // Dispatch job untuk convert ke WebP di background
         ProcessImageToWebp::dispatch($sourceAbs, $targetAbs, $quality);
 
         return $targetPath;

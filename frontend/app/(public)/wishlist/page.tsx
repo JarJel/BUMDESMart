@@ -5,22 +5,11 @@ import { useEffect, useState } from "react";
 import { wishlistApi, WishlistItemData } from "@/lib/api/wishlist";
 import { cartApi } from "@/lib/api/cart";
 import { useToast } from "@/components/ui/Toast";
+import { getFileUrl } from "@/lib/storage";
 
 function formatRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
 }
-
-const getAssetUrl = (path: string | undefined) => {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-  try {
-    const origin = new URL(apiUrl).origin;
-    return `${origin}${path.startsWith('/') ? '' : '/'}${path}`;
-  } catch (e) {
-    return `http://localhost:8000/${path.startsWith('/') ? path.substring(1) : path}`;
-  }
-};
 
 const slugify = (text: string | undefined) => {
   if (!text) return 'toko';
@@ -134,8 +123,8 @@ export default function WishlistPage() {
           const isOutOfStock = product.stock <= 0;
           const storeName = product.umkm_profile?.name_umkm || "Toko BUMDES";
           const storeSlug = slugify(storeName);
-          const imagePath = product.images?.[0]?.image_path;
-          const imageUrl = getAssetUrl(imagePath);
+          const imagePath = product.images?.[0]?.image_path ?? product.images?.[0]?.file_path;
+          const imageUrl = getFileUrl(imagePath) ?? "";
 
           return (
             <div key={item.id} className="bg-white rounded-xl border border-gray-100 p-4 flex gap-4 items-start relative hover:shadow-sm transition-shadow">
