@@ -87,19 +87,18 @@ class ImageHelper
         $filename  = time() . '_' . uniqid() . '.webp';
         $targetAbs = rtrim($destinationPath, '/') . '/' . $filename;
 
-        // Simpan file asli dulu agar langsung bisa diakses
+        // Simpan file asli dulu di folder yang sama agar dijamin bisa di-write
         $ext      = $file->extension() ?: 'tmp';
-        $tempPath = $file->storeAs('temp', Str::random(32) . '.' . $ext, 'local');
-        if (!$tempPath) {
-            throw new \Exception("storeAs failed. Is storage/app/temp writable?");
-        }
-        $sourceAbs = storage_path('app/' . $tempPath);
+        $tempName = time() . '_' . uniqid() . '_temp.' . $ext;
+        $file->move($destinationPath, $tempName);
+        $sourceAbs = rtrim($destinationPath, '/') . '/' . $tempName;
         
         $copyResult = @copy($sourceAbs, $targetAbs);
         if (!$copyResult) {
             $isWritable = is_writable($destinationPath) ? 'Yes' : 'No';
             throw new \Exception("copy failed from $sourceAbs to $targetAbs. Dest writable? $isWritable. Source exists? " . (file_exists($sourceAbs) ? 'Yes' : 'No'));
         }
+
         // Dispatch job untuk convert ke WebP di background
         ProcessImageToWebp::dispatch($sourceAbs, $targetAbs, $quality);
 
