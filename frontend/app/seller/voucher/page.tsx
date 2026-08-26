@@ -444,6 +444,8 @@ export default function VoucherPage() {
                   value={form.trigger_value}
                   onChange={(e) => set("trigger_value", e.target.value)}
                   placeholder={selectedTrigger.placeholder}
+                  min={1}
+                  max={form.trigger_type === "order_amount" ? 100000000 : 1000}
                   className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
                 />
                 <p className="text-[10px] text-gray-400 mt-1">
