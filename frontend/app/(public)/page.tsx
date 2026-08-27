@@ -291,6 +291,9 @@ export default function BerandaPage() {
               <img src="/images/sponsors/bima.jpeg" alt="BiMA — Kemdiktisaintek" className="h-10 w-auto object-contain" />
             </a>
           </div>
+          <p className="text-center text-xs text-gray-500 mt-5 italic">
+            Program ini dibiayai dari APBN melalui anggaran Kemdiktisaintek
+          </p>
         </div>
       </section>
 
