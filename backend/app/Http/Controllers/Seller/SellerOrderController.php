@@ -25,7 +25,9 @@ class SellerOrderController extends Controller
     private function deliveryMode(Order $order): string
     {
         if ($order->delivery_type === 'pickup') return 'pickup';
-        if (str_starts_with($order->shipping_method ?? '', 'ekspedisi-')) return 'ekspedisi';
+        if ($order->shipping_method && !str_starts_with($order->shipping_method, 'kurir-lokal')) {
+            return 'ekspedisi';
+        }
         return 'kurir_lokal';
     }
 

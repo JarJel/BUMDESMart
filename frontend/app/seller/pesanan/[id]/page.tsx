@@ -46,7 +46,7 @@ interface Order {
 
 function deliveryMode(order: Order): "pickup" | "ekspedisi" | "kurir_lokal" {
   if (order.delivery_type === "pickup") return "pickup";
-  if (order.shipping_method?.startsWith("ekspedisi-")) return "ekspedisi";
+  if (order.shipping_method && !order.shipping_method.startsWith("kurir-lokal")) return "ekspedisi";
   return "kurir_lokal";
 }
 

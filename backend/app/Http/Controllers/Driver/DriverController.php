@@ -159,7 +159,8 @@ class DriverController extends Controller
             ->where('delivery_type', 'delivered')
             ->where(function ($q) {
                 $q->whereNull('shipping_method')
-                  ->orWhere('shipping_method', 'not like', 'ekspedisi-%');
+                  ->orWhere('shipping_method', 'kurir-lokal')
+                  ->orWhere('shipping_method', 'like', 'kurir-lokal-%');
             })
             ->with([
                 'items.product',
@@ -252,10 +253,11 @@ class DriverController extends Controller
                         $q2->where('status', 'confirmed')
                            ->whereNull('driver_id')
                            ->where('delivery_type', 'delivered')
-                           ->where(function ($q3) {
-                               $q3->whereNull('shipping_method')
-                                  ->orWhere('shipping_method', 'not like', 'ekspedisi-%');
-                           });
+                            ->where(function ($q3) {
+                                $q3->whereNull('shipping_method')
+                                   ->orWhere('shipping_method', 'kurir-lokal')
+                                   ->orWhere('shipping_method', 'like', 'kurir-lokal-%');
+                            });
                     })
                   ->orWhere('driver_id', $userId);
             })
@@ -366,7 +368,8 @@ class DriverController extends Controller
             ->where('delivery_type', 'delivered')
             ->where(function ($q) {
                 $q->whereNull('shipping_method')
-                  ->orWhere('shipping_method', 'not like', 'ekspedisi-%');
+                  ->orWhere('shipping_method', 'kurir-lokal')
+                  ->orWhere('shipping_method', 'like', 'kurir-lokal-%');
             })
             ->with(['items.product', 'items.variantOption'])
             ->findOrFail($id);

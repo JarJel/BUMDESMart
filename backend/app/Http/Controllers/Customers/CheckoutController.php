@@ -663,7 +663,7 @@ class CheckoutController extends Controller
                 $shippingCost = 0;
                 if ($deliveryType === 'delivered') {
                     // Kalau FE kirim ongkir dari RajaOngkir (ekspedisi), pakai itu
-                    if ($shippingOverride !== null && str_starts_with($shippingMethodId ?? '', 'ekspedisi-')) {
+                    if ($shippingOverride !== null && !str_starts_with($shippingMethodId ?? '', 'kurir-lokal')) {
                         $shippingCost = $shippingOverride;
                     } else {
                         // Default: hitung via Haversine (kurir lokal)

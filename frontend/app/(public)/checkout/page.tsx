@@ -345,7 +345,7 @@ export default function CheckoutPage() {
         vehicle_type: undefined,
         notes: notes || undefined,
         shipping_method_id: deliveryType === 'delivered' ? selectedShippingId : undefined,
-        shipping_cost_override: (deliveryType === 'delivered' && selectedShippingId?.startsWith('ekspedisi-') && shippingCost !== null)
+        shipping_cost_override: (deliveryType === 'delivered' && selectedShippingId && !selectedShippingId.startsWith('kurir-lokal') && shippingCost !== null)
           ? shippingCost : undefined,
       };
       // Sertakan voucher yang dipilih per toko (format: { umkm_id: voucher_program_id })
