@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { clearAuthCookies } from "@/lib/utils/auth";
 import api from "@/lib/api/axios";
+import { getFileUrl } from "@/lib/storage";
 import { SellerProfileContext, SellerProfileData } from "@/lib/context/sellerProfile";
 import NotificationDropdown from "@/components/shared/NotificationDropdown";
 
@@ -135,14 +136,13 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
     setSidebarOpen(false);
   }, [pathname]);
 
-  useEffect(() => {
+  const fetchSellerProfile = useCallback(() => {
     const token = localStorage.getItem("token");
     if (!token) { router.push("/login"); return; }
 
     api.get('/profile')
       .then(res => {
         const user = res.data.data ?? res.data;
-        // Profile umkm ada di nested umkm_profile
         const umkm = user.umkm_profile ?? user;
         setProfile({
           id: umkm.id,
@@ -155,7 +155,21 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
       })
       .catch(() => { router.push("/login"); })
       .finally(() => setLoadingProfile(false));
-  }, []);
+  }, [router]);
+
+  useEffect(() => {
+    fetchSellerProfile();
+  }, [fetchSellerProfile]);
+
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      fetchSellerProfile();
+    };
+    window.addEventListener("seller-profile-updated", handleProfileUpdate);
+    return () => {
+      window.removeEventListener("seller-profile-updated", handleProfileUpdate);
+    };
+  }, [fetchSellerProfile]);
 
   // Polling jumlah pesanan aktif (pending + sedang dikerjakan) untuk badge sidebar
   useEffect(() => {
@@ -294,7 +308,22 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
           </div>
 
           <div className="border-t border-gray-100 px-4 py-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: "var(--primary)" }}>
+            {profile?.logo ? (
+              <img
+                src={getFileUrl(profile.logo) ?? ""}
+                alt={profile.shop_name}
+                className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-100"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = "flex";
+                }}
+              />
+            ) : null}
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${profile?.logo ? "hidden" : ""}`}
+              style={{ background: "var(--primary)" }}
+            >
               {initials}
             </div>
             <div className="min-w-0">

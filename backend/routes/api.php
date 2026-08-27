@@ -40,6 +40,7 @@ use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Driver\DriverController;
 use App\Http\Controllers\WhatsappController;
+use App\Http\Controllers\SiteVisitController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
@@ -257,6 +258,8 @@ Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('ad
     Route::get('/disbursements', [AdminBalanceController::class, 'disbursements']);
     Route::post('/withdraw', [AdminBalanceController::class, 'withdraw']);
     Route::post('/bank-account', [AdminBalanceController::class, 'saveBankAccount']);
+    Route::get('/umkm-bank-accounts', [AdminBalanceController::class, 'umkmAccounts']);
+    Route::get('/umkm-transactions', [AdminBalanceController::class, 'umkmTransactions']);
 
     // Admin BUMDes - broadcast
     Route::get('/broadcasts', [AdminBroadcastController::class, 'index']);
@@ -349,6 +352,10 @@ Route::middleware(['auth:sanctum', 'role:pengirim'])->prefix('driver')->group(fu
 
 // Public stats (landing page counter)
 Route::get('/stats', [\App\Http\Controllers\PublicStatsController::class, 'index']);
+
+// Tracking kunjungan website (public — dipanggil dari frontend)
+Route::post('/track-visit', [SiteVisitController::class, 'track'])
+    ->middleware('throttle:10,1');
 
 // Public bumdes list (untuk FE pilih bumdes saat daftar mitra)
 Route::get('/bumdes', [SuperAdminBumdesController::class, 'index']);

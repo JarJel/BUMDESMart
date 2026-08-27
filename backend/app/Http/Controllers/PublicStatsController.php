@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\SiteVisit;
 use App\Models\UmkmProfile;
 use App\Models\BumdesProfile;
 use Illuminate\Http\JsonResponse;
@@ -15,10 +16,11 @@ class PublicStatsController extends Controller
     {
         $stats = Cache::remember('public_stats', 300, function () {
             return [
-                'umkm_aktif'       => UmkmProfile::where('status', 'active')->count(),
-                'produk_tersedia'  => Product::where('status', 'active')->count(),
-                'transaksi_selesai'=> Order::whereIn('status', ['delivered', 'completed'])->count(),
-                'desa_binaan'      => BumdesProfile::count(),
+                'umkm_aktif'        => UmkmProfile::where('status', 'active')->count(),
+                'produk_tersedia'   => Product::where('status', 'active')->count(),
+                'transaksi_selesai' => Order::whereIn('status', ['delivered', 'completed'])->count(),
+                'desa_binaan'       => BumdesProfile::count(),
+                'total_pengunjung'  => SiteVisit::count(),
             ];
         });
 

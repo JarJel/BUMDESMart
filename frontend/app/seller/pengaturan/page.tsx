@@ -364,14 +364,20 @@ export default function PengaturanPage() {
               hint="Rasio 1:1 (kotak) · Ideal 400×400px · Maks. 3MB · JPG/PNG/WEBP"
               current={umkmStatus.logo}
               endpoint="/profile/shop/logo"
-              onDone={(path) => setUmkmStatus(prev => prev ? { ...prev, logo: path } : prev)}
+              onDone={(path) => {
+                setUmkmStatus(prev => prev ? { ...prev, logo: path } : prev);
+                window.dispatchEvent(new Event("seller-profile-updated"));
+              }}
             />
             <MediaUpload
               label="Banner Toko"
               hint="Rasio 3:1 (landscape) · Ideal 1200×400px · Maks. 3MB · JPG/PNG/WEBP"
               current={umkmStatus.banner}
               endpoint="/profile/shop/banner"
-              onDone={(path) => setUmkmStatus(prev => prev ? { ...prev, banner: path } : prev)}
+              onDone={(path) => {
+                setUmkmStatus(prev => prev ? { ...prev, banner: path } : prev);
+                window.dispatchEvent(new Event("seller-profile-updated"));
+              }}
             />
           </div>
         </div>

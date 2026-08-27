@@ -38,6 +38,12 @@ function ProdukContent() {
   const [lastPage, setLastPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+  // State untuk variant picker
+  const [variantProduct, setVariantProduct] = useState<any | null>(null);
+  const [selectedOptions, setSelectedOptions] = useState<Record<number, number>>({}); // variantId -> optionId
+  const [variantQty, setVariantQty] = useState(1);
+  const [addingVariant, setAddingVariant] = useState(false);
   
   // State untuk sticky bar keranjang
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -131,6 +137,14 @@ function ProdukContent() {
   };
 
   const handleQuickAdd = async (productId: number) => {
+    const product = products.find(p => p.id === productId);
+    // Produk bervariant → buka picker, jangan langsung add
+    if (product?.has_variant && (product.variants ?? []).length > 0) {
+      setVariantProduct(product);
+      setSelectedOptions({});
+      setVariantQty(1);
+      return;
+    }
     try {
       const res = await cartApi.add(productId, 1, null);
       if (res.data?.success) {
@@ -151,6 +165,79 @@ function ProdukContent() {
       } else {
         toast.error(err.response?.data?.message || "Gagal menambahkan ke keranjang.");
       }
+    }
+  };
+
+  // Dapatkan option yang dipilih dari variant picker
+  const getSelectedOptionId = () => {
+    if (!variantProduct) return null;
+    const variants = variantProduct.variants ?? [];
+    if (variants.length === 0) return null;
+    // Semua variant harus dipilih
+    for (const v of variants) {
+      if (!selectedOptions[v.id]) return null;
+    }
+    // Untuk sekarang ambil option dari variant pertama
+    return selectedOptions[variants[0].id] ?? null;
+  };
+
+  const getSelectedStock = () => {
+    if (!variantProduct) return 0;
+    const variants = variantProduct.variants ?? [];
+    if (variants.length === 0) return 0;
+    const firstVariant = variants[0];
+    const optId = selectedOptions[firstVariant.id];
+    if (!optId) return 0;
+    const opt = (firstVariant.options ?? []).find((o: any) => o.id === optId);
+    return opt?.stock ?? 0;
+  };
+
+  const getSelectedPrice = () => {
+    if (!variantProduct) return 0;
+    const variants = variantProduct.variants ?? [];
+    if (variants.length === 0) return Number(variantProduct.price ?? 0);
+    const firstVariant = variants[0];
+    const optId = selectedOptions[firstVariant.id];
+    if (!optId) {
+      const allOpts = variants.flatMap((v: any) => v.options ?? []);
+      return allOpts.length > 0 ? Math.min(...allOpts.map((o: any) => Number(o.price ?? 0))) : 0;
+    }
+    const opt = (firstVariant.options ?? []).find((o: any) => o.id === optId);
+    return Number(opt?.price ?? 0);
+  };
+
+  const handleAddVariantToCart = async () => {
+    if (!variantProduct) return;
+    const optionId = getSelectedOptionId();
+    if (!optionId) {
+      toast.error("Pilih varian terlebih dahulu.");
+      return;
+    }
+    setAddingVariant(true);
+    try {
+      const res = await cartApi.add(variantProduct.id, variantQty, optionId);
+      if (res.data?.success) {
+        toast.success(`${variantProduct.name} ditambahkan ke keranjang!`);
+        window.dispatchEvent(new Event("cart-updated"));
+        loadCartData();
+        setVariantProduct(null);
+      }
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        setVariantProduct(null);
+        setShowLoginAlert(true);
+      } else if (
+        err.response?.data?.message?.toLowerCase().includes("toko lain") ||
+        err.response?.data?.message?.toLowerCase().includes("beda toko")
+      ) {
+        setPendingProductId(variantProduct.id);
+        setVariantProduct(null);
+        setShowConflictAlert(true);
+      } else {
+        toast.error(err.response?.data?.message || "Gagal menambahkan ke keranjang.");
+      }
+    } finally {
+      setAddingVariant(false);
     }
   };
 
@@ -198,6 +285,101 @@ function ProdukContent() {
 
   return (
     <div style={{ background: "#F4F7F5", minHeight: "100vh", paddingBottom: cartItems.length > 0 ? "96px" : "0" }}>
+
+      {/* ── Modal Pilih Variant ── */}
+      {variantProduct && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.5)" }}
+          onClick={() => setVariantProduct(null)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+              <div className="min-w-0 pr-2">
+                <p className="text-xs text-gray-400 truncate">{variantProduct.umkm_profile?.shop_name}</p>
+                <h3 className="text-sm font-bold text-gray-900 line-clamp-1">{variantProduct.name}</h3>
+              </div>
+              <button onClick={() => setVariantProduct(null)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0 text-gray-500 hover:bg-gray-200">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              {/* Harga tampil */}
+              <p className="text-lg font-bold" style={{ color: "var(--primary)" }}>
+                Rp {getSelectedPrice().toLocaleString("id-ID")}
+                {getSelectedOptionId() && (
+                  <span className="text-xs font-normal text-gray-400 ml-2">Stok: {getSelectedStock()}</span>
+                )}
+              </p>
+
+              {/* Pilih setiap variant */}
+              {(variantProduct.variants ?? []).map((variant: any) => (
+                <div key={variant.id}>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{variant.name}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(variant.options ?? []).filter((o: any) => o.is_active !== false).map((opt: any) => {
+                      const selected = selectedOptions[variant.id] === opt.id;
+                      const outOfStock = (opt.stock ?? 0) <= 0;
+                      return (
+                        <button
+                          key={opt.id}
+                          disabled={outOfStock}
+                          onClick={() => setSelectedOptions(prev => ({ ...prev, [variant.id]: opt.id }))}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                            outOfStock
+                              ? "border-gray-100 text-gray-300 bg-gray-50 cursor-not-allowed"
+                              : selected
+                              ? "border-green-600 text-white"
+                              : "border-gray-200 text-gray-700 hover:border-green-400"
+                          }`}
+                          style={selected && !outOfStock ? { background: "var(--primary)" } : {}}
+                        >
+                          {opt.value}
+                          {outOfStock && <span className="ml-1 text-[10px]">(habis)</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {/* Jumlah */}
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Jumlah</p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setVariantQty(q => Math.max(1, q - 1))}
+                    className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors"
+                  >−</button>
+                  <span className="text-sm font-bold w-5 text-center">{variantQty}</span>
+                  <button
+                    onClick={() => setVariantQty(q => Math.min(getSelectedStock() || 99, q + 1))}
+                    disabled={getSelectedOptionId() !== null && variantQty >= getSelectedStock()}
+                    className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-40"
+                  >+</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Tombol Tambah */}
+            <div className="px-5 pb-5">
+              <button
+                onClick={handleAddVariantToCart}
+                disabled={!getSelectedOptionId() || addingVariant}
+                className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50"
+                style={{ background: "var(--primary)" }}
+              >
+                {addingVariant ? "Menambahkan..." : "+ Tambah ke Keranjang"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Alert Konflik Beda Toko */}
       {showConflictAlert && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => setShowConflictAlert(false)}>

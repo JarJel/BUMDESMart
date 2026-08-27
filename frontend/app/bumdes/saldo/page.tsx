@@ -41,6 +41,37 @@ interface Disbursement {
   created_at: string;
 }
 
+interface UmkmAccountItem {
+  umkm_id: number;
+  shop_name: string;
+  owner_name: string;
+  phone: string;
+  logo: string | null;
+  status: string;
+  channel_code: string;
+  account_number: string;
+  account_name: string;
+  is_active: boolean;
+  available_balance: number;
+  pending_balance: number;
+  withdrawn_total: number;
+}
+
+interface UmkmOrderTx {
+  id: number;
+  order_code: string;
+  total: string;
+  sub_total: string;
+  shipping_cost: string;
+  bumdes_fee: string;
+  status: string;
+  created_at: string;
+  umkm_shop_name: string;
+  umkm_owner_name: string;
+  customer?: { user?: { name: string } };
+  items?: { product?: { name: string } }[];
+}
+
 /* ─── Helpers ────────────────────────────────────────── */
 function rupiah(n: number) {
   return `Rp ${Math.round(n).toLocaleString("id-ID")}`;
@@ -59,6 +90,16 @@ const DISBURSE_STATUS: Record<string, { label: string; cls: string }> = {
   IN_PROCESS: { label: "Diproses",  cls: "bg-blue-50   text-blue-700"   },
 };
 
+const ORDER_STATUS: Record<string, { label: string; cls: string }> = {
+  pending:    { label: "Menunggu",   cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  confirmed:  { label: "Dikonfirmasi", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  processing: { label: "Diproses",   cls: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+  shipping:   { label: "Dikirim",    cls: "bg-purple-50 text-purple-700 border-purple-200" },
+  delivered:  { label: "Sampai",     cls: "bg-teal-50 text-teal-700 border-teal-200" },
+  completed:  { label: "Selesai",    cls: "bg-green-50 text-green-700 border-green-200" },
+  cancelled:  { label: "Dibatalkan", cls: "bg-red-50 text-red-700 border-red-200" },
+};
+
 const TX_TYPE_LABEL: Record<string, string> = {
   seller_fee:  "Fee Seller",
   service_fee: "Fee Layanan",
@@ -69,7 +110,7 @@ const BANKS = [
   "OCBC", "PANIN", "MAYBANK", "BTN", "MEGA", "BUKOPIN", "BJB",
 ];
 
-type Tab = "overview" | "transactions" | "disbursements" | "bank";
+type Tab = "overview" | "transactions" | "disbursements" | "bank" | "umkm_accounts" | "umkm_transactions";
 
 /* ─── Page ───────────────────────────────────────────── */
 export default function SaldoPage() {
@@ -81,6 +122,17 @@ export default function SaldoPage() {
   const [txFilter, setTxFilter] = useState("");
   const [disburseList, setDisburseList] = useState<Disbursement[]>([]);
   const [loading, setLoading] = useState(true);
+
+  /* UMKM Accounts state */
+  const [umkmAccounts, setUmkmAccounts] = useState<UmkmAccountItem[]>([]);
+  const [umkmSearch, setUmkmSearch] = useState("");
+  const [loadingUmkmAcc, setLoadingUmkmAcc] = useState(false);
+
+  /* UMKM Transactions state */
+  const [umkmOrders, setUmkmOrders] = useState<UmkmOrderTx[]>([]);
+  const [selectedUmkmId, setSelectedUmkmId] = useState<string>("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>("");
+  const [loadingOrders, setLoadingOrders] = useState(false);
 
   /* Withdraw modal */
   const [showWithdraw, setShowWithdraw] = useState(false);
@@ -122,12 +174,48 @@ export default function SaldoPage() {
     } catch {}
   }, []);
 
+  const loadUmkmAccounts = useCallback(async () => {
+    setLoadingUmkmAcc(true);
+    try {
+      const r = await api.get("/admin/umkm-bank-accounts");
+      setUmkmAccounts(r.data.data ?? []);
+    } catch {
+      toast.error("Gagal memuat daftar rekening UMKM.");
+    } finally {
+      setLoadingUmkmAcc(false);
+    }
+  }, [toast]);
+
+  const loadUmkmOrders = useCallback(async () => {
+    setLoadingOrders(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedUmkmId) params.append("umkm_id", selectedUmkmId);
+      if (orderStatusFilter) params.append("status", orderStatusFilter);
+      const r = await api.get(`/admin/umkm-transactions?${params.toString()}`);
+      setUmkmOrders(r.data.data?.data ?? []);
+    } catch {
+      toast.error("Gagal memuat transaksi per toko.");
+    } finally {
+      setLoadingOrders(false);
+    }
+  }, [selectedUmkmId, orderStatusFilter, toast]);
+
   useEffect(() => {
     setLoading(true);
     Promise.all([loadBalance(), loadTransactions(), loadDisbursements()]).finally(() => setLoading(false));
   }, [loadBalance, loadTransactions, loadDisbursements]);
 
   useEffect(() => { loadTransactions(); }, [loadTransactions]);
+
+  useEffect(() => {
+    if (tab === "umkm_accounts") {
+      loadUmkmAccounts();
+    } else if (tab === "umkm_transactions") {
+      loadUmkmOrders();
+      if (umkmAccounts.length === 0) loadUmkmAccounts();
+    }
+  }, [tab, loadUmkmAccounts, loadUmkmOrders, umkmAccounts.length]);
 
   /* Withdraw */
   const handleWithdraw = async (e: React.FormEvent) => {
@@ -173,52 +261,54 @@ export default function SaldoPage() {
   };
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: "overview",      label: "Ringkasan"   },
-    { key: "transactions",  label: "Pemasukan"   },
-    { key: "disbursements", label: "Pencairan"   },
-    { key: "bank",          label: "Rekening Bank" },
+    { key: "overview",          label: "Ringkasan"         },
+    { key: "transactions",      label: "Pemasukan Fee"     },
+    { key: "disbursements",     label: "Pencairan BUMDes"  },
+    { key: "umkm_accounts",     label: "Rekening UMKM"     },
+    { key: "umkm_transactions", label: "Transaksi Toko"    },
+    { key: "bank",              label: "Rekening Bank Kita"},
   ];
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl">
+    <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Saldo BUMDes</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Pantau pemasukan dari fee dan ajukan pencairan ke rekening BUMDes.</p>
+          <h1 className="text-xl font-bold text-gray-900">Pencairan Dana &amp; Keuangan BUMDes</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Pantau saldo, ajukan pencairan dana, cek rekening bank mitra UMKM, dan pantau transaksi per toko.</p>
         </div>
         <button
           onClick={() => setShowWithdraw(true)}
           disabled={!balance || balance.available < 10000}
-          className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+          className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed shrink-0 shadow-sm"
           style={{ background: "#2D6A4F" }}
         >
-          Cairkan Saldo
+          Cairkan Saldo BUMDes
         </button>
       </div>
 
       {/* Saldo cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-green-600 rounded-2xl p-5 text-white">
-          <p className="text-xs opacity-75">Saldo Tersedia</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="bg-green-700 rounded-2xl p-5 text-white shadow-sm">
+          <p className="text-xs opacity-75">Saldo BUMDes Tersedia</p>
           <p className="text-2xl font-bold mt-1">{balance ? rupiah(balance.available) : "—"}</p>
-          <p className="text-xs opacity-60 mt-1">Bisa dicairkan sekarang</p>
+          <p className="text-xs opacity-60 mt-1">Siap diajukan pencairan</p>
         </div>
-        <div className="bg-white border border-gray-100 rounded-2xl p-5">
-          <p className="text-xs text-gray-500">Saldo Menunggu</p>
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <p className="text-xs text-gray-500">Saldo Menunggu Selesai</p>
           <p className="text-2xl font-bold text-gray-800 mt-1">{balance ? rupiah(balance.pending) : "—"}</p>
-          <p className="text-xs text-gray-400 mt-1">Belum diselesaikan pembeli</p>
+          <p className="text-xs text-gray-400 mt-1">Menunggu konfirmasi penerimaan pesanan</p>
         </div>
       </div>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl">
+      <div className="flex gap-1 p-1 bg-gray-100/80 rounded-2xl overflow-x-auto">
         {TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
-              tab === t.key ? "bg-white shadow-sm text-gray-900" : "text-gray-400 hover:text-gray-600"
+            className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap transition-all flex-1 text-center ${
+              tab === t.key ? "bg-white shadow-sm text-gray-900 font-bold" : "text-gray-500 hover:text-gray-800"
             }`}
           >
             {t.label}
@@ -368,6 +458,234 @@ export default function SaldoPage() {
                         <p className="text-xs text-gray-400 mt-0.5">{fmtDateTime(d.created_at)}</p>
                       </div>
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${s.cls}`}>{s.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Rekening UMKM */}
+      {tab === "umkm_accounts" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Cari nama toko atau pemilik..."
+                value={umkmSearch}
+                onChange={e => setUmkmSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-green-400"
+              />
+            </div>
+            <button
+              onClick={loadUmkmAccounts}
+              disabled={loadingUmkmAcc}
+              className="px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 shrink-0 flex items-center gap-1.5"
+            >
+              <svg className={`w-3.5 h-3.5 ${loadingUmkmAcc ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900">Rekening Bank Mitra UMKM</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Informasi rekening & saldo seluruh toko UMKM di bawah binaan BUMDes Anda</p>
+              </div>
+              <span className="text-xs font-medium bg-green-50 text-green-700 px-2.5 py-1 rounded-full">
+                {umkmAccounts.length} UMKM
+              </span>
+            </div>
+
+            {loadingUmkmAcc ? (
+              <div className="py-12 text-center text-sm text-gray-400">Memuat data rekening...</div>
+            ) : umkmAccounts.length === 0 ? (
+              <div className="py-12 text-center text-sm text-gray-400">Belum ada mitra UMKM terdaftar.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/70 text-xs text-gray-500 font-semibold">
+                      <th className="text-left px-5 py-3.5">Toko / UMKM</th>
+                      <th className="text-left px-4 py-3.5">Bank</th>
+                      <th className="text-left px-4 py-3.5">No. Rekening</th>
+                      <th className="text-left px-4 py-3.5">Nama Pemilik Rekening</th>
+                      <th className="text-right px-4 py-3.5">Saldo Tersedia</th>
+                      <th className="text-center px-4 py-3.5">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {umkmAccounts
+                      .filter(u =>
+                        u.shop_name.toLowerCase().includes(umkmSearch.toLowerCase()) ||
+                        u.owner_name.toLowerCase().includes(umkmSearch.toLowerCase()) ||
+                        u.account_number.includes(umkmSearch) ||
+                        u.channel_code.toLowerCase().includes(umkmSearch.toLowerCase())
+                      )
+                      .map((u) => {
+                        const hasBank = u.account_number && u.account_number !== "-";
+                        return (
+                          <tr key={u.umkm_id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-600 shrink-0">
+                                  {u.shop_name.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-gray-900 leading-tight truncate">{u.shop_name}</p>
+                                  <p className="text-xs text-gray-400 mt-0.5 truncate">{u.owner_name} {u.phone ? `· ${u.phone}` : ""}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              {hasBank ? (
+                                <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                                  {u.channel_code}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400 italic">Belum diisi</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-4">
+                              {hasBank ? (
+                                <span className="font-mono text-xs font-semibold text-gray-900 bg-gray-50 px-2 py-1 rounded border border-gray-200 select-all">
+                                  {u.account_number}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-4">
+                              <p className="text-xs font-medium text-gray-800">{hasBank ? u.account_name : "—"}</p>
+                            </td>
+                            <td className="px-4 py-4 text-right">
+                              <p className="text-xs font-bold text-green-700">{rupiah(u.available_balance)}</p>
+                              {u.pending_balance > 0 && (
+                                <p className="text-[10px] text-gray-400 mt-0.5">+{rupiah(u.pending_balance)} pending</p>
+                              )}
+                            </td>
+                            <td className="px-4 py-4 text-center">
+                              <button
+                                onClick={() => {
+                                  setSelectedUmkmId(String(u.umkm_id));
+                                  setTab("umkm_transactions");
+                                }}
+                                className="text-xs font-semibold text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100 px-2.5 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1"
+                              >
+                                Transaksi
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Transaksi Per Toko */}
+      {tab === "umkm_transactions" && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto flex-wrap">
+              <label className="text-xs font-semibold text-gray-600 shrink-0">Filter Toko:</label>
+              <select
+                value={selectedUmkmId}
+                onChange={e => setSelectedUmkmId(e.target.value)}
+                className="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus:outline-none focus:border-green-400 font-medium"
+              >
+                <option value="">Semua Toko UMKM</option>
+                {umkmAccounts.map(u => (
+                  <option key={u.umkm_id} value={u.umkm_id}>
+                    {u.shop_name} ({u.owner_name})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+              <label className="text-xs font-semibold text-gray-600 shrink-0">Status:</label>
+              <select
+                value={orderStatusFilter}
+                onChange={e => setOrderStatusFilter(e.target.value)}
+                className="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus:outline-none focus:border-green-400 font-medium"
+              >
+                <option value="">Semua Status</option>
+                <option value="pending">Menunggu</option>
+                <option value="confirmed">Dikonfirmasi</option>
+                <option value="processing">Diproses</option>
+                <option value="shipping">Dikirim</option>
+                <option value="delivered">Sampai</option>
+                <option value="completed">Selesai</option>
+                <option value="cancelled">Dibatalkan</option>
+              </select>
+              <button
+                onClick={loadUmkmOrders}
+                disabled={loadingOrders}
+                className="p-2 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600"
+                title="Refresh"
+              >
+                <svg className={`w-4 h-4 ${loadingOrders ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-900">Histori Transaksi Toko</h2>
+              <span className="text-xs font-medium text-gray-400">{umkmOrders.length} transaksi</span>
+            </div>
+
+            {loadingOrders ? (
+              <div className="py-12 text-center text-sm text-gray-400">Memuat transaksi toko...</div>
+            ) : umkmOrders.length === 0 ? (
+              <div className="py-12 text-center text-sm text-gray-400">Belum ada transaksi pada filter ini.</div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {umkmOrders.map((ord) => {
+                  const s = ORDER_STATUS[ord.status] ?? { label: ord.status, cls: "bg-gray-50 text-gray-600 border-gray-200" };
+                  return (
+                    <div key={ord.id} className="p-4 sm:px-5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50/50 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs font-bold text-gray-900">#{ord.order_code}</span>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${s.cls}`}>
+                            {s.label}
+                          </span>
+                          <span className="text-xs font-bold text-green-800 bg-green-50 px-2 py-0.5 rounded-md">
+                            🏪 {ord.umkm_shop_name}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Pembeli: <span className="font-medium text-gray-700">{ord.customer?.user?.name ?? "Pelanggan"}</span>
+                          {ord.items && ord.items.length > 0 && ` · ${ord.items.map(i => i.product?.name).filter(Boolean).slice(0, 2).join(", ")}${ord.items.length > 2 ? ` (+${ord.items.length - 2} lainnya)` : ""}`}
+                        </p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">{fmtDateTime(ord.created_at)}</p>
+                      </div>
+
+                      <div className="flex sm:flex-col items-end justify-between sm:justify-center border-t sm:border-t-0 pt-2 sm:pt-0 border-gray-100 shrink-0 text-right">
+                        <p className="text-sm font-bold text-gray-900">{rupiah(parseFloat(ord.total))}</p>
+                        {parseFloat(ord.bumdes_fee) > 0 && (
+                          <p className="text-[11px] text-green-700 font-medium">Fee BUMDes: +{rupiah(parseFloat(ord.bumdes_fee))}</p>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

@@ -35,9 +35,11 @@ class CartItem extends Model
 
     /**
      * Dapatkan data varian produk terkait item keranjang belanja ini (jika ada).
+     * Sertakan productVariant agar nama grup (misal: "AYAM", "UKURAN") ikut ter-load.
      */
     public function variant(): BelongsTo
     {
-        return $this->belongsTo(ProductVariantOption::class, 'variant_id');
+        return $this->belongsTo(ProductVariantOption::class, 'variant_id')
+            ->with('productVariant:id,name,product_id');
     }
 }

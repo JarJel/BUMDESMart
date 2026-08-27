@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { cartApi } from "@/lib/api/cart";
 import api from "@/lib/api/axios";
 import { useAuth } from "@/hooks/useAuth";
-import { Store, Package, ShoppingBag, MapPin } from "lucide-react";
+import { Store, Package, ShoppingBag, MapPin, Eye } from "lucide-react";
 import { getFileUrl } from "@/lib/storage";
 
 // ─── Counter animasi count-up ─────────────────────────────────────────────────
@@ -173,6 +173,7 @@ interface PublicStats {
   produk_tersedia: number;
   transaksi_selesai: number;
   desa_binaan: number;
+  total_pengunjung: number;
 }
 
 export default function BerandaPage() {
@@ -180,7 +181,7 @@ export default function BerandaPage() {
   const { user } = useAuth();
   const [tokoUnggulan, setTokoUnggulan] = useState<SellerData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<PublicStats>({ umkm_aktif: 0, produk_tersedia: 0, transaksi_selesai: 0, desa_binaan: 0 });
+  const [stats, setStats] = useState<PublicStats>({ umkm_aktif: 0, produk_tersedia: 0, transaksi_selesai: 0, desa_binaan: 0, total_pengunjung: 0 });
 
   // State untuk sticky bar keranjang
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -405,10 +406,11 @@ export default function BerandaPage() {
               {/* Stat dengan animasi count-up */}
               <div className="grid grid-cols-2 gap-4 shrink-0">
                 {([
-                  { label: "UMKM Aktif",        value: stats.umkm_aktif,        suffix: "+", Icon: Store },
-                  { label: "Produk Tersedia",    value: stats.produk_tersedia,   suffix: "+", Icon: Package },
-                  { label: "Transaksi Selesai",  value: stats.transaksi_selesai, suffix: "+", Icon: ShoppingBag },
-                  { label: "Desa Binaan",        value: stats.desa_binaan,       suffix: "",  Icon: MapPin },
+                  { label: "UMKM Aktif",           value: stats.umkm_aktif,         suffix: "+", Icon: Store },
+                  { label: "Produk Tersedia",       value: stats.produk_tersedia,    suffix: "+", Icon: Package },
+                  { label: "Transaksi Selesai",     value: stats.transaksi_selesai,  suffix: "+", Icon: ShoppingBag },
+                  { label: "Desa Binaan",           value: stats.desa_binaan,        suffix: "",  Icon: MapPin },
+                  { label: "Pengunjung Website",    value: stats.total_pengunjung,   suffix: "+", Icon: Eye },
                 ] as const).map((s) => (
                   <div key={s.label} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5 text-center">
                     <s.Icon className="w-5 h-5 text-green-300 mx-auto mb-1" />

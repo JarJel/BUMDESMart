@@ -117,11 +117,18 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
           }}
           className="absolute bottom-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center text-white shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer border-0"
           style={{ background: "var(--primary)" }}
-          title={`Tambah ${name} ke keranjang`}
+          title={isVariantProduct ? `Pilih varian ${name}` : `Tambah ${name} ke keranjang`}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-          </svg>
+          {isVariantProduct ? (
+            /* Icon "pilih varian" — garis bertingkat */
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h10M4 18h6" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+          )}
         </button>
       )}
     </div>

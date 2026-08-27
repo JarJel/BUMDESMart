@@ -158,4 +158,76 @@ class BalanceController extends Controller
 
         return response()->json(['message' => 'Rekening bank berhasil disimpan.', 'data' => $account], 201);
     }
+
+    // GET /admin/umkm-bank-accounts — lihat no rekening bank seluruh mitra UMKM binaan
+    public function umkmAccounts(Request $request)
+    {
+        $bumdes = $this->getBumdes($request);
+
+        $umkms = \App\Models\UmkmProfile::where('bumdes_profile_id', $bumdes->id)
+            ->select('id', 'shop_name', 'owner_name', 'phone', 'logo', 'status')
+            ->get();
+
+        $umkmIds = $umkms->pluck('id');
+
+        $accounts = UmkmBankAccount::whereIn('owner_id', $umkmIds)
+            ->where('owner_type', 'umkm')
+            ->get()
+            ->keyBy('owner_id');
+
+        $balances = UmkmBalance::whereIn('owner_id', $umkmIds)
+            ->where('owner_type', 'umkm')
+            ->get()
+            ->keyBy('owner_id');
+
+        $data = $umkms->map(function ($u) use ($accounts, $balances) {
+            $acc = $accounts->get($u->id);
+            $bal = $balances->get($u->id);
+
+            return [
+                'umkm_id'        => $u->id,
+                'shop_name'      => $u->shop_name,
+                'owner_name'     => $u->owner_name,
+                'phone'          => $u->phone,
+                'logo'           => $u->logo,
+                'status'         => $u->status,
+                'channel_code'   => $acc?->channel_code ?? '-',
+                'account_number' => $acc?->account_number ?? '-',
+                'account_name'   => $acc?->account_name ?? '-',
+                'is_active'      => (bool) ($acc?->is_active ?? false),
+                'available_balance' => (float) ($bal?->available ?? 0),
+                'pending_balance'   => (float) ($bal?->pending ?? 0),
+                'withdrawn_total'   => (float) ($bal?->withdrawn ?? 0),
+            ];
+        });
+
+        return response()->json(['data' => $data]);
+    }
+
+    // GET /admin/umkm-transactions — transaksi/pesanan per toko UMKM binaan
+    public function umkmTransactions(Request $request)
+    {
+        $bumdes = $this->getBumdes($request);
+
+        $umkmId = $request->query('umkm_id');
+        $status = $request->query('status');
+
+        $query = \App\Models\Order::join('umkm_profiles', 'orders.umkm_profile_id', '=', 'umkm_profiles.id')
+            ->where('umkm_profiles.bumdes_profile_id', $bumdes->id)
+            ->with(['customer.user:id,name', 'items.product:id,name'])
+            ->select('orders.*', 'umkm_profiles.shop_name as umkm_shop_name', 'umkm_profiles.owner_name as umkm_owner_name')
+            ->orderByDesc('orders.created_at');
+
+        if ($umkmId) {
+            $query->where('orders.umkm_profile_id', $umkmId);
+        }
+
+        if ($status) {
+            $query->where('orders.status', $status);
+        }
+
+        $orders = $query->paginate(20);
+
+        return response()->json(['data' => $orders]);
+    }
 }

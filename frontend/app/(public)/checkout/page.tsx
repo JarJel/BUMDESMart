@@ -33,7 +33,14 @@ interface CartItem {
       value: string | number;
     } | null;
   };
-  variant?: { id: number; name?: string; value?: string; price: number | string; stock: number } | null;
+  variant?: {
+    id: number;
+    name?: string;
+    value?: string;
+    price: number | string;
+    stock: number;
+    product_variant?: { id: number; name: string; product_id: number } | null;
+  } | null;
   quantity: number;
 }
 
@@ -119,6 +126,7 @@ export default function CheckoutPage() {
   const [selectedShippingId, setSelectedShippingId] = useState<string>("kurir-lokal");
   const [showAllShipping, setShowAllShipping] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null);
+  const [deletingItem, setDeletingItem] = useState(false);
 
   // Address modal
   const [showModal, setShowModal] = useState(false);
@@ -171,6 +179,7 @@ export default function CheckoutPage() {
   };
 
   const handleRemoveItem = async (itemId: number) => {
+    setDeletingItem(true);
     try {
       const res = await cartApi.remove(itemId);
       if (res.data?.success) {
@@ -180,6 +189,8 @@ export default function CheckoutPage() {
       }
     } catch {
       toast.error("Gagal menghapus produk.");
+    } finally {
+      setDeletingItem(false);
     }
   };
 
@@ -529,7 +540,13 @@ export default function CheckoutPage() {
                             </div>
                             <div className="min-w-0">
                               <p className="text-xs font-semibold text-gray-800 truncate">{item.product?.name}</p>
-                              {item.variant && <p className="text-[10px] text-gray-400 mt-0.5">Varian: {item.variant.value || item.variant.name}</p>}
+                              {item.variant && (
+                                <p className="text-[10px] text-gray-400 mt-0.5">
+                                  {item.variant.product_variant?.name
+                                    ? `${item.variant.product_variant.name}: ${item.variant.value}`
+                                    : (item.variant.value || item.variant.name)}
+                                </p>
+                              )}
                               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                 <p className="text-xs font-bold text-green-600">{formatRupiah(price)}</p>
                                 {hasDiscount && (
@@ -836,7 +853,7 @@ export default function CheckoutPage() {
               {cartItems.map((item) => (
                 <div key={item.id} className="flex justify-between">
                   <span className="line-clamp-1 flex-1 mr-1">
-                    {item.product?.name} {item.variant && `(${item.variant.value || item.variant.name})`} ×{item.quantity}
+                    {item.product?.name} {item.variant && `(${item.variant.product_variant?.name ? `${item.variant.product_variant.name}: ${item.variant.value}` : (item.variant.value || item.variant.name)})`} ×{item.quantity}
                   </span>
                   <span className="shrink-0">{formatRupiah(getProductPrice(item) * item.quantity)}</span>
                 </div>
@@ -909,6 +926,7 @@ export default function CheckoutPage() {
         description="Apakah Anda yakin ingin menghapus produk ini dari daftar pesanan?"
         confirmLabel="Ya, Hapus"
         variant="danger"
+        loading={deletingItem}
         onConfirm={async () => {
           if (confirmRemoveId !== null) {
             await handleRemoveItem(confirmRemoveId);
