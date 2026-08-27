@@ -38,7 +38,6 @@ function PembayaranContent({ onSnapReady }: { onSnapReady?: (cb: () => void) => 
   const [errorMsg, setErrorMsg] = useState("");
   const [bypassing, setBypassing] = useState(false);
 
-  const snapReadyRef    = useRef(false);
   const pendingTokenRef = useRef<string | null>(null);
   const isFinishedRef   = useRef(false);
   const pollRef         = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -97,6 +96,7 @@ function PembayaranContent({ onSnapReady }: { onSnapReady?: (cb: () => void) => 
     });
   }, [orderId, router, toast, startPolling]);
 
+<<<<<<< HEAD
   const handleSnapReady = useCallback(() => {
     snapReadyRef.current = true;
     if (pendingTokenRef.current) {
@@ -109,6 +109,8 @@ function PembayaranContent({ onSnapReady }: { onSnapReady?: (cb: () => void) => 
     onSnapReady?.(handleSnapReady);
   }, [onSnapReady, handleSnapReady]);
 
+=======
+>>>>>>> a5db4e073e8d377c7cfe3908c6873776d33a3539
   useEffect(() => {
     if (!orderId) { setErrorMsg("ID pesanan tidak ditemukan."); setStep("error"); return; }
 
@@ -119,19 +121,33 @@ function PembayaranContent({ onSnapReady }: { onSnapReady?: (cb: () => void) => 
 
         if (data.status === "paid") { router.replace(`/pesanan/${orderId}`); return; }
 
-        const snapToken  = data.snap_token as string | null;
+        const snapToken   = data.snap_token as string | null;
         const fallbackUrl = data.invoice_url as string | null;
         setInvoiceUrl(fallbackUrl);
+        pendingTokenRef.current = snapToken;
 
         if (snapToken) {
-          if (snapReadyRef.current) {
-            openSnap(snapToken);
-          } else {
-            pendingTokenRef.current = snapToken;
-          }
           setStep("snap_pending");
+          // Poll sampai window.snap tersedia (maks 10 detik)
+          let tries = 0;
+          const waitForSnap = setInterval(() => {
+            tries++;
+            if (window.snap) {
+              clearInterval(waitForSnap);
+              openSnap(snapToken);
+            } else if (tries > 20) {
+              clearInterval(waitForSnap);
+              if (fallbackUrl) {
+                window.open(fallbackUrl, "_blank");
+                setStep("redirect");
+                startPolling(Number(orderId));
+              } else {
+                setErrorMsg("Gagal memuat jendela pembayaran.");
+                setStep("error");
+              }
+            }
+          }, 500);
         } else if (fallbackUrl) {
-          // Fallback: buka redirect_url di tab baru
           window.open(fallbackUrl, "_blank");
           setStep("redirect");
           startPolling(Number(orderId));
