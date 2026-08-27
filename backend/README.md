@@ -1,4 +1,4 @@
-﻿# BumDesMartNukita Backend Documentation
+# BumDesMartNukita Backend Documentation
 
 Selamat datang di repositori API Backend BumDesMartNukita. Dokumentasi ini merangkum perubahan, penambahan fitur, dan perbaikan struktur database yang telah dilakukan pada sisi backend.
 

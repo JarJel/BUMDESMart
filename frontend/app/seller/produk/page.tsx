@@ -31,6 +31,7 @@ export default function ProdukPage() {
   const [selected, setSelected] = useState<number[]>([]);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [detailProduct, setDetailProduct] = useState<ProductData | null>(null);
   const toast = useToast();
 
   const fetchProducts = () => {
@@ -143,8 +144,9 @@ export default function ProdukPage() {
                 <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Kategori</th>
                 <th className="text-right px-4 py-3 font-medium">Harga</th>
                 <th className="text-right px-4 py-3 font-medium hidden md:table-cell">Stok</th>
-                <th className="text-center px-4 py-3 font-medium">Status</th>
-                <th className="text-center px-4 py-3 font-medium">Aksi</th>
+                <th className="text-center px-4 py-3 font-medium hidden md:table-cell">Status</th>
+                <th className="text-center px-4 py-3 font-medium hidden md:table-cell">Aksi</th>
+                <th className="text-center px-4 py-3 font-medium md:hidden">Detail</th>
               </tr>
             </thead>
             <tbody>
@@ -203,10 +205,10 @@ export default function ProdukPage() {
                     <td className="px-4 py-3 text-right text-xs hidden md:table-cell">
                       <span className={displayStock === 0 ? "text-red-500 font-medium" : "text-gray-700"}>{displayStock}</span>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center hidden md:table-cell">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeClass}`}>{statusLabel}</span>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center hidden md:table-cell">
                       <div className="flex items-center justify-center gap-1">
                         <Link href={`/seller/produk/${p.id}/edit`} className="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -219,6 +221,11 @@ export default function ProdukPage() {
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
+                    </td>
+                    <td className="px-4 py-3 text-center md:hidden">
+                      <button onClick={() => setDetailProduct(p)} className="px-3 py-1.5 rounded-lg text-gray-600 bg-gray-100 hover:bg-gray-200 text-xs font-medium transition-colors">
+                        Detail
+                      </button>
                     </td>
                   </tr>
                 );
@@ -244,6 +251,52 @@ export default function ProdukPage() {
       onConfirm={handleDelete}
       onClose={() => setConfirmDeleteId(null)}
     />
+
+    {detailProduct && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
+        <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-xl animate-in zoom-in-95 duration-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+              {getImageUrl(detailProduct) ? (
+                <img src={getImageUrl(detailProduct)!} alt={detailProduct.name} className="w-full h-full object-cover" />
+              ) : (
+                <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+              )}
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm line-clamp-2 leading-snug">{detailProduct.name}</h3>
+              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{detailProduct.slug}</p>
+            </div>
+          </div>
+          
+          <div className="mb-5 bg-gray-50 p-3 rounded-xl border border-gray-100">
+            <p className="text-[11px] text-gray-500 mb-1.5 uppercase font-semibold tracking-wider">Status Produk</p>
+            <span className={`text-xs px-2.5 py-1 rounded-full font-medium inline-block ${statusBadge[detailProduct.status] ?? "bg-gray-100 text-gray-500"}`}>
+              {STATUS_MAP[detailProduct.status] ?? detailProduct.status}
+            </span>
+          </div>
+          
+          <div className="flex gap-2">
+            <Link href={`/seller/produk/${detailProduct.id}/edit`} className="flex-1 py-2 text-center text-sm font-semibold text-green-700 bg-green-50 rounded-xl hover:bg-green-100 transition-colors">
+              Edit
+            </Link>
+            <button 
+              onClick={() => {
+                setConfirmDeleteId(detailProduct.id);
+                setDetailProduct(null);
+              }} 
+              className="flex-1 py-2 text-center text-sm font-semibold text-red-700 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+            >
+              Hapus
+            </button>
+          </div>
+          
+          <button onClick={() => setDetailProduct(null)} className="w-full mt-2 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+            Tutup
+          </button>
+        </div>
+      </div>
+    )}
     </>
   );
 }

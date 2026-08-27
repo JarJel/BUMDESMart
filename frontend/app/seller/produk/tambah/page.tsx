@@ -11,9 +11,38 @@ interface Category { id: number; name: string; slug?: string; children?: Categor
 
 interface VariantOptionRow {
   value: string;
+  description: string;
   price: string;
   stock: string;
+  weight: string;
 }
+
+const PREDEFINED_VARIANTS: Record<string, { label: string, value: string, isWeight: boolean }[]> = {
+  makanan_minuman: [
+    { label: "Beda Rasa (Contoh: Pedas, Manis)", value: "Rasa", isWeight: false },
+    { label: "Beda Ukuran/Berat (Contoh: 100gr, 500gr)", value: "Ukuran", isWeight: true },
+    { label: "Beda Paket (Contoh: Paket A, Paket B)", value: "Paket", isWeight: false },
+  ],
+  fashion_kerajinan: [
+    { label: "Beda Ukuran Size (Contoh: S, M, L)", value: "Size", isWeight: false },
+    { label: "Beda Warna (Contoh: Merah, Putih)", value: "Warna", isWeight: false },
+    { label: "Beda Motif (Contoh: Bunga, Garis)", value: "Motif", isWeight: false },
+  ],
+  pertanian_peternakan: [
+    { label: "Beda Berat/Volume (Contoh: 1Kg, 5Kg)", value: "Berat", isWeight: true },
+    { label: "Beda Grade/Kualitas (Contoh: Super, Standar)", value: "Kualitas", isWeight: false },
+  ],
+  jasa: [
+    { label: "Beda Tipe Layanan (Contoh: Basic, Premium)", value: "Tipe", isWeight: false },
+  ]
+};
+
+const DEFAULT_VARIANTS = [
+  { label: "Beda Rasa (Contoh: Pedas, Manis)", value: "Rasa", isWeight: false },
+  { label: "Beda Ukuran/Berat (Contoh: 100gr, 500gr)", value: "Ukuran", isWeight: true },
+  { label: "Beda Warna (Contoh: Merah, Putih)", value: "Warna", isWeight: false },
+  { label: "Beda Paket (Contoh: Paket A, Paket B)", value: "Paket", isWeight: false },
+];
 
 // mapping business_category enum → slug kategori utama yang relevan
 const BUSINESS_CATEGORY_MAP: Record<string, string[]> = {
@@ -81,9 +110,24 @@ export default function TambahProdukPage() {
 
   // Variant state
   const [hasVariant, setHasVariant] = useState(false);
-  const [variantName, setVariantName] = useState("");
+  const [variantType, setVariantType] = useState("");
+  const [isVariantDropdownOpen, setIsVariantDropdownOpen] = useState(false);
+  const variantDropdownRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (variantDropdownRef.current && !variantDropdownRef.current.contains(event.target as Node)) {
+        setIsVariantDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const [customVariantName, setCustomVariantName] = useState("");
+  const [customIsWeight, setCustomIsWeight] = useState(false);
   const [variantOptions, setVariantOptions] = useState<VariantOptionRow[]>([
-    { value: "", price: "", stock: "" },
+    { value: "", description: "", price: "", stock: "", weight: "" },
   ]);
 
   // Foto
@@ -131,8 +175,20 @@ export default function TambahProdukPage() {
   };
 
   // Variant option helpers
+  const getPredefinedOptions = () => {
+    return PREDEFINED_VARIANTS[businessCategory || ""] || DEFAULT_VARIANTS;
+  };
+  
+  const isWeightVariant = () => {
+    if (variantType === "custom") return customIsWeight;
+    const predefined = getPredefinedOptions().find(o => o.value === variantType);
+    return predefined ? predefined.isWeight : false;
+  };
+
+  const finalVariantName = variantType === "custom" ? customVariantName : variantType;
+
   const addOption = () => {
-    setVariantOptions(prev => [...prev, { value: "", price: "", stock: "" }]);
+    setVariantOptions(prev => [...prev, { value: "", description: "", price: "", stock: "", weight: "" }]);
   };
 
   const removeOption = (idx: number) => {
@@ -159,13 +215,16 @@ export default function TambahProdukPage() {
     }
 
     if (hasVariant) {
-      if (!variantName.trim()) e.variant_name = "Nama grup varian wajib diisi";
+      if (!finalVariantName.trim()) e.variant_name = "Nama variasi belum dipilih/diisi";
       const hasEmptyOption = variantOptions.some(opt => !opt.value.trim());
       const hasInvalidPrice = variantOptions.some(opt => !opt.price || Number(opt.price) <= 0);
       const hasInvalidStock = variantOptions.some(opt => opt.stock === "" || Number(opt.stock) < 0);
-      if (hasEmptyOption) e.variant_options = "Semua opsi harus punya nilai";
-      if (hasInvalidPrice) e.variant_price = "Harga setiap opsi harus lebih dari 0";
-      if (hasInvalidStock) e.variant_stock = "Stok setiap opsi tidak boleh negatif";
+      const hasInvalidWeight = isWeightVariant() && variantOptions.some(opt => !opt.weight || Number(opt.weight) <= 0);
+      
+      if (hasEmptyOption) e.variant_options = "Semua pilihan harus punya nama";
+      if (hasInvalidPrice) e.variant_price = "Harga setiap pilihan harus lebih dari 0";
+      if (hasInvalidStock) e.variant_stock = "Stok setiap pilihan tidak boleh negatif";
+      if (hasInvalidWeight) e.variant_weight = "Berat aktual setiap pilihan wajib diisi jika beda ukuran";
     } else {
       if (!form.price || Number(form.price) <= 0) e.price = "Harga harus lebih dari 0";
       if (!form.stock || Number(form.stock) < 0) e.stock = "Stok tidak boleh negatif";
@@ -193,11 +252,15 @@ export default function TambahProdukPage() {
 
     if (hasVariant) {
       fd.append("has_variant", "1");
-      fd.append("variant[name]", variantName);
+      fd.append("variant[name]", finalVariantName);
       variantOptions.forEach((opt, i) => {
         fd.append(`variant[options][${i}][value]`, opt.value);
+        fd.append(`variant[options][${i}][description]`, opt.description);
         fd.append(`variant[options][${i}][price]`, opt.price);
         fd.append(`variant[options][${i}][stock]`, opt.stock);
+        if (isWeightVariant()) {
+          fd.append(`variant[options][${i}][weight]`, opt.weight);
+        }
       });
     } else {
       fd.append("has_variant", "0");
@@ -378,88 +441,203 @@ export default function TambahProdukPage() {
             {/* Variant section */}
             {hasVariant && (
               <div className="space-y-4">
-                {/* Berat tetap ditampilkan */}
-                <div className="max-w-xs">
-                  <label className="text-xs font-medium text-gray-700 mb-1.5 block">Berat (gram) <span className="text-red-500">*</span></label>
-                  <input value={form.weight} onChange={setField("weight")} type="number" min="1" max="999999" placeholder="200"
-                    className={`w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none focus:border-green-400 ${errors.weight ? "border-red-300" : "border-gray-200"}`} />
-                  {errors.weight && <p className="text-xs text-red-500 mt-1">{errors.weight}</p>}
-                </div>
-
-                {/* Variant name */}
-                <div className="bg-green-50/50 rounded-xl border border-green-100 p-4 space-y-4">
-                  <div>
-                    <label className="text-xs font-medium text-gray-700 mb-1.5 block">Nama Grup Varian <span className="text-red-500">*</span></label>
-                    <input
-                      value={variantName}
-                      onChange={e => setVariantName(e.target.value)}
-                      type="text"
-                      placeholder="Contoh: Ukuran, Warna, Rasa"
-                      className={`w-full text-sm border rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:border-green-400 ${errors.variant_name ? "border-red-300" : "border-gray-200"}`}
-                    />
-                    {errors.variant_name && <p className="text-xs text-red-500 mt-1">{errors.variant_name}</p>}
-                  </div>
-
-                  {/* Options list */}
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-[1fr_120px_90px_32px] gap-2 px-1">
-                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Nilai</span>
-                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Harga (Rp)</span>
-                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Stok</span>
-                      <span />
+                
+                {/* Variant name dropdown */}
+                <div className="bg-green-50/50 rounded-2xl border border-green-100 p-5 space-y-5">
+                  <div className="relative" ref={variantDropdownRef}>
+                    <label className="text-sm font-bold text-gray-800 mb-2 block">Produk ini dibedakan berdasarkan apa? <span className="text-red-500">*</span></label>
+                    
+                    <div 
+                      onClick={() => setIsVariantDropdownOpen(!isVariantDropdownOpen)}
+                      className={`w-full text-sm border rounded-xl px-4 py-3 bg-white cursor-pointer flex justify-between items-center transition-colors hover:border-green-300 ${errors.variant_name ? "border-red-300" : "border-gray-200"}`}
+                    >
+                      <span className={variantType ? "text-gray-900 font-medium" : "text-gray-400"}>
+                        {variantType === "custom" 
+                          ? "Beda Lainnya (Ketik Sendiri...)" 
+                          : (getPredefinedOptions().find(o => o.value === variantType)?.label || "-- Pilih Variasi --")}
+                      </span>
+                      <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isVariantDropdownOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                     </div>
 
-                    {variantOptions.map((opt, i) => (
-                      <div key={i} className="grid grid-cols-[1fr_120px_90px_32px] gap-2 items-center">
-                        <input
-                          value={opt.value}
-                          onChange={e => updateOption(i, "value", e.target.value)}
-                          type="text"
-                          placeholder="Contoh: S, M, L"
-                          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-green-400"
-                        />
-                        <input
-                          value={opt.price}
-                          onChange={e => updateOption(i, "price", e.target.value)}
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-green-400"
-                        />
-                        <input
-                          value={opt.stock}
-                          onChange={e => updateOption(i, "stock", e.target.value)}
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-green-400"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeOption(i)}
-                          disabled={variantOptions.length <= 1}
-                          className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
+                    {isVariantDropdownOpen && (
+                      <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2">
+                        <div className="py-1">
+                          {getPredefinedOptions().map(opt => (
+                            <div
+                              key={opt.value}
+                              onClick={() => {
+                                setVariantType(opt.value);
+                                setErrors(prev => ({...prev, variant_name: ""}));
+                                setIsVariantDropdownOpen(false);
+                              }}
+                              className={`px-4 py-3 text-sm cursor-pointer transition-colors ${variantType === opt.value ? "bg-green-50 text-green-700 font-medium" : "text-gray-700 hover:bg-gray-50"}`}
+                            >
+                              {opt.label}
+                            </div>
+                          ))}
+                          <div className="h-px bg-gray-100 my-1"></div>
+                          <div
+                            onClick={() => {
+                              setVariantType("custom");
+                              setErrors(prev => ({...prev, variant_name: ""}));
+                              setIsVariantDropdownOpen(false);
+                            }}
+                            className={`px-4 py-3 text-sm cursor-pointer transition-colors ${variantType === "custom" ? "bg-green-50 text-green-700 font-medium" : "text-gray-700 hover:bg-gray-50"} font-medium text-green-600`}
+                          >
+                            ✨ Beda Lainnya (Ketik Sendiri...)
+                          </div>
+                        </div>
                       </div>
-                    ))}
+                    )}
+                    {errors.variant_name && <p className="text-xs text-red-500 mt-1.5">{errors.variant_name}</p>}
                   </div>
 
-                  {(errors.variant_options || errors.variant_price || errors.variant_stock) && (
-                    <p className="text-xs text-red-500">{errors.variant_options || errors.variant_price || errors.variant_stock}</p>
+                  {variantType === "custom" && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Nama Pembeda <span className="text-red-500">*</span></label>
+                        <input
+                          value={customVariantName}
+                          onChange={e => setCustomVariantName(e.target.value)}
+                          type="text"
+                          placeholder="Contoh: Motif Sablon"
+                          className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 bg-white focus:outline-none focus:border-green-400"
+                        />
+                      </div>
+                      <label className="flex items-start gap-3 p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:border-green-200 transition-colors">
+                        <div className="flex items-center h-5 mt-0.5">
+                          <input
+                            type="checkbox"
+                            checked={customIsWeight}
+                            onChange={(e) => setCustomIsWeight(e.target.checked)}
+                            className="w-4 h-4 text-green-600 rounded focus:ring-green-500 border-gray-300"
+                          />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">Setiap pilihan memiliki berat yang berbeda</p>
+                          <p className="text-xs text-gray-500 mt-0.5">Centang ini jika berat masing-masing pilihan tidak sama (mempengaruhi ongkir).</p>
+                        </div>
+                      </label>
+                    </div>
                   )}
 
-                  {/* Add option button */}
-                  <button
-                    type="button"
-                    onClick={addOption}
-                    className="flex items-center gap-2 text-sm font-medium text-green-700 hover:text-green-800 px-3 py-2 rounded-lg border border-dashed border-green-300 hover:border-green-400 hover:bg-green-50 transition-colors w-full justify-center"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                    Tambah Opsi
-                  </button>
+                  {/* Berat Utama (jika varian bukan berat) */}
+                  {!isWeightVariant() && (
+                    <div className="pt-2 border-t border-green-200/50">
+                      <label className="text-sm font-bold text-gray-800 mb-1.5 block">Berat Utama Produk <span className="text-red-500">*</span></label>
+                      <p className="text-xs text-gray-500 mb-3">Karena pilihan di atas tidak mempengaruhi berat, silakan isi berat produk secara umum di sini.</p>
+                      <div className="max-w-xs relative">
+                        <input value={form.weight} onChange={setField("weight")} type="number" min="1" max="999999" placeholder="200"
+                          className={`w-full text-sm border rounded-xl px-4 py-3 focus:outline-none focus:border-green-400 ${errors.weight ? "border-red-300" : "border-gray-200"}`} />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">Gram</span>
+                      </div>
+                      {errors.weight && <p className="text-xs text-red-500 mt-1">{errors.weight}</p>}
+                    </div>
+                  )}
                 </div>
+
+                {/* Options list as Cards */}
+                {variantType && (
+                  <div className="space-y-4 pt-2">
+                    <h3 className="text-sm font-bold text-gray-800">Daftar Pilihan Produk</h3>
+                    
+                    <div className="space-y-4">
+                      {variantOptions.map((opt, i) => (
+                        <div key={i} className="bg-white border-2 border-gray-100 rounded-2xl p-5 relative shadow-sm hover:border-green-100 transition-colors">
+                          <button
+                            type="button"
+                            onClick={() => removeOption(i)}
+                            disabled={variantOptions.length <= 1}
+                            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                          
+                          <div className="space-y-4 pr-10">
+                            <div>
+                              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Nama Pilihan <span className="text-red-500">*</span></label>
+                              <input
+                                value={opt.value}
+                                onChange={e => updateOption(i, "value", e.target.value)}
+                                type="text"
+                                placeholder="Contoh: Pedas, Manis, dll"
+                                className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:bg-white focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400"
+                              />
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Harga Jual (Rp) <span className="text-red-500">*</span></label>
+                                <input
+                                  value={opt.price}
+                                  onChange={e => updateOption(i, "price", e.target.value)}
+                                  type="number"
+                                  min="0"
+                                  placeholder="0"
+                                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:bg-white focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Jumlah Stok <span className="text-red-500">*</span></label>
+                                <input
+                                  value={opt.stock}
+                                  onChange={e => updateOption(i, "stock", e.target.value)}
+                                  type="number"
+                                  min="0"
+                                  placeholder="0"
+                                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:bg-white focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400"
+                                />
+                              </div>
+                            </div>
+
+                            {isWeightVariant() && (
+                              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Berat Aktual (Gram) <span className="text-red-500">*</span></label>
+                                <div className="relative">
+                                  <input
+                                    value={opt.weight}
+                                    onChange={e => updateOption(i, "weight", e.target.value)}
+                                    type="number"
+                                    min="1"
+                                    placeholder="Contoh: 250"
+                                    className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 bg-green-50/30 focus:bg-white focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400 pr-12"
+                                  />
+                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">Gram</span>
+                                </div>
+                              </div>
+                            )}
+
+                            <div>
+                              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Keterangan Singkat <span className="text-gray-400 font-normal">(Boleh dikosongkan)</span></label>
+                              <input
+                                value={opt.description}
+                                onChange={e => updateOption(i, "description", e.target.value)}
+                                type="text"
+                                placeholder="Opsional..."
+                                className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:bg-white focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {(errors.variant_options || errors.variant_price || errors.variant_stock || errors.variant_weight) && (
+                      <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-100">
+                        {errors.variant_options || errors.variant_price || errors.variant_stock || errors.variant_weight}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={addOption}
+                      className="flex items-center justify-center gap-2 text-sm font-bold text-green-700 hover:text-green-800 px-4 py-3.5 rounded-2xl border-2 border-dashed border-green-300 hover:border-green-400 hover:bg-green-50 transition-colors w-full"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                      Tambah Pilihan Lain
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -528,7 +706,7 @@ export default function TambahProdukPage() {
             </div>
             {hasVariant && variantOptions.length > 0 && (
               <div className="pt-2 border-t border-gray-100">
-                <p className="text-[11px] text-gray-400 mb-1.5">Varian: {variantName || "—"}</p>
+                <p className="text-[11px] text-gray-400 mb-1.5">Varian: {finalVariantName || "—"}</p>
                 <div className="flex flex-wrap gap-1">
                   {variantOptions.filter(o => o.value.trim()).map((o, i) => (
                     <span key={i} className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-green-50 text-green-700 border border-green-200">
