@@ -127,6 +127,7 @@ export default function CheckoutPage() {
   const [showAllShipping, setShowAllShipping] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null);
   const [deletingItem, setDeletingItem] = useState(false);
+  const [updatingQtyId, setUpdatingQtyId] = useState<number | null>(null);
 
   // Address modal
   const [showModal, setShowModal] = useState(false);
@@ -134,8 +135,8 @@ export default function CheckoutPage() {
   const [form, setForm] = useState<typeof EMPTY_FORM>(EMPTY_FORM);
   const [showMap, setShowMap] = useState(false);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [cartRes, addressRes] = await Promise.all([cartApi.get(), addressApi.list()]);
       if (cartRes.data?.success) setCartItems(cartRes.data.data.items || []);
@@ -143,12 +144,12 @@ export default function CheckoutPage() {
         const list: AddressData[] = addressRes.data.data || [];
         setAddresses(list);
         const def = list.find((a) => a.is_default) || list[0];
-        if (def?.id) setSelectedAddressId(def.id);
+        if (def?.id && !selectedAddressId) setSelectedAddressId(def.id);
       }
     } catch {
       toast.error("Gagal memuat data checkout.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -167,14 +168,23 @@ export default function CheckoutPage() {
       toast.warning("Kuantitas melebihi stok yang tersedia.");
       return;
     }
+
+    setUpdatingQtyId(itemId);
+    // Optimistic update
+    setCartItems(prev => prev.map(item => item.id === itemId ? { ...item, quantity: newQty } : item));
+
     try {
       const res = await cartApi.update(itemId, newQty);
       if (res.data?.success) {
-        fetchData();
+        await fetchData(true);
         window.dispatchEvent(new Event("cart-updated"));
       }
     } catch (err: any) {
+      // Rollback on error
+      setCartItems(prev => prev.map(item => item.id === itemId ? { ...item, quantity: currentQty } : item));
       toast.error(err.response?.data?.message || "Gagal memperbarui kuantitas.");
+    } finally {
+      setUpdatingQtyId(null);
     }
   };
 
@@ -558,19 +568,29 @@ export default function CheckoutPage() {
 
                           <div className="flex items-center gap-3 shrink-0">
                             {/* Qty controls */}
-                            <div className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-lg px-2 py-1">
+                            <div className="flex items-center bg-white border border-gray-200 rounded-lg p-0.5 shadow-sm">
                               <button
+                                type="button"
                                 onClick={() => handleUpdateQuantity(item.id, item.quantity, -1, stock)}
-                                disabled={item.quantity <= 1}
-                                className="text-xs text-gray-500 hover:text-gray-800 disabled:opacity-30 cursor-pointer font-bold border-0 bg-transparent"
+                                disabled={item.quantity <= 1 || updatingQtyId === item.id}
+                                aria-label="Kurangi kuantitas"
+                                className="w-7 h-7 flex items-center justify-center text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:scale-95 disabled:opacity-30 disabled:hover:bg-transparent rounded-md cursor-pointer border-0 bg-transparent transition-all"
                               >
                                 −
                               </button>
-                              <span className="text-xs font-semibold text-gray-800 w-4 text-center">{item.quantity}</span>
+                              <div className="w-8 flex items-center justify-center">
+                                {updatingQtyId === item.id ? (
+                                  <div className="w-3.5 h-3.5 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <span className="text-xs font-bold text-gray-800 select-none">{item.quantity}</span>
+                                )}
+                              </div>
                               <button
+                                type="button"
                                 onClick={() => handleUpdateQuantity(item.id, item.quantity, 1, stock)}
-                                disabled={item.quantity >= stock}
-                                className="text-xs text-gray-500 hover:text-gray-800 disabled:opacity-30 cursor-pointer font-bold border-0 bg-transparent"
+                                disabled={item.quantity >= stock || updatingQtyId === item.id}
+                                aria-label="Tambah kuantitas"
+                                className="w-7 h-7 flex items-center justify-center text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:scale-95 disabled:opacity-30 disabled:hover:bg-transparent rounded-md cursor-pointer border-0 bg-transparent transition-all"
                               >
                                 +
                               </button>
