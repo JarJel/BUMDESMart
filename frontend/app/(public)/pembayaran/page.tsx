@@ -27,7 +27,7 @@ const snapUrl = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true"
   ? "https://app.midtrans.com/snap/snap.js"
   : "https://app.sandbox.midtrans.com/snap/snap.js";
 
-function PembayaranContent() {
+function PembayaranContent({ onSnapReady }: { onSnapReady?: (cb: () => void) => void }) {
   const router = useRouter();
   const toast = useToast();
   const searchParams = useSearchParams();
@@ -97,13 +97,17 @@ function PembayaranContent() {
     });
   }, [orderId, router, toast, startPolling]);
 
-  const handleSnapReady = () => {
+  const handleSnapReady = useCallback(() => {
     snapReadyRef.current = true;
     if (pendingTokenRef.current) {
       openSnap(pendingTokenRef.current);
       setStep("snap_pending");
     }
-  };
+  }, [openSnap]);
+
+  useEffect(() => {
+    onSnapReady?.(handleSnapReady);
+  }, [onSnapReady, handleSnapReady]);
 
   useEffect(() => {
     if (!orderId) { setErrorMsg("ID pesanan tidak ditemukan."); setStep("error"); return; }
@@ -299,6 +303,7 @@ function PembayaranContent() {
 
 export default function PembayaranPage() {
   const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY ?? "";
+  const snapReadyCallbackRef = useRef<(() => void) | null>(null);
 
   return (
     <>
@@ -307,13 +312,14 @@ export default function PembayaranPage() {
         data-client-key={clientKey}
         strategy="afterInteractive"
         id="midtrans-snap"
+        onLoad={() => snapReadyCallbackRef.current?.()}
       />
       <Suspense fallback={
         <div className="min-h-[70vh] flex items-center justify-center">
           <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-600" />
         </div>
       }>
-        <PembayaranContent />
+        <PembayaranContent onSnapReady={(cb) => { snapReadyCallbackRef.current = cb; }} />
       </Suspense>
     </>
   );
