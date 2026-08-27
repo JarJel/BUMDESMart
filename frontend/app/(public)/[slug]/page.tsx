@@ -34,11 +34,23 @@ export default function TokoProfilePage({ params }: { params: Promise<{ slug: st
         if (sellerRes.data && sellerRes.data.success) {
           const sellerData = sellerRes.data.data;
           setToko(sellerData);
-          
-          const productRes = await productApi.list({ umkm_id: sellerData.id });
-          if (productRes.data && productRes.data.success) {
-            setProducts(productRes.data.data.data || []);
-          }
+
+          // Load ALL pages produk toko ini (untuk seller detail biasanya jumlah produk sedikit-medium)
+          let allProducts: any[] = [];
+          let page = 1;
+          let lastPage = 1;
+          do {
+            const productRes = await productApi.list({ umkm_id: sellerData.id, page });
+            if (productRes.data && productRes.data.success) {
+              const paginated = productRes.data.data;
+              allProducts = allProducts.concat(paginated?.data ?? []);
+              lastPage = paginated?.last_page ?? 1;
+              page++;
+            } else {
+              break;
+            }
+          } while (page <= lastPage && page <= 10); // Cap max 10 halaman
+          setProducts(allProducts);
         }
       } catch (err) {
         console.error("Gagal memuat data toko:", err);

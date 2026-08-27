@@ -51,6 +51,29 @@ export default function ProfilPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
 
+  // States for delete account
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await authApi.deleteAccount({
+        password: deletePassword,
+        confirmation: deleteConfirm,
+      });
+      toast.success("Akun berhasil dihapus.");
+      localStorage.removeItem("token");
+      logout();
+      router.push("/");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Gagal menghapus akun.");
+      setDeletingAccount(false);
+    }
+  };
+
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -603,23 +626,99 @@ export default function ProfilPage() {
           )}
 
           {tab === "Keamanan" && (
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <h2 className="font-semibold text-gray-900 mb-5">Ubah Kata Sandi</h2>
-              <div className="space-y-4">
-                {["Kata Sandi Lama", "Kata Sandi Baru", "Konfirmasi Kata Sandi Baru"].map((f) => (
-                  <div key={f}>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">{f}</label>
-                    <input type="password" placeholder="••••••••" className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2" style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties} />
-                  </div>
-                ))}
-                <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90" style={{ background: "var(--primary)" }}>
-                  Update Kata Sandi
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl border border-gray-100 p-5">
+                <h2 className="font-semibold text-gray-900 mb-5">Ubah Kata Sandi</h2>
+                <div className="space-y-4">
+                  {["Kata Sandi Lama", "Kata Sandi Baru", "Konfirmasi Kata Sandi Baru"].map((f) => (
+                    <div key={f}>
+                      <label className="block text-xs font-medium text-gray-600 mb-1.5">{f}</label>
+                      <input type="password" placeholder="••••••••" className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2" style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties} />
+                    </div>
+                  ))}
+                  <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90" style={{ background: "var(--primary)" }}>
+                    Update Kata Sandi
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border border-red-100 p-5">
+                <h2 className="font-semibold text-red-600 mb-2">Hapus Akun</h2>
+                <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                  Menghapus akun akan menghapus semua data pribadi Anda. Tindakan ini tidak dapat dibatalkan.
+                </p>
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700"
+                >
+                  Hapus Akun Saya
                 </button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Modal Hapus Akun */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => !deletingAccount && setShowDeleteModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center mb-4">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+                <svg className="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-1">Yakin Hapus Akun?</h3>
+            <p className="text-sm text-gray-500 text-center mb-5 leading-relaxed">
+              Semua data pribadi Anda akan dihapus permanen dan tidak dapat dikembalikan.
+            </p>
+            <div className="space-y-3 mb-5">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Password Anda</label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={e => setDeletePassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Ketik <span className="font-bold text-red-600">HAPUS AKUN SAYA</span> untuk konfirmasi
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirm}
+                  onChange={e => setDeleteConfirm(e.target.value)}
+                  placeholder="HAPUS AKUN SAYA"
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deletingAccount}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 disabled:opacity-60"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount || deleteConfirm !== "HAPUS AKUN SAYA"}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-60"
+              >
+                {deletingAccount ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={deleteAddrId !== undefined}

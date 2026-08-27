@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/shop/banner', [ProfileController::class, 'updateShopBanner']);
     Route::post('/profile/shop/halal-cert', [ProfileController::class, 'updateHalalCert']);
     Route::match(['put', 'post'], '/profile/password', [ProfileController::class, 'changePassword']);
+    Route::delete('/profile', [ProfileController::class, 'destroy']);
     Route::put('/seller/reapply', [ProfileController::class, 'reapplyRequest']);
     Route::get('/seller/balance', [ProfileController::class, 'sellerBalance']);
     Route::post('/logout', [AuthController::class, 'logout']);

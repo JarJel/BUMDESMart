@@ -45,4 +45,7 @@ export const authApi = {
 
   loginWithGoogle: (idToken: string) =>
     api.post('/login/google', { id_token: idToken }),
+
+  deleteAccount: (data: { password: string; confirmation: string }) =>
+    api.delete('/profile', { data }),
 }

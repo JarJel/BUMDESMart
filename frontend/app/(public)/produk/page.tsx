@@ -34,6 +34,9 @@ function ProdukContent() {
   const [showConflictAlert, setShowConflictAlert] = useState(false);
   const [pendingProductId, setPendingProductId] = useState<number | null>(null);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   
   // State untuk sticky bar keranjang
@@ -87,10 +90,30 @@ function ProdukContent() {
 
   useEffect(() => {
     setLoading(true);
-    productApi.list({ search: query || undefined }).then(res => {
-      setProducts(res.data.data?.data ?? []);
+    setCurrentPage(1);
+    productApi.list({ search: query || undefined, page: 1 }).then(res => {
+      const paginated = res.data.data;
+      setProducts(paginated?.data ?? []);
+      setLastPage(paginated?.last_page ?? 1);
     }).catch(() => setProducts([])).finally(() => setLoading(false));
   }, [query]);
+
+  const loadMore = async () => {
+    if (loadingMore || currentPage >= lastPage) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = currentPage + 1;
+      const res = await productApi.list({ search: query || undefined, page: nextPage });
+      const paginated = res.data.data;
+      setProducts(prev => [...prev, ...(paginated?.data ?? [])]);
+      setCurrentPage(nextPage);
+      setLastPage(paginated?.last_page ?? nextPage);
+    } catch {
+      // fail silently
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     const catParam = searchParams?.get("kategori");
@@ -349,16 +372,30 @@ function ProdukContent() {
                 <p className="font-medium text-sm">Tidak ada produk yang sesuai pencarian atau filter</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-                {filtered.map((p) => (
-                  <ProductCard
-                    key={p.id}
-                    product={p}
-                    compact
-                    onAddToCart={handleQuickAdd}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {filtered.map((p) => (
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      compact
+                      onAddToCart={handleQuickAdd}
+                    />
+                  ))}
+                </div>
+                {currentPage < lastPage && (
+                  <div className="flex justify-center mt-6">
+                    <button
+                      onClick={loadMore}
+                      disabled={loadingMore}
+                      className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                      style={{ background: "var(--primary)" }}
+                    >
+                      {loadingMore ? "Memuat..." : `Muat Lebih Banyak (${currentPage}/${lastPage})`}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

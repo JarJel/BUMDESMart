@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class ProfileController extends Controller
@@ -323,6 +324,80 @@ class ProfileController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengubah kata sandi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function destroy(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'password'     => 'required_without:google_auth|string',
+            'confirmation' => 'required|in:HAPUS AKUN SAYA',
+        ], [
+            'confirmation.in' => 'Ketik "HAPUS AKUN SAYA" untuk konfirmasi.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Cek password kalau bukan Google-only login
+        if ($user->password && !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Password salah.',
+            ], 422);
+        }
+
+        // Cegah UMKM aktif hapus akun kalau masih ada order pending/processing
+        if ($user->role === 'umkm' && $user->umkmProfile) {
+            $activeOrders = DB::table('orders')
+                ->where('umkm_profile_id', $user->umkmProfile->id)
+                ->whereIn('status', ['pending', 'processing', 'shipped'])
+                ->count();
+
+            if ($activeOrders > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Masih ada {$activeOrders} pesanan aktif. Selesaikan semua pesanan sebelum hapus akun.",
+                ], 422);
+            }
+        }
+
+        // Cegah customer hapus akun kalau ada order aktif
+        if ($user->role === 'customer' && $user->customer) {
+            $activeOrders = DB::table('orders')
+                ->where('customer_id', $user->customer->id)
+                ->whereIn('status', ['pending', 'processing', 'shipped'])
+                ->count();
+
+            if ($activeOrders > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Masih ada {$activeOrders} pesanan aktif. Selesaikan atau batalkan pesanan sebelum hapus akun.",
+                ], 422);
+            }
+        }
+
+        try {
+            DB::transaction(function () use ($user) {
+                // Hapus semua tokens Sanctum
+                $user->tokens()->delete();
+
+                // Soft delete user — data lain di-cascade sesuai FK
+                $user->delete();
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Akun berhasil dihapus.',
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus akun: ' . $e->getMessage(),
             ], 500);
         }
     }
