@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Migrations\Migration;
@@ -23,7 +23,7 @@ return new class extends Migration
 
         // Seed default settings
         DB::table('platform_settings')->insert([
-            ['key' => 'platform_name',      'value' => 'BUMDESMart',                        'label' => 'Nama Platform',           'group' => 'general',      'created_at' => now(), 'updated_at' => now()],
+            ['key' => 'platform_name',      'value' => 'BumDesMartNukita',                        'label' => 'Nama Platform',           'group' => 'general',      'created_at' => now(), 'updated_at' => now()],
             ['key' => 'platform_tagline',   'value' => 'Platform Digital UMKM BUMDes',      'label' => 'Tagline Platform',        'group' => 'general',      'created_at' => now(), 'updated_at' => now()],
             ['key' => 'platform_email',     'value' => '',                                   'label' => 'Email Kontak Platform',   'group' => 'general',      'created_at' => now(), 'updated_at' => now()],
             ['key' => 'platform_phone',     'value' => '',                                   'label' => 'Nomor Telepon Platform',  'group' => 'general',      'created_at' => now(), 'updated_at' => now()],

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import ApexChart from "@/components/shared/ApexChart";
@@ -163,10 +163,10 @@ export default function BumdesDashboard() {
         ))}
       </div>
 
-      {/* Dampak BUMDESMart */}
+      {/* Dampak BumDesMartNukita */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-sm font-semibold text-gray-900">Dampak BUMDESMart</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Dampak BumDesMartNukita</h2>
           <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold">Kumulatif</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Helpers;
 
@@ -28,7 +28,7 @@ class WaNotification
              . "Total: *{$rp}*\n\n"
              . "Segera konfirmasi pesanan melalui dashboard seller:\n"
              . "{$url}\n\n"
-             . "_BUMDeSMart_";
+             . "_BumDesMartNukita_";
         self::dispatch($phone, $msg);
     }
 
@@ -40,7 +40,7 @@ class WaNotification
              . "Pesananmu *#{$orderCode}* sudah dikonfirmasi oleh penjual dan sedang disiapkan. ✅\n\n"
              . "Pantau status pesanan di sini:\n"
              . "{$url}\n\n"
-             . "_BUMDeSMart_";
+             . "_BumDesMartNukita_";
         self::dispatch($phone, $msg);
     }
 
@@ -53,7 +53,7 @@ class WaNotification
              . "Silakan datang ke toko dan tunjukkan kode pesanan ini.\n\n"
              . "Detail pesanan:\n"
              . "{$url}\n\n"
-             . "_BUMDeSMart_";
+             . "_BumDesMartNukita_";
         self::dispatch($phone, $msg);
     }
 
@@ -66,7 +66,7 @@ class WaNotification
              . "No. Resi: *{$trackingNumber}*\n\n"
              . "Cek status pengiriman:\n"
              . "{$url}\n\n"
-             . "_BUMDeSMart_";
+             . "_BumDesMartNukita_";
         self::dispatch($phone, $msg);
     }
 
@@ -79,7 +79,7 @@ class WaNotification
              . "Kurir: *{$driverName}*\n\n"
              . "Siap-siap menerima ya. Pantau di sini:\n"
              . "{$url}\n\n"
-             . "_BUMDeSMart_";
+             . "_BumDesMartNukita_";
         self::dispatch($phone, $msg);
     }
 
@@ -92,7 +92,7 @@ class WaNotification
              . "Jangan lupa konfirmasi penerimaan dan beri ulasan untuk penjual ya.\n\n"
              . "Buka pesanan:\n"
              . "{$url}\n\n"
-             . "_BUMDeSMart_";
+             . "_BumDesMartNukita_";
         self::dispatch($phone, $msg);
     }
 }

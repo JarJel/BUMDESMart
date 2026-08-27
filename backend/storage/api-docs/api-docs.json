@@ -1,14 +1,14 @@
-{
+﻿{
     "openapi": "3.0.0",
     "info": {
-        "title": "BUMDESMart API",
-        "description": "Dokumentasi API BUMDESMart - Platform Digital UMKM Desa Lengkong",
+        "title": "BumDesMartNukita API",
+        "description": "Dokumentasi API BumDesMartNukita - Platform Digital UMKM Desa Lengkong",
         "version": "1.0.0"
     },
     "servers": [
         {
             "url": "http://localhost:8000/api/v1",
-            "description": "BUMDESMart Local API Server"
+            "description": "BumDesMartNukita Local API Server"
         }
     ],
     "paths": {
@@ -33,7 +33,7 @@
                                     "email": {
                                         "type": "string",
                                         "format": "email",
-                                        "example": "umkm@bumdesmart.id"
+                                        "example": "umkm@BumDesMartNukita.id"
                                     },
                                     "password": {
                                         "type": "string",

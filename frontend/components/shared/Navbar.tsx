@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -245,8 +245,8 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-1.5 shrink-0">
-            <img src="/logo.png" alt="BUMDESMARTNUKITA" className="h-9 w-auto" />
-            <span className="text-base font-bold hidden sm:block" style={{ color: "var(--primary-dark)" }}>BUMDESMARTNUKITA</span>
+            <img src="/logo.png" alt="BumDesMartNukita" className="h-9 w-auto" />
+            <span className="text-base font-bold hidden sm:block" style={{ color: "var(--primary-dark)" }}>BumDesMartNukita</span>
           </Link>
 
           {/* Search Form */}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -229,7 +229,7 @@ export default function NotifikasiPage() {
             )}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Lihat semua pemberitahuan dan status transaksi Anda di BUMDESMart
+            Lihat semua pemberitahuan dan status transaksi Anda di BumDesMartNukita
           </p>
         </div>
 

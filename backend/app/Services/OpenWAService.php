@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Services;
 
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
  *
  * Env vars yang dibutuhkan:
  *   OPENWA_URL         = http://localhost:2785   (atau URL tunnel Cloudflare)
- *   OPENWA_SESSION_ID  = bumdesmart              (nama/label session, BUKAN UUID)
+ *   OPENWA_SESSION_ID  = BumDesMartNukita              (nama/label session, BUKAN UUID)
  *   OPENWA_API_KEY     = (API key dari dashboard OpenWA, kosongkan jika belum diset)
  *
  * OpenWA API mensyaratkan session diidentifikasi via UUID yang di-generate
@@ -29,7 +29,7 @@ class OpenWAService
     public static function resolveSessionId(): ?string
     {
         $baseUrl = rtrim(config('services.openwa.url', 'http://localhost:2785'), '/');
-        $name    = config('services.openwa.session_id', 'bumdesmart');
+        $name    = config('services.openwa.session_id', 'BumDesMartNukita');
         $apiKey  = config('services.openwa.api_key', '');
         $cacheKey = 'openwa_session_uuid_' . $name;
 

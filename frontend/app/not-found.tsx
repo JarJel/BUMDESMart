@@ -1,9 +1,9 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 export default function NotFound() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center" style={{ background: "#F0FDF4" }}>
-      <img src="/logo.png" alt="BUMDESMARTNUKITA" className="h-16 w-auto mb-6 opacity-60" />
+      <img src="/logo.png" alt="BumDesMartNukita" className="h-16 w-auto mb-6 opacity-60" />
       <p className="text-8xl font-black mb-2" style={{ color: "#2D6A4F", letterSpacing: "-4px" }}>404</p>
       <h1 className="text-xl font-bold text-gray-800 mb-2">Halaman Tidak Ditemukan</h1>
       <p className="text-sm text-gray-500 max-w-xs mb-8">

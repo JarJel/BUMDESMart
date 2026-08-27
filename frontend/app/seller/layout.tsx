@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -230,8 +230,8 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-2">
             <div>
               <div className="flex items-center gap-1.5">
-                <img src="/logo.png" alt="BUMDESMart" className="h-8 w-auto" />
-                <span className="font-bold text-sm" style={{ color: "var(--primary-dark)" }}>BUMDESMart</span>
+                <img src="/logo.png" alt="BumDesMartNukita" className="h-8 w-auto" />
+                <span className="font-bold text-sm" style={{ color: "var(--primary-dark)" }}>BumDesMartNukita</span>
               </div>
               <p className="text-xs text-gray-400 mt-1">Portal Penjual</p>
             </div>

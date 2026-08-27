@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -109,7 +109,7 @@ class WebhookController extends Controller
                     $sellerPhone = $order->umkmProfile->user->phone;
                 }
                 if ($sellerPhone) {
-                    $sellerName = $order->umkmProfile->owner_name ?? $order->umkmProfile->user?->name ?? 'Mitra BUMDeSMart';
+                    $sellerName = $order->umkmProfile->owner_name ?? $order->umkmProfile->user?->name ?? 'Mitra BumDesMartNukita';
                     \App\Helpers\WaNotification::orderMasukSeller($sellerPhone, $sellerName, $order->order_code, (int) $order->total);
                 }
 

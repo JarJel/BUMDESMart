@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Mail;
 
@@ -33,7 +33,7 @@ class AccountSuspendedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Pemberitahuan: Akun BUMDESMart Anda Ditangguhkan',
+            subject: 'Pemberitahuan: Akun BumDesMartNukita Anda Ditangguhkan',
         );
     }
 

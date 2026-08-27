@@ -1,4 +1,4 @@
-# BUMDeSMart — Local Development Setup
+﻿# BumDesMartNukita — Local Development Setup
 
 Panduan menjalankan aplikasi di lokal dengan **Midtrans Sandbox** dan **Google OAuth**.
 
@@ -15,8 +15,8 @@ Panduan menjalankan aplikasi di lokal dengan **Midtrans Sandbox** dan **Google O
 ### 1. Clone repo & masuk direktori
 
 ```bash
-git clone https://github.com/JarJel/BUMDESMart.git
-cd BUMDESMart
+git clone https://github.com/JarJel/BumDesMartNukita.git
+cd BumDesMartNukita
 ```
 
 ### 2. Setup file `.env`
@@ -150,7 +150,7 @@ Reference lengkap: https://docs.midtrans.com/docs/testing-payment-on-sandbox
 - Backend key **harus match** dengan frontend key (keduanya Sandbox atau keduanya Production)
 - Cek `backend/.env` dan root `.env`:
   ```bash
-  docker exec bumdesmart_be grep -i midtrans /var/www/html/.env
+  docker exec BumDesMartNukita_be grep -i midtrans /var/www/html/.env
   ```
 
 ### `npm ci` gagal saat build (DNS error `EAI_AGAIN`)

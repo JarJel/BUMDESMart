@@ -1,4 +1,4 @@
-# BUMDESMart
+﻿# BumDesMartNukita
 
 Platform Digital BUMDes untuk Meningkatkan Layanan Pemasaran UMKM  
 Desa Lengkong, Kecamatan Bojongsoang, Kabupaten Bandung.
@@ -6,7 +6,7 @@ Desa Lengkong, Kecamatan Bojongsoang, Kabupaten Bandung.
 ## Struktur Repo (Monorepo)
 
 ```
-BUMDESMart/
+BumDesMartNukita/
 ├── backend/    → Laravel 13 (REST API)
 └── frontend/   → Next.js 14 (React)
 ```

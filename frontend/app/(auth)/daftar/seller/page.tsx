@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -208,12 +208,12 @@ export default function DaftarMerchantPage() {
           </Link>
 
           <div className="flex flex-col items-center mb-5">
-            <img src="/logo.png" alt="BUMDESMARTNUKITA" className="h-14 w-auto" />
-            <span className="font-bold text-base mt-1" style={{ color: "var(--primary-dark)" }}>BUMDESMARTNUKITA</span>
+            <img src="/logo.png" alt="BumDesMartNukita" className="h-14 w-auto" />
+            <span className="font-bold text-base mt-1" style={{ color: "var(--primary-dark)" }}>BumDesMartNukita</span>
           </div>
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Daftar Jadi Mitra</h1>
-            <p className="text-sm text-gray-500 mt-1">Bergabunglah dan jual produk desa Anda di BUMDESMARTNUKITA.</p>
+            <p className="text-sm text-gray-500 mt-1">Bergabunglah dan jual produk desa Anda di BumDesMartNukita.</p>
           </div>
 
           <StepIndicator current={step} />
@@ -407,7 +407,7 @@ export default function DaftarMerchantPage() {
                   <Link href="#" className="font-semibold text-green-700 hover:underline">Syarat dan Ketentuan</Link>
                   {" "}serta{" "}
                   <Link href="#" className="font-semibold text-green-700 hover:underline">Kebijakan Privasi</Link>
-                  {" "}mitra BUMDESMARTNUKITA.
+                  {" "}mitra BumDesMartNukita.
                 </span>
               </label>
 

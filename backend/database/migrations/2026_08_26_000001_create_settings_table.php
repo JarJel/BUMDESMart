@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -18,7 +18,7 @@ return new class extends Migration
 
         // Default settings
         DB::table('settings')->insert([
-            ['key' => 'site_name',        'value' => 'BUMDeSMart',              'description' => 'Nama platform',             'created_at' => now(), 'updated_at' => now()],
+            ['key' => 'site_name',        'value' => 'BumDesMartNukita',              'description' => 'Nama platform',             'created_at' => now(), 'updated_at' => now()],
             ['key' => 'site_tagline',     'value' => 'Dari Desa, Untuk Semua',  'description' => 'Tagline platform',          'created_at' => now(), 'updated_at' => now()],
             ['key' => 'contact_email',    'value' => 'bumdesmart00@gmail.com',   'description' => 'Email kontak resmi',        'created_at' => now(), 'updated_at' => now()],
             ['key' => 'contact_phone',    'value' => '',                         'description' => 'Nomor telepon kontak',      'created_at' => now(), 'updated_at' => now()],

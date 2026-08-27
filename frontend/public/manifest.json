@@ -1,6 +1,6 @@
-{
-  "name": "BUMDESMARTNUKITA — Dari Desa, Untuk Semua",
-  "short_name": "BUMDESMARTNUKITA",
+﻿{
+  "name": "BumDesMartNukita — Dari Desa, Untuk Semua",
+  "short_name": "BumDesMartNukita",
   "description": "Platform marketplace digital UMKM desa. Temukan produk lokal, belanja mudah, bayar aman via Midtrans.",
   "start_url": "/",
   "display": "standalone",

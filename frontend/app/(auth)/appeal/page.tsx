@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -55,9 +55,9 @@ export default function AppealPage() {
         <div className="w-full max-w-md bg-white rounded-2xl shadow-md border border-gray-100 p-8">
           <div className="flex flex-col items-center mb-5">
             <Link href="/">
-              <img src="/logo.png" alt="BUMDESMARTNUKITA" className="h-16 w-auto" />
+              <img src="/logo.png" alt="BumDesMartNukita" className="h-16 w-auto" />
             </Link>
-            <span className="font-bold text-lg mt-1" style={{ color: "var(--primary-dark)" }}>BUMDESMARTNUKITA</span>
+            <span className="font-bold text-lg mt-1" style={{ color: "var(--primary-dark)" }}>BumDesMartNukita</span>
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Pengajuan Pengaktifan Akun</h1>
@@ -82,7 +82,7 @@ export default function AppealPage() {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  placeholder="Email yang terdaftar di BUMDESMart"
+                  placeholder="Email yang terdaftar di BumDesMartNukita"
                   className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
                   required
                 />

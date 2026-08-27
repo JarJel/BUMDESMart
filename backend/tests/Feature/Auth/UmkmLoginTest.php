@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace Tests\Feature\Auth;
 
@@ -17,7 +17,7 @@ class UmkmLoginTest extends TestCase
         // 1. Create UMKM user and profile
         $user = User::create([
             'name'              => 'Mang Asep',
-            'email'             => 'umkm@bumdesmart.id',
+            'email'             => 'umkm@BumDesMartNukita.id',
             'password'          => 'password123',
             'role'              => 'umkm',
             'phone'             => '081234567890',
@@ -39,7 +39,7 @@ class UmkmLoginTest extends TestCase
 
         // 2. Send login request to API
         $response = $this->postJson('/api/v1/login', [
-            'email'    => 'umkm@bumdesmart.id',
+            'email'    => 'umkm@BumDesMartNukita.id',
             'password' => 'password123',
         ]);
 
@@ -60,7 +60,7 @@ class UmkmLoginTest extends TestCase
             ]);
 
         $this->assertEquals('umkm', $response->json('role'));
-        $this->assertEquals('umkm@bumdesmart.id', $response->json('user.email'));
+        $this->assertEquals('umkm@BumDesMartNukita.id', $response->json('user.email'));
     }
 
     public function test_umkm_cannot_login_with_invalid_password(): void
@@ -68,7 +68,7 @@ class UmkmLoginTest extends TestCase
         // Create UMKM user
         User::create([
             'name'              => 'Mang Asep',
-            'email'             => 'umkm@bumdesmart.id',
+            'email'             => 'umkm@BumDesMartNukita.id',
             'password'          => 'password123',
             'role'              => 'umkm',
             'phone'             => '081234567890',
@@ -78,7 +78,7 @@ class UmkmLoginTest extends TestCase
 
         // Send invalid login request
         $response = $this->postJson('/api/v1/login', [
-            'email'    => 'umkm@bumdesmart.id',
+            'email'    => 'umkm@BumDesMartNukita.id',
             'password' => 'wrong-password',
         ]);
 
@@ -93,7 +93,7 @@ class UmkmLoginTest extends TestCase
         // Create inactive UMKM user
         User::create([
             'name'              => 'Mang Asep',
-            'email'             => 'umkm@bumdesmart.id',
+            'email'             => 'umkm@BumDesMartNukita.id',
             'password'          => 'password123',
             'role'              => 'umkm',
             'phone'             => '081234567890',
@@ -103,7 +103,7 @@ class UmkmLoginTest extends TestCase
 
         // Send login request
         $response = $this->postJson('/api/v1/login', [
-            'email'    => 'umkm@bumdesmart.id',
+            'email'    => 'umkm@BumDesMartNukita.id',
             'password' => 'password123',
         ]);
 

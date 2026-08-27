@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Admin;
 
@@ -233,7 +233,7 @@ class BroadcastController extends Controller
             <span style="background:#D1FAE5;color:#065F46;font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;">{$categoryLabel}</span>
             <div style="margin-top:16px;line-height:1.7;color:#374151;">{$contentHtml}</div>
             <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;">
-            <p style="font-size:11px;color:#9ca3af;">Pesan ini dikirim oleh {$bumdesName} melalui platform BUMDESMart.</p>
+            <p style="font-size:11px;color:#9ca3af;">Pesan ini dikirim oleh {$bumdesName} melalui platform BumDesMartNukita.</p>
           </div>
         </body>
         </html>

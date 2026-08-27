@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { StarIcon } from "@/components/ui/StarIcon";
@@ -29,7 +29,7 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
     null;
   const imageUrl = getFileUrl(rawImagePath) ?? "";
 
-  const shopName = product.tokNama || product.umkm_profile?.shop_name || "BUMDESMARTNUKITA";
+  const shopName = product.tokNama || product.umkm_profile?.shop_name || "BumDesMartNukita";
   const soldCount = product.sold_count ?? product.terjual ?? 0;
   const activeDiscount = product.active_discount ?? null;
   const finalPrice = activeDiscount

@@ -1,17 +1,17 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
 use OpenApi\Attributes as OA;
 
 #[OA\Info(
-    title: "BUMDESMart API",
+    title: "BumDesMartNukita API",
     version: "1.0.0",
-    description: "Dokumentasi API BUMDESMart - Platform Digital UMKM Desa Lengkong"
+    description: "Dokumentasi API BumDesMartNukita - Platform Digital UMKM Desa Lengkong"
 )]
 #[OA\Server(
     url: "http://localhost:8000/api/v1",
-    description: "BUMDESMart Local API Server"
+    description: "BumDesMartNukita Local API Server"
 )]
 #[OA\SecurityScheme(
     securityScheme: "sanctum",

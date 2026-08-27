@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Customers;
 
@@ -10,7 +10,7 @@ use Exception;
 class ProductSearchController extends Controller
 {
     /**
-     * Live search autocomplete untuk Produk BUMDESMart.
+     * Live search autocomplete untuk Produk BumDesMartNukita.
      */
     public function search(Request $request)
     {

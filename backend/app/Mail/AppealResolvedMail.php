@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Mail;
 
@@ -31,8 +31,8 @@ class AppealResolvedMail extends Mailable
     public function envelope(): Envelope
     {
         $subject = $this->appeal->status === 'approved' 
-            ? 'Pengajuan Anda Disetujui: Akun BUMDESMart Telah Aktif Kembali'
-            : 'Informasi Terkait Pengajuan Pengaktifan Akun BUMDESMart Anda';
+            ? 'Pengajuan Anda Disetujui: Akun BumDesMartNukita Telah Aktif Kembali'
+            : 'Informasi Terkait Pengajuan Pengaktifan Akun BumDesMartNukita Anda';
             
         return new Envelope(
             subject: $subject,

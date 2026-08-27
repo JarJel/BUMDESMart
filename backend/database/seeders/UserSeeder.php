@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace Database\Seeders;
 
@@ -13,7 +13,7 @@ class UserSeeder extends Seeder
     {
         // Super Admin
         User::firstOrCreate(
-            ['email' => 'superadmin@bumdesmart.id'],
+            ['email' => 'superadmin@BumDesMartNukita.id'],
             [
                 'name'              => 'Super Admin',
                 'password'          => 'password123',
@@ -25,7 +25,7 @@ class UserSeeder extends Seeder
 
         // Admin BUMDes
         $adminUser = User::firstOrCreate(
-            ['email' => 'bumdes@bumdesmart.id'],
+            ['email' => 'bumdes@BumDesMartNukita.id'],
             [
                 'name'              => 'Admin BUMDes',
                 'password'          => 'password123',
@@ -46,7 +46,7 @@ class UserSeeder extends Seeder
                 'province'    => 'Jawa Barat',
                 'postal_code' => '43157',
                 'phone'       => '081234567891',
-                'email'       => 'sukamaju@bumdesmart.id',
+                'email'       => 'sukamaju@BumDesMartNukita.id',
                 'description' => 'Badan Usaha Milik Desa Sukamaju yang mandiri dan berdaya saing.',
                 'status'      => 'active',
             ]
@@ -54,7 +54,7 @@ class UserSeeder extends Seeder
 
         // UMKM
         $umkmUser = User::firstOrCreate(
-            ['email' => 'umkm@bumdesmart.id'],
+            ['email' => 'umkm@BumDesMartNukita.id'],
             [
                 'name'              => 'Mang Asep',
                 'password'          => 'password123',
@@ -82,7 +82,7 @@ class UserSeeder extends Seeder
 
         // UMKM 2 (Bu Eti)
         $umkmUser2 = User::firstOrCreate(
-            ['email' => 'bueti@bumdesmart.id'],
+            ['email' => 'bueti@BumDesMartNukita.id'],
             [
                 'name'              => 'Bu Eti',
                 'password'          => 'password123',
@@ -110,7 +110,7 @@ class UserSeeder extends Seeder
 
         // Customer
         $customerUser = User::firstOrCreate(
-            ['email' => 'customer@bumdesmart.id'],
+            ['email' => 'customer@BumDesMartNukita.id'],
             [
                 'name'              => 'Budi Santoso',
                 'password'          => 'password123',
@@ -132,7 +132,7 @@ class UserSeeder extends Seeder
 
         // Pengirim
         User::firstOrCreate(
-            ['email' => 'pengirim@bumdesmart.id'],
+            ['email' => 'pengirim@BumDesMartNukita.id'],
             [
                 'name'              => 'Andi Pengirim',
                 'password'          => 'password123',

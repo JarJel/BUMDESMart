@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
@@ -59,7 +59,7 @@ export default function WhatsappAdminPage() {
   const [loadingQr, setLoadingQr]     = useState(false);
   const [acting, setActing]           = useState<string | null>(null);
   const [testPhone, setTestPhone]     = useState("");
-  const [testMsg, setTestMsg]         = useState("Halo! Ini pesan test dari sistem BUMDESMARTNUKITA.");
+  const [testMsg, setTestMsg]         = useState("Halo! Ini pesan test dari sistem BumDesMartNukita.");
   const [sendingTest, setSendingTest] = useState(false);
 
   /* antrian */

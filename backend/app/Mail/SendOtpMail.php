@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Mail;
 
@@ -28,7 +28,7 @@ class SendOtpMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Kode OTP Reset Password BUMDESMart',
+            subject: 'Kode OTP Reset Password BumDesMartNukita',
         );
     }
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -29,7 +29,7 @@
             <p>Keputusan ini bersifat final. Jika Anda memiliki pertanyaan lebih lanjut, silakan hubungi tim dukungan kami.</p>
         @endif
 
-        <p>Tim BUMDESMart</p>
+        <p>Tim BumDesMartNukita</p>
     </div>
 </body>
 </html>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
@@ -228,7 +228,7 @@ export default function DaftarKurirPage() {
               <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
                 <Bike className="w-6 h-6 text-white" strokeWidth={1.5} />
               </div>
-              <h1 className="text-2xl font-bold leading-tight mb-2">Jadi Kurir<br />BUMDESMARTNUKITA</h1>
+              <h1 className="text-2xl font-bold leading-tight mb-2">Jadi Kurir<br />BumDesMartNukita</h1>
               <p className="text-orange-100 text-sm leading-relaxed">
                 Antar produk UMKM desa, bantu warga, dan dapatkan penghasilan tambahan yang fleksibel.
               </p>
@@ -658,7 +658,7 @@ export default function DaftarKurirPage() {
                   </div>
 
                   <p className="text-center text-xs text-gray-400">
-                    Dengan mendaftar, kamu menyetujui syarat & ketentuan kurir BUMDESMARTNUKITA.
+                    Dengan mendaftar, kamu menyetujui syarat & ketentuan kurir BumDesMartNukita.
                     Akun aktif setelah diverifikasi admin BUMDes (1–2 hari kerja).
                   </p>
                 </div>

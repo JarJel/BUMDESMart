@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
@@ -435,10 +435,10 @@ export default function BerandaPage() {
       >
         <div className="max-w-2xl mx-auto text-center relative z-10">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 leading-tight">
-            JADI MITRA KAMI DI BUMDESMART
+            JADI MITRA KAMI DI BumDesMartNukita
           </h2>
           <p className="text-green-200 text-sm mb-8 leading-relaxed max-w-md mx-auto">
-            Daftarkan bisnis Anda dan jangkau lebih banyak pelanggan. Bersama BUMDESMARTNUKITA, UMKM Desa Lengkong semakin maju dan dikenal.
+            Daftarkan bisnis Anda dan jangkau lebih banyak pelanggan. Bersama BumDesMartNukita, UMKM Desa Lengkong semakin maju dan dikenal.
           </p>
           <Link
             href="/mitra"

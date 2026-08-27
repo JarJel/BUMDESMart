@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -44,7 +44,7 @@ class SentryWebhookController extends Controller
         $culprit = $eventData['culprit'] ?? 'Unknown Culprit';
         $level = $eventData['level'] ?? 'error';
         $environment = $eventData['environment'] ?? 'production';
-        $projectSlug = $data['data']['project'] ?? $eventData['project'] ?? 'BUMDESMart';
+        $projectSlug = $data['data']['project'] ?? $eventData['project'] ?? 'BumDesMartNukita';
         $url = $eventData['web_url'] ?? $data['url'] ?? '';
 
         // Emoji mapping

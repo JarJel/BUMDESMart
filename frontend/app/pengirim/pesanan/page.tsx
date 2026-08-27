@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -285,7 +285,7 @@ export default function PengirimPesananPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation(); // Mencegah terpicunya navigasi detail
-                          openWA(order.pickup_from?.phone, `Halo, saya kurir BUMDESMart untuk pesanan #${order.order_code}. Saya sedang dalam perjalanan ke toko.`);
+                          openWA(order.pickup_from?.phone, `Halo, saya kurir BumDesMartNukita untuk pesanan #${order.order_code}. Saya sedang dalam perjalanan ke toko.`);
                         }}
                         disabled={!order.pickup_from?.phone}
                         className="flex-shrink-0 w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center disabled:opacity-30"
@@ -308,7 +308,7 @@ export default function PengirimPesananPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation(); // Mencegah terpicunya navigasi detail
-                          openWA(order.deliver_to?.phone, `Halo ${order.deliver_to?.recipient_name ?? ""}, saya kurir BUMDESMart. Sedang mengantarkan pesanan #${order.order_code}. Bisa konfirmasi alamat? Terima kasih.`);
+                          openWA(order.deliver_to?.phone, `Halo ${order.deliver_to?.recipient_name ?? ""}, saya kurir BumDesMartNukita. Sedang mengantarkan pesanan #${order.order_code}. Bisa konfirmasi alamat? Terima kasih.`);
                         }}
                         disabled={!order.deliver_to?.phone}
                         className="flex-shrink-0 w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center disabled:opacity-30"

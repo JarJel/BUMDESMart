@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 const sellerSteps = [
   {
@@ -71,13 +71,13 @@ const testimonials = [
     nama: "Ibu Siti Rahayu",
     peran: "Penjual Keripik, Jawa Barat",
     initial: "S",
-    kutipan: "Dulu saya hanya berjualan di pasar lokal. Sejak bergabung di BUMDESMARTNUKITA, produk saya dikenal sampai ke luar kota. Penjualan naik 3 kali lipat dalam 5 bulan pertama.",
+    kutipan: "Dulu saya hanya berjualan di pasar lokal. Sejak bergabung di BumDesMartNukita, produk saya dikenal sampai ke luar kota. Penjualan naik 3 kali lipat dalam 5 bulan pertama.",
   },
   {
     nama: "Pak Budi Santoso",
     peran: "Pengrajin Anyaman, Jawa Tengah",
     initial: "B",
-    kutipan: "Saya dulu tidak mengerti teknologi. Tapi tim BUMDESMARTNUKITA sangat sabar membantu saya setup toko online. Sekarang sudah bisa terima pesanan sendiri dari HP.",
+    kutipan: "Saya dulu tidak mengerti teknologi. Tapi tim BumDesMartNukita sangat sabar membantu saya setup toko online. Sekarang sudah bisa terima pesanan sendiri dari HP.",
   },
 ];
 
@@ -96,7 +96,7 @@ export default function MitraPage() {
               Program Unggulan Desa Digital
             </span>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 leading-tight">
-              Bergabung bersama <span style={{ color: "var(--primary)" }}>BUMDESMARTNUKITA</span>
+              Bergabung bersama <span style={{ color: "var(--primary)" }}>BumDesMartNukita</span>
             </h1>
             <p className="text-sm text-gray-500 max-w-lg mx-auto">
               Pilih peran yang paling sesuai denganmu. Dua cara berbeda untuk ikut membangun ekosistem desa digital.
@@ -213,11 +213,11 @@ export default function MitraPage() {
         </div>
       </section>
 
-      {/* ===== KENAPA BUMDESMART ===== */}
+      {/* ===== KENAPA BumDesMartNukita ===== */}
       <section className="py-16 px-4" style={{ background: "#F4F7F5" }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Kenapa Pilih BUMDESMARTNUKITA?</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Kenapa Pilih BumDesMartNukita?</h2>
             <p className="text-sm text-gray-500">Platform yang dirancang khusus untuk UMKM desa</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -339,7 +339,7 @@ export default function MitraPage() {
         <div className="max-w-xl mx-auto text-center">
           <h2 className="text-2xl font-bold text-white mb-3">Siap Bergabung?</h2>
           <p className="text-green-200 text-sm mb-7 leading-relaxed">
-            Pilih jalurmu dan mulai berkontribusi untuk ekosistem UMKM desa bersama BUMDESMARTNUKITA.
+            Pilih jalurmu dan mulai berkontribusi untuk ekosistem UMKM desa bersama BumDesMartNukita.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/daftar/seller" className="px-7 py-3 rounded-xl font-semibold text-sm bg-white hover:bg-gray-50 transition-colors" style={{ color: "var(--primary-dark)" }}>

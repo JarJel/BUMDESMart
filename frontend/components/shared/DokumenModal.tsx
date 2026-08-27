@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useRef } from "react";
 import type { Dokumen, DokumenType } from "@/lib/data/dummy";
@@ -22,13 +22,13 @@ function buildWatermarkUrl(text: string): string {
 export function DokumenModal({ doc, onClose }: Props) {
   const meta = DOKUMEN_META[doc.type as DokumenType];
   const [blurred, setBlurred] = useState(false);
-  const [userLabel, setUserLabel] = useState("BUMDESMARTNUKITA User");
+  const [userLabel, setUserLabel] = useState("BumDesMartNukita User");
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const email = localStorage.getItem("user_email");
     const ts = new Date().toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" });
-    setUserLabel(email ? `${email} · ${ts}` : `Pembeli BUMDESMARTNUKITA · ${ts}`);
+    setUserLabel(email ? `${email} · ${ts}` : `Pembeli BumDesMartNukita · ${ts}`);
   }, []);
 
   // Blur saat user pindah tab

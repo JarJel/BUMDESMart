@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { sellerApi, SellerData } from "@/lib/api/seller";
@@ -150,7 +150,7 @@ export default function SemuaTokoPage() {
                       </div>
 
                       <h3 className="font-bold text-gray-900 text-sm mb-1 group-hover:text-green-700 transition-colors truncate">{toko.shop_name}</h3>
-                      <p className="text-xs text-gray-500 mb-4 line-clamp-2 leading-relaxed flex-1">{toko.description || "Toko UMKM BUMDESMart"}</p>
+                      <p className="text-xs text-gray-500 mb-4 line-clamp-2 leading-relaxed flex-1">{toko.description || "Toko UMKM BumDesMartNukita"}</p>
 
                       <div className="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-50 mt-auto">
                         <div className="flex items-center gap-1 min-w-0">

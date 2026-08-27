@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 return [
 
@@ -56,7 +56,7 @@ return [
 
     'openwa' => [
         'url'        => env('OPENWA_URL', 'http://localhost:2785'),
-        'session_id' => env('OPENWA_SESSION_ID', 'bumdesmart'),
+        'session_id' => env('OPENWA_SESSION_ID', 'BumDesMartNukita'),
         'api_key'    => env('OPENWA_API_KEY', ''),
     ],
 

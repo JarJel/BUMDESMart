@@ -139,7 +139,7 @@ class SellerOrderController extends Controller
                 ['order_id' => $order->id],
                 [
                     'tracking_number' => $validated['tracking_number'],
-                    'status'          => 'shipped',
+                    'status'          => 'in_transit',
                     'shipped_at'      => now(),
                 ]
             );

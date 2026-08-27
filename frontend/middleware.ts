@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const ROLE_HOME: Record<string, string> = {
@@ -20,8 +20,8 @@ const PATH_ROLE: Record<string, string> = {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const token = request.cookies.get('bumdesmart-token')?.value
-  const role = request.cookies.get('bumdesmart-role')?.value
+  const token = request.cookies.get('BumDesMartNukita-token')?.value
+  const role = request.cookies.get('BumDesMartNukita-role')?.value
   const isLoggedIn = !!token && !!role
 
   // Sudah login → jangan masuk ke /login

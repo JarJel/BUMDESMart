@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 export default function Footer() {
   return (
@@ -8,8 +8,8 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-3">
-              <img src="/logo.png" alt="BUMDESMARTNUKITA" className="h-9 w-auto" />
-              <span className="font-bold text-white text-sm">BUMDESMARTNUKITA</span>
+              <img src="/logo.png" alt="BumDesMartNukita" className="h-9 w-auto" />
+              <span className="font-bold text-white text-sm">BumDesMartNukita</span>
             </div>
             <p className="text-xs leading-relaxed text-green-200">
               Platform digital marketplace UMKM desa Indonesia. Menghubungkan produk lokal dengan pembeli di seluruh nusantara.
@@ -48,7 +48,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-green-800 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-xs text-green-400">© 2026 BUMDESMARTNUKITA</p>
+          <p className="text-xs text-green-400">© 2026 BumDesMartNukita</p>
           <p className="text-xs text-green-500">Program Hibah PkM Unggulan Desa Digital</p>
         </div>
       </div>

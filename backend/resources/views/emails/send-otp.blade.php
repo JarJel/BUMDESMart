@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -78,11 +78,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>BUMDESMart</h1>
+            <h1>BumDesMartNukita</h1>
         </div>
         <div class="content">
             <p>Halo,</p>
-            <p>Kami menerima permintaan untuk menyetel ulang kata sandi akun BUMDESMart Anda. Silakan gunakan kode OTP di bawah ini untuk melanjutkan proses reset password:</p>
+            <p>Kami menerima permintaan untuk menyetel ulang kata sandi akun BumDesMartNukita Anda. Silakan gunakan kode OTP di bawah ini untuk melanjutkan proses reset password:</p>
             
             <div class="otp-container">
                 <h2 class="otp-code">{{ $otp }}</h2>
@@ -90,11 +90,11 @@
             
             <p>Kode OTP ini hanya berlaku selama <strong>15 menit</strong>. Jangan bagikan kode ini kepada siapa pun demi keamanan akun Anda.</p>
             <p>Jika Anda tidak meminta pengaturan ulang kata sandi ini, Anda dapat mengabaikan email ini dengan aman.</p>
-            <p>Terima kasih,<br>Tim Dukungan BUMDESMart</p>
+            <p>Terima kasih,<br>Tim Dukungan BumDesMartNukita</p>
         </div>
         <div class="footer">
-            <p>&copy; {{ date('Y') }} BUMDESMart. Semua Hak Dilindungi.</p>
-            <p>Butuh bantuan? <a href="mailto:support@bumdesmart.id">Hubungi Dukungan</a></p>
+            <p>&copy; {{ date('Y') }} BumDesMartNukita. Semua Hak Dilindungi.</p>
+            <p>Butuh bantuan? <a href="mailto:support@BumDesMartNukita.id">Hubungi Dukungan</a></p>
         </div>
     </div>
 </body>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -261,7 +261,7 @@ export default function PengirimDashboard() {
                 P
               </div>
               <div className="min-w-0">
-                <h1 className="truncate text-xl font-bold">Pengirim BUMDESMart</h1>
+                <h1 className="truncate text-xl font-bold">Pengirim BumDesMartNukita</h1>
                 <p className="mt-0.5 text-sm text-orange-50">
                   {stats?.is_available ? "Status kerja aktif" : "Status kerja tidak aktif"}
                 </p>
@@ -392,7 +392,7 @@ export default function PengirimDashboard() {
                     <p className="break-words text-xs text-gray-500">{order.pickup_from?.address}</p>
                   </div>
                   {order.pickup_from?.phone && (
-                    <button onClick={() => openWA(order.pickup_from.phone, `Halo, saya kurir BUMDESMart untuk pesanan #${order.order_code}. Saya sedang dalam perjalanan ke toko.`)}
+                    <button onClick={() => openWA(order.pickup_from.phone, `Halo, saya kurir BumDesMartNukita untuk pesanan #${order.order_code}. Saya sedang dalam perjalanan ke toko.`)}
                       className="flex-shrink-0 w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center">
                       <MessageCircle className="w-4 h-4 text-white" />
                     </button>
@@ -411,7 +411,7 @@ export default function PengirimDashboard() {
                     <p className="text-xs text-gray-500">{order.deliver_to?.city}</p>
                   </div>
                   {order.deliver_to?.phone && (
-                    <button onClick={() => openWA(order.deliver_to.phone, `Halo ${order.deliver_to?.recipient_name ?? ""}, saya kurir BUMDESMart. Saya sedang mengantar pesanan Anda #${order.order_code}. Bisa konfirmasi alamat pengiriman?`)}
+                    <button onClick={() => openWA(order.deliver_to.phone, `Halo ${order.deliver_to?.recipient_name ?? ""}, saya kurir BumDesMartNukita. Saya sedang mengantar pesanan Anda #${order.order_code}. Bisa konfirmasi alamat pengiriman?`)}
                       className="flex-shrink-0 w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center">
                       <MessageCircle className="w-4 h-4 text-white" />
                     </button>

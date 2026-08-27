@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -67,7 +67,7 @@ export default function TentangPage() {
               <span style={{ color: "var(--primary)" }}>Menghubungkan Harapan</span>
             </h1>
             <p className="text-sm text-gray-600 leading-relaxed mb-7 max-w-md">
-              BUMDESMARTNUKITA adalah platform digital marketplace UMKM desa yang diinisiasi oleh BUMDes bersama program Hibah PkM. Kami hadir untuk menghubungkan pengrajin, petani, dan pelaku usaha desa dengan pasar yang lebih luas di seluruh Indonesia.
+              BumDesMartNukita adalah platform digital marketplace UMKM desa yang diinisiasi oleh BUMDes bersama program Hibah PkM. Kami hadir untuk menghubungkan pengrajin, petani, dan pelaku usaha desa dengan pasar yang lebih luas di seluruh Indonesia.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
@@ -150,7 +150,7 @@ export default function TentangPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Prinsip yang Menggerakkan Kami</h2>
-            <p className="text-sm text-gray-500">Nilai-nilai yang menjadi landasan setiap langkah BUMDESMARTNUKITA</p>
+            <p className="text-sm text-gray-500">Nilai-nilai yang menjadi landasan setiap langkah BumDesMartNukita</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {prinsip.map((p) => (
@@ -166,7 +166,7 @@ export default function TentangPage() {
         </div>
       </section>
 
-      {/* ===== CERITA BUMDESMART ===== */}
+      {/* ===== CERITA BumDesMartNukita ===== */}
       <section className="py-16 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
@@ -174,15 +174,15 @@ export default function TentangPage() {
               <span className="text-xs font-semibold uppercase tracking-widest mb-3 block" style={{ color: "var(--primary-light)" }}>
                 Latar Belakang
               </span>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Cerita BUMDESMARTNUKITA</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Cerita BumDesMartNukita</h2>
               <p className="text-sm text-gray-600 leading-relaxed mb-4">
-                BUMDESMARTNUKITA lahir dari keprihatinan akan terbatasnya akses pasar bagi UMKM di Desa. Banyak produk berkualitas yang tidak dikenal luas karena keterbatasan infrastruktur digital.
+                BumDesMartNukita lahir dari keprihatinan akan terbatasnya akses pasar bagi UMKM di Desa. Banyak produk berkualitas yang tidak dikenal luas karena keterbatasan infrastruktur digital.
               </p>
               <p className="text-sm text-gray-600 leading-relaxed mb-4">
                 Dengan dukungan program Hibah PkM dari kampus, tim kami mengembangkan platform ini untuk menjadi jembatan antara produk desa dengan pembeli di manapun berada.
               </p>
               <p className="text-sm text-gray-600 leading-relaxed mb-8">
-                Setiap transaksi di BUMDESMARTNUKITA berarti mendukung langsung kehidupan keluarga petani, pengrajin, dan pelaku usaha lokal di Desa.
+                Setiap transaksi di BumDesMartNukita berarti mendukung langsung kehidupan keluarga petani, pengrajin, dan pelaku usaha lokal di Desa.
               </p>
               {/* Stats dengan count-up */}
               <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
@@ -230,7 +230,7 @@ export default function TentangPage() {
           <p className="text-xs font-semibold uppercase tracking-widest text-green-400 mb-3">Platform UMKM Desa Indonesia</p>
           <h2 className="text-2xl font-bold text-white mb-4">Siap Memberdayakan Desa Hari Ini?</h2>
           <p className="text-green-200 text-sm mb-8 leading-relaxed">
-            Bergabunglah bersama ribuan pembeli dan UMKM desa di seluruh Indonesia yang telah merasakan manfaat BUMDESMARTNUKITA.
+            Bergabunglah bersama ribuan pembeli dan UMKM desa di seluruh Indonesia yang telah merasakan manfaat BumDesMartNukita.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/daftar" className="px-8 py-3 rounded-xl font-semibold text-sm bg-white hover:bg-gray-50 transition-colors" style={{ color: "var(--primary-dark)" }}>

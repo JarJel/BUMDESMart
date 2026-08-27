@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require 'vendor/autoload.php';
 $app = require_once 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
@@ -11,7 +11,7 @@ $payload = json_encode([
             'title' => 'Tada! Pesan Pertama dari SentryWebhookController!',
             'level' => 'fatal',
             'environment' => 'local',
-            'project' => 'BUMDESMart',
+            'project' => 'BumDesMartNukita',
             'culprit' => 'Testing dari Script PHP'
         ]
     ]

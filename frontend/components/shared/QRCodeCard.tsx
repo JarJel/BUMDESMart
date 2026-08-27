@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 
 export default function QRCodeCard({ slug, namaToko }: { slug: string; namaToko: string }) {
   const [copied, setCopied] = useState(false);
-  const url = `https://bumdesmart.id/${slug}`;
+  const url = `https://BumDesMartNukita.id/${slug}`;
 
   const copy = () => {
     navigator.clipboard.writeText(url);

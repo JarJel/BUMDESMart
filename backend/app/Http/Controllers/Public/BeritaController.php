@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Public;
 
@@ -16,7 +16,7 @@ class BeritaController extends Controller
 {
     /**
      * GET /berita
-     * Public — untuk landing page BUMDESMart.
+     * Public — untuk landing page BumDesMartNukita.
      * Tampilkan semua broadcast dari semua BUMDes (atau filter by bumdes_slug / bumdes_id).
      *
      * Query params:

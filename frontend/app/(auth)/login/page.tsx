@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -159,12 +159,12 @@ function LoginForm() {
           {/* Logo */}
           <div className="flex flex-col items-center mb-5">
             <Link href="/">
-              <img src="/logo.png" alt="BUMDESMARTNUKITA" className="h-16 w-auto" />
+              <img src="/logo.png" alt="BumDesMartNukita" className="h-16 w-auto" />
             </Link>
-            <span className="font-bold text-lg mt-1" style={{ color: "var(--primary-dark)" }}>BUMDESMARTNUKITA</span>
+            <span className="font-bold text-lg mt-1" style={{ color: "var(--primary-dark)" }}>BumDesMartNukita</span>
           </div>
 
-          <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Masuk ke BUMDESMARTNUKITA</h1>
+          <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Masuk ke BumDesMartNukita</h1>
           <p className="text-sm text-gray-500 text-center mb-7">Selamat datang kembali·Silakan masuk ke akun Anda.</p>
 
           {registered === "mitra" && (

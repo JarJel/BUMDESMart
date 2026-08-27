@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 export default function KebijakanPengirimanPage() {
   return (
@@ -8,7 +8,7 @@ export default function KebijakanPengirimanPage() {
 
       <div className="prose prose-sm text-gray-600 space-y-4">
         <h2 className="text-lg font-semibold text-gray-800">1. Jangkauan Pengiriman</h2>
-        <p>BUMDeSMart Nukita melayani pengiriman ke seluruh wilayah Indonesia melalui jasa kurir yang bekerja sama dengan platform kami.</p>
+        <p>BumDesMartNukita Nukita melayani pengiriman ke seluruh wilayah Indonesia melalui jasa kurir yang bekerja sama dengan platform kami.</p>
 
         <h2 className="text-lg font-semibold text-gray-800">2. Waktu Pengiriman</h2>
         <p>Estimasi waktu pengiriman tergantung pada lokasi tujuan dan jasa kurir yang dipilih. Umumnya pengiriman membutuhkan waktu 2–7 hari kerja.</p>

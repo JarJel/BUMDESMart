@@ -1,10 +1,10 @@
-<?php
+﻿<?php
 
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return response()->json([
-        'name' => 'BUMDESMart API',
+        'name' => 'BumDesMartNukita API',
         'version' => '1.0.0',
         'status' => 'OK',
     ]);

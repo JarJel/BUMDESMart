@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -168,7 +168,7 @@ class AuthController extends Controller
         content: new OA\JsonContent(
             required: ["email", "password"],
             properties: [
-                new OA\Property(property: "email", type: "string", format: "email", example: "umkm@bumdesmart.id"),
+                new OA\Property(property: "email", type: "string", format: "email", example: "umkm@BumDesMartNukita.id"),
                 new OA\Property(property: "password", type: "string", format: "password", example: "password123")
             ]
         )
