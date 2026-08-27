@@ -248,7 +248,7 @@ export default function BerandaPage() {
         <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="max-w-xl">
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-5 leading-tight drop-shadow-sm">
-              Hasil Bumi Pilihan,<br />Langsung dari Petani
+              Hasil Bumi Pilihan, <br />Langsung dari Petani
             </h1>
             <p className="text-green-100/90 text-base mb-8 leading-relaxed max-w-sm">
               Belanja produk autentik dan berkualitas langsung dari UMKM desa di seluruh Indonesia ke tangan Anda.
@@ -291,6 +291,9 @@ export default function BerandaPage() {
               <img src="/images/sponsors/bima.jpeg" alt="BiMA — Kemdiktisaintek" className="h-10 w-auto object-contain" />
             </a>
           </div>
+          <p className="text-center text-xs text-gray-500 mt-5 italic">
+            Program ini dibiayai dari APBN melalui anggaran Kemdiktisaintek
+          </p>
         </div>
       </section>
 
@@ -316,7 +319,7 @@ export default function BerandaPage() {
                 Produk Terbaik Desa
               </p>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
-                Karya Terbaik<br />dari Desa
+                Karya Terbaik <br />dari Desa
               </h2>
               <p className="text-sm text-gray-500 leading-relaxed mb-2 max-w-md">
                 Keripik tempe, manisan tradisional, frozen food, bakery — produk unggulan yang lahir dari tangan terampil warga desa.

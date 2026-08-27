@@ -41,8 +41,8 @@ export default function Footer() {
             <p className="text-xs font-semibold uppercase tracking-widest text-green-300 mb-4">Bantuan</p>
             <ul className="space-y-2.5 text-xs text-green-200">
               <li><Link href="/tentang" className="hover:text-white transition-colors">Pusat Bantuan</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Kebijakan Pengiriman</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Syarat & Ketentuan</Link></li>
+              <li><Link href="/kebijakan-pengiriman" className="hover:text-white transition-colors">Kebijakan Pengiriman</Link></li>
+              <li><Link href="/syarat-ketentuan" className="hover:text-white transition-colors">Syarat & Ketentuan</Link></li>
             </ul>
           </div>
         </div>

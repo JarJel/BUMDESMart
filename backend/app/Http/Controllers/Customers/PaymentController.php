@@ -42,10 +42,62 @@ class PaymentController extends Controller
                 ->firstOrFail();
 
             if ($order->payment) {
+                $existingPayment = $order->payment;
+
+                // Kalau sudah paid/expired/failed, kembalikan status saja
+                if (in_array($existingPayment->status, ['paid', 'expired', 'failed'])) {
+                    return response()->json([
+                        'snap_token'  => null,
+                        'invoice_url' => $existingPayment->payment_data['redirect_url'] ?? null,
+                        'payment_id'  => $existingPayment->id,
+                        'status'      => $existingPayment->status,
+                    ]);
+                }
+
+                // Pending: buat snap_token baru (order_id baru) agar tidak expired/salah environment
+                $mtOrderId = 'BUMDES-' . $order->order_code . '-' . time();
+
+                $payload = [
+                    'transaction_details' => [
+                        'order_id'     => $mtOrderId,
+                        'gross_amount' => (int) $order->total,
+                    ],
+                    'customer_details' => [
+                        'first_name' => $order->customer->user->name,
+                        'email'      => $order->customer->user->email,
+                    ],
+                    'callbacks' => [
+                        'finish' => config('app.frontend_url') . '/pembayaran/sukses?order=' . $order->order_code,
+                    ],
+                ];
+
+                $response = Http::withHeaders([
+                    'Authorization' => 'Basic ' . $this->midtransAuth(),
+                    'Content-Type'  => 'application/json',
+                ])->post($this->snapApiUrl() . '/snap/v1/transactions', $payload);
+
+                if ($response->failed()) {
+                    return response()->json([
+                        'snap_token'  => $existingPayment->snap_token,
+                        'invoice_url' => $existingPayment->payment_data['redirect_url'] ?? null,
+                        'payment_id'  => $existingPayment->id,
+                        'status'      => $existingPayment->status,
+                    ]);
+                }
+
+                $data = $response->json();
+                $existingPayment->update([
+                    'snap_token'        => $data['token'] ?? $existingPayment->snap_token,
+                    'midtrans_order_id' => $mtOrderId,
+                    'payment_data'      => $data,
+                    'expired_at'        => now()->addDay(),
+                ]);
+
                 return response()->json([
-                    'invoice_url' => $order->payment->payment_data['redirect_url'] ?? null,
-                    'payment_id'  => $order->payment->id,
-                    'status'      => $order->payment->status,
+                    'snap_token'  => $data['token'] ?? null,
+                    'invoice_url' => $data['redirect_url'] ?? null,
+                    'payment_id'  => $existingPayment->id,
+                    'status'      => $existingPayment->status,
                 ]);
             }
 
