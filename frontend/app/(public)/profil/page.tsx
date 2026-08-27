@@ -6,9 +6,12 @@ import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api/auth";
 import { useAuth } from "@/hooks/useAuth";
 import { addressApi, AddressData } from "@/lib/api/address";
+import dynamic from "next/dynamic";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { getFileUrl } from "@/lib/storage";
+
+const MapPicker = dynamic(() => import("@/components/shared/MapPicker"), { ssr: false });
 
 const tabs = ["Profil Saya", "Alamat", "Keamanan"];
 
@@ -35,6 +38,7 @@ export default function ProfilPage() {
   const [addressSaving, setAddressSaving] = useState(false);
   const [deleteAddrId, setDeleteAddrId] = useState<number | undefined>(undefined);
   const [deletingAddr, setDeletingAddr] = useState(false);
+  const [showMap, setShowMap] = useState(false);
 
   const [addressForm, setAddressForm] = useState<AddressData>({
     label: "Rumah",
@@ -44,6 +48,8 @@ export default function ProfilPage() {
     city: "",
     province: "",
     postal_code: "",
+    latitude: null,
+    longitude: null,
     is_default: false,
   });
 
@@ -171,6 +177,7 @@ export default function ProfilPage() {
   // Open modal for Adding Alamat
   const handleOpenAddModal = () => {
     setEditingAddress(null);
+    setShowMap(false);
     setAddressForm({
       label: "Rumah",
       recipient_name: "",
@@ -179,6 +186,8 @@ export default function ProfilPage() {
       city: "",
       province: "",
       postal_code: "",
+      latitude: null,
+      longitude: null,
       is_default: false,
     });
     setAddressModalOpen(true);
@@ -187,6 +196,7 @@ export default function ProfilPage() {
   // Open modal for Editing Alamat
   const handleOpenEditModal = (addr: AddressData) => {
     setEditingAddress(addr);
+    setShowMap(false);
     setAddressForm({
       label: addr.label || "Rumah",
       recipient_name: addr.recipient_name,
@@ -195,6 +205,8 @@ export default function ProfilPage() {
       city: addr.city,
       province: addr.province,
       postal_code: addr.postal_code,
+      latitude: addr.latitude ? Number(addr.latitude) : null,
+      longitude: addr.longitude ? Number(addr.longitude) : null,
       is_default: !!addr.is_default,
     });
     setAddressModalOpen(true);
@@ -588,6 +600,65 @@ export default function ProfilPage() {
                         className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-600"
                       />
                     </div>
+                  </div>
+
+                  {/* Pin Lokasi */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-gray-600">
+                        Pin Lokasi
+                        <span className="ml-1 text-gray-400 font-normal">(opsional, untuk akurasi ongkir)</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowMap(!showMap)}
+                        className="text-xs font-semibold text-green-700 hover:text-green-800 bg-transparent border-0 cursor-pointer p-0"
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {showMap ? (
+                            <>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/>
+                              </svg>
+                              Sembunyikan Peta
+                            </>
+                          ) : addressForm.latitude ? (
+                            <>
+                              <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                              </svg>
+                              Ubah Lokasi
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                              </svg>
+                              Atur Lokasi
+                            </>
+                          )}
+                        </span>
+                      </button>
+                    </div>
+                    {addressForm.latitude && !showMap && (
+                      <p className="text-xs text-green-600 flex items-center gap-1 my-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Koordinat tersimpan ({Number(addressForm.latitude).toFixed(5)}, {Number(addressForm.longitude).toFixed(5)})
+                      </p>
+                    )}
+                    {showMap && (
+                      <div className="mt-2 rounded-xl overflow-hidden border border-gray-200">
+                        <MapPicker
+                          defaultLat={addressForm.latitude}
+                          defaultLng={addressForm.longitude}
+                          onChange={(lat, lng) => setAddressForm({ ...addressForm, latitude: lat, longitude: lng })}
+                          height="220px"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 pt-2">
