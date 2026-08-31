@@ -7,6 +7,7 @@ import {
   CheckCircle, XCircle, Package, MessageCircle,
   MapPin, Phone, Clock, Truck, Home, ChevronLeft,
 } from "lucide-react";
+import { getFileUrl } from "@/lib/storage";
 
 interface OrderItem {
   id: number;
@@ -66,8 +67,15 @@ function ekspedisiLabel(method: string | null): string {
     "ekspedisi-jnt-ez": "J&T EZ",
     "ekspedisi-tiki-reg": "TIKI REG",
     "ekspedisi-pos-biasa": "POS Biasa",
+    "anteraja-reg": "AnterAja REG",
+    "sicepat-reg": "SiCepat REG",
+    "jnt-ez": "J&T EZ",
+    "ninja-xpress": "Ninja Xpress",
+    "gosend": "GoSend",
+    "grabexpress": "Grab Express",
+    "lalamove": "Lalamove",
   };
-  return map[method] ?? method.replace("ekspedisi-", "").toUpperCase();
+  return map[method] ?? method.replace("ekspedisi-", "").replace("-", " ").toUpperCase();
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -142,8 +150,9 @@ export default function SellerOrderDetailPage() {
       const res = await api.patch(`/seller/orders/${order.id}/status`, body);
       setOrder(res.data.data ?? { ...order, status });
       toast.success("Status pesanan diperbarui.");
-    } catch {
-      toast.error("Gagal memperbarui status.");
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Gagal memperbarui status.";
+      toast.error(msg);
     } finally {
       setActioning(false);
     }
@@ -306,13 +315,13 @@ export default function SellerOrderDetailPage() {
             {order.payment?.proof_of_payment ? (
               <div className="space-y-3">
                 <a
-                  href={`/storage/${order.payment.proof_of_payment.replace(/^\//, '')}`}
+                  href={getFileUrl(order.payment.proof_of_payment)!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block overflow-hidden rounded-xl border border-gray-200 hover:opacity-90 max-w-sm"
                 >
                   <img
-                    src={`/storage/${order.payment.proof_of_payment.replace(/^\//, '')}`}
+                    src={getFileUrl(order.payment.proof_of_payment)!}
                     alt="Bukti Transfer"
                     className="w-full max-h-56 object-contain bg-gray-50 p-2"
                   />

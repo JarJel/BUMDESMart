@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { addressApi, AddressData } from "@/lib/api/address";
 import { cartApi } from "@/lib/api/cart";
@@ -129,7 +129,8 @@ export default function CheckoutPage() {
   const [shippingCost, setShippingCost] = useState<number | null>(null);
   const [loadingShipping, setLoadingShipping] = useState(false);
   const [shippingOptions, setShippingOptions] = useState<any[]>([]);
-  const [selectedShippingId, setSelectedShippingId] = useState<string>("kurir-lokal");
+  const [selectedShippingId, setSelectedShippingId] = useState<string>("");
+  const selectedShippingIdRef = useRef<string>("");
   const [showAllShipping, setShowAllShipping] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null);
   const [deletingItem, setDeletingItem] = useState(false);
@@ -234,10 +235,24 @@ export default function CheckoutPage() {
         if (methods?.length) {
           const opts = (methods[0]?.options ?? []).filter((o: any) => o.type !== "pickup");
           setShippingOptions(opts);
-          // Reset ke kurir-lokal, atau opsi pertama yang ada
-          const defaultOpt = opts.find((o: any) => o.id === selectedShippingId) ?? opts[0];
-          setSelectedShippingId(defaultOpt?.id ?? "kurir-lokal");
-          setShippingCost(defaultOpt?.price ?? null);
+          
+          // Cek apakah opsi yang sedang dipilih user masih ada di daftar opsi terbaru
+          const currentChoice = selectedShippingIdRef.current;
+          const matchingOpt = opts.find((o: any) => o.id === currentChoice);
+
+          if (matchingOpt) {
+            // Tetap gunakan opsi pilihan user dan perbarui harganya jika ada perubahan
+            setSelectedShippingId(matchingOpt.id);
+            selectedShippingIdRef.current = matchingOpt.id;
+            setShippingCost(matchingOpt.price ?? null);
+          } else {
+            // Jika belum ada pilihan atau pilihan sebelumnya tidak valid lagi, pakai opsi pertama (default)
+            const defaultOpt = opts[0];
+            const chosenId = defaultOpt?.id ?? "kurir-lokal-motor";
+            setSelectedShippingId(chosenId);
+            selectedShippingIdRef.current = chosenId;
+            setShippingCost(defaultOpt?.price ?? null);
+          }
         } else {
           setShippingOptions([]);
           setShippingCost(null);
@@ -270,7 +285,8 @@ export default function CheckoutPage() {
     if (selectedAddressId) {
       loadCheckoutPreview(selectedAddressId, deliveryType);
     }
-  }, [selectedAddressId, deliveryType, cartItems, loadCheckoutPreview]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAddressId, deliveryType, cartItems]);
 
   // Fetch voucher saat cart items berubah
   useEffect(() => {
@@ -843,10 +859,20 @@ export default function CheckoutPage() {
                     const logo = getLogo(opt);
                     const isLokal = opt.type === "lokal";
                     return (
-                      <label key={opt.id} className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors ${selectedShippingId === opt.id ? "border-orange-400 bg-orange-50" : "border-gray-200 bg-white"}`}>
+                      <label key={opt.id} className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors ${selectedShippingId === opt.id ? "border-orange-400 bg-orange-50" : "border-gray-200 bg-white hover:border-gray-300"}`}>
                         <div className="flex items-center gap-3">
-                          <input type="radio" name="shipping" value={opt.id} checked={selectedShippingId === opt.id}
-                            onChange={() => { setSelectedShippingId(opt.id); setShippingCost(opt.price); }} className="accent-orange-500" />
+                          <input
+                            type="radio"
+                            name="shipping_courier_selection"
+                            value={opt.id}
+                            checked={selectedShippingId === opt.id}
+                            onChange={() => {
+                              setSelectedShippingId(opt.id);
+                              selectedShippingIdRef.current = opt.id;
+                              setShippingCost(opt.price);
+                            }}
+                            className="accent-orange-500"
+                          />
                           {logo ? (
                             <img src={logo} alt={opt.name} className="h-7 w-20 object-contain rounded" />
                           ) : isLokal && opt.vehicle === 'mobil' ? (

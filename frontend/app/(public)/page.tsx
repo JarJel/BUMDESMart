@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { sellerApi, SellerData } from "@/lib/api/seller";
 import { StarIcon } from "@/components/ui/StarIcon";
@@ -171,13 +172,27 @@ function HeroBannerSlider() {
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
               isActive ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0"
             }`}
-            style={{
-              backgroundImage: `linear-gradient(to right, rgba(15,35,25,0.92) 0%, rgba(20,55,40,0.82) 45%, rgba(27,67,50,0.45) 100%), url('${slide.bgImage}')`,
-              backgroundSize: "cover",
-              backgroundPosition: "center 50%",
-            }}
           >
-            <div className="relative w-full h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center py-20">
+            {/* Optimized Next.js Background Image */}
+            <div className="absolute inset-0 z-0">
+              <Image
+                src={slide.bgImage}
+                alt={typeof slide.tag === "string" ? slide.tag : "Banner Desa"}
+                fill
+                priority={idx === 0}
+                quality={80}
+                sizes="100vw"
+                className="object-cover object-center"
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: "linear-gradient(to right, rgba(15,35,25,0.94) 0%, rgba(20,55,40,0.85) 45%, rgba(27,67,50,0.5) 100%)",
+                }}
+              />
+            </div>
+
+            <div className="relative w-full h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center py-20 z-10">
               <div
                 className={`max-w-2xl transition-all duration-700 delay-100 ${
                   isActive ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
@@ -398,14 +413,14 @@ export default function BerandaPage() {
             Didukung oleh
           </p>
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-14">
-            <a href="https://kemdiktisaintek.go.id" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-              <img src="/images/sponsors/tut-wuri.jpeg" alt="Kemdiktisaintek — Tut Wuri Handayani" className="h-14 w-auto object-contain" />
+            <a href="https://kemdiktisaintek.go.id" aria-label="Website Kemdiktisaintek" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
+              <img src="/images/sponsors/tut-wuri.jpeg" alt="Kemdiktisaintek — Tut Wuri Handayani" width="140" height="56" className="h-14 w-auto object-contain" />
             </a>
-            <a href="https://kemdiktisaintek.go.id" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-              <img src="/images/sponsors/diktisaintek.jpeg" alt="Diktisaintek Berdampak" className="h-14 w-auto object-contain" />
+            <a href="https://kemdiktisaintek.go.id" aria-label="Website Diktisaintek" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
+              <img src="/images/sponsors/diktisaintek.jpeg" alt="Diktisaintek Berdampak" width="140" height="56" className="h-14 w-auto object-contain" />
             </a>
-            <a href="https://bima.kemdiktisaintek.go.id" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-              <img src="/images/sponsors/bima.jpeg" alt="BiMA — Kemdiktisaintek" className="h-10 w-auto object-contain" />
+            <a href="https://bima.kemdiktisaintek.go.id" aria-label="Website BiMA Kemdiktisaintek" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
+              <img src="/images/sponsors/bima.jpeg" alt="BiMA — Kemdiktisaintek" width="100" height="40" className="h-10 w-auto object-contain" />
             </a>
           </div>
           <p className="text-center text-xs text-gray-500 mt-5 italic">

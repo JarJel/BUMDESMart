@@ -64,8 +64,15 @@ function ekspedisiLabel(method: string | null): string {
     "ekspedisi-jnt-ez":  "J&T EZ",
     "ekspedisi-tiki-reg": "TIKI REG",
     "ekspedisi-pos-biasa": "POS Biasa",
+    "anteraja-reg": "AnterAja REG",
+    "sicepat-reg": "SiCepat REG",
+    "jnt-ez": "J&T EZ",
+    "ninja-xpress": "Ninja Xpress",
+    "gosend": "GoSend",
+    "grabexpress": "Grab Express",
+    "lalamove": "Lalamove",
   };
-  return map[method] ?? method.replace("ekspedisi-", "").toUpperCase();
+  return map[method] ?? method.replace("ekspedisi-", "").replace("-", " ").toUpperCase();
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -627,8 +634,9 @@ export default function PesananPage() {
       toast.success(messages[status] ?? "Status diperbarui.");
       fetchOrders();
       setSelected(prev => prev?.id === id ? { ...prev, status } : prev);
-    } catch {
-      toast.error("Gagal mengubah status pesanan.");
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Gagal mengubah status pesanan.";
+      toast.error(msg);
     } finally {
       setActioning(null);
     }

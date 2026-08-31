@@ -132,10 +132,14 @@ class SellerOrderController extends Controller
                 'rejection_reason' => null,
             ]);
 
+            if ($order->status === 'pending') {
+                $order->update(['status' => 'confirmed']);
+            }
+
             OrderHistory::create([
                 'order_id'    => $order->id,
                 'user_id'     => $request->user()->id,
-                'status'      => $order->status,
+                'status'      => $order->fresh()->status,
                 'description' => 'Pembayaran langsung telah diverifikasi dan diterima oleh penjual.',
             ]);
 
@@ -210,16 +214,17 @@ class SellerOrderController extends Controller
         // Transisi yang diizinkan per mode pengiriman
         $allowed = match($mode) {
             'pickup' => [
-                'pending'          => ['confirmed', 'cancelled'],
-                'confirmed'        => ['ready_for_pickup'],
-                'ready_for_pickup' => ['completed'],
+                'pending'          => ['confirmed', 'ready_for_pickup', 'cancelled'],
+                'confirmed'        => ['ready_for_pickup', 'completed', 'cancelled'],
+                'ready_for_pickup' => ['completed', 'cancelled'],
             ],
             'ekspedisi' => [
-                'pending'   => ['confirmed', 'cancelled'],
-                'confirmed' => ['shipped'],
+                'pending'   => ['confirmed', 'shipped', 'cancelled'],
+                'confirmed' => ['shipped', 'cancelled'],
             ],
             default => [ // kurir_lokal — kurir yang handle setelah confirmed
-                'pending' => ['confirmed', 'cancelled'],
+                'pending'   => ['confirmed', 'cancelled'],
+                'confirmed' => ['cancelled'],
             ],
         };
 
@@ -254,6 +259,7 @@ class SellerOrderController extends Controller
                 ['order_id' => $order->id],
                 [
                     'tracking_number' => $validated['tracking_number'],
+                    'shipping_cost'   => $order->shipping_cost ?? 0,
                     'status'          => 'in_transit',
                     'shipped_at'      => now(),
                 ]
