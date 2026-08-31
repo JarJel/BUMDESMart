@@ -95,4 +95,36 @@ class WaNotification
              . "_BumDesMartNukita_";
         self::dispatch($phone, $msg);
     }
+
+    // ─── 7. Bukti bayar diunggah → Seller ────────────────────────────────────
+    public static function buktiBayarDiunggahSeller(string $phone, string $sellerName, string $orderCode, int $total): void
+    {
+        $rp  = 'Rp ' . number_format($total, 0, ',', '.');
+        $url = self::fe('/seller/pesanan');
+        $msg = "Halo *{$sellerName}*,\n\n"
+             . "Pembeli telah mengunggah bukti transfer untuk pesanan *#{$orderCode}* ({$rp}). 📸\n\n"
+             . "Silakan periksa dan verifikasi pembayaran melalui dashboard:\n"
+             . "{$url}\n\n"
+             . "_BumDesMartNukita_";
+        self::dispatch($phone, $msg);
+    }
+
+    // ─── 8. Bukti bayar ditolak → Buyer ──────────────────────────────────────
+    public static function buktiBayarDitolakBuyer(string $phone, string $buyerName, string $orderCode, int $orderId, string $reason): void
+    {
+        $url = self::fe("/pesanan/{$orderId}");
+        $msg = "Halo *{$buyerName}*,\n\n"
+             . "Bukti transfer untuk pesanan *#{$orderCode}* ditolak oleh penjual.\n"
+             . "Alasan: _{$reason}_\n\n"
+             . "Silakan unggah ulang bukti transfer yang valid:\n"
+             . "{$url}\n\n"
+             . "_BumDesMartNukita_";
+        self::dispatch($phone, $msg);
+    }
+
+    // ─── 9. Custom Message ───────────────────────────────────────────────────
+    public static function custom(string $phone, string $message): void
+    {
+        self::dispatch($phone, $message);
+    }
 }

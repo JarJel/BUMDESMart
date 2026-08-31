@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
+import { getFileUrl } from "@/lib/storage";
 import {
   Search, X, CheckCircle, XCircle, Package, MessageCircle,
   MapPin, Phone, Clock, ChevronRight, Truck, Home, ExternalLink,
@@ -39,6 +40,14 @@ interface Order {
   items: OrderItem[];
   driver?: { id: number; name: string; phone?: string } | null;
   shipment?: { tracking_number: string | null; status: string | null } | null;
+  payment?: {
+    id: number;
+    payment_type: string;
+    proof_of_payment: string | null;
+    rejection_reason: string | null;
+    status: string;
+    paid_at: string | null;
+  } | null;
 }
 
 function deliveryMode(order: Order): "pickup" | "ekspedisi" | "kurir_lokal" {
@@ -109,20 +118,26 @@ function openWhatsApp(phone: string | undefined, orderCode: string) {
   window.open(`https://wa.me/${clean}?text=${text}`, "_blank");
 }
 
-// ── Detail Drawer ─────────────────────────────────────────────────────────────
 function OrderDrawer({
   order,
   onClose,
   onUpdateStatus,
+  onRefresh,
   actioning,
 }: {
   order: Order;
   onClose: () => void;
   onUpdateStatus: (id: number, status: string, trackingNumber?: string) => Promise<void>;
+  onRefresh: () => void;
   actioning: number | null;
 }) {
   const [resi, setResi] = useState("");
   const [resiError, setResiError] = useState("");
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejecting, setRejecting] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const toast = useToast();
   const buyerPhone = order.address?.phone || order.customer?.user?.phone;
   const loading = actioning === order.id;
   const mode = deliveryMode(order);
@@ -242,6 +257,151 @@ function OrderDrawer({
               <span>{formatRp(order.total)}</span>
             </div>
           </div>
+
+          {/* Info Pembayaran & Bukti Transfer Manual */}
+          <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Metode Pembayaran</p>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                order.payment?.status === "paid" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+              }`}>
+                {order.payment?.status === "paid" ? "Lunas" : "Belum Lunas"}
+              </span>
+            </div>
+
+            <p className="text-xs text-gray-700">
+              {order.payment?.payment_type === "manual_umkm" ? "Pembayaran Langsung (QRIS / Rekening Toko)" : "Otomatis via Midtrans BUMDes"}
+            </p>
+
+            {order.payment?.payment_type === "manual_umkm" && (
+              <div className="mt-2 pt-2 border-t border-gray-200/60 space-y-2">
+                <p className="text-xs font-semibold text-gray-800">Bukti Pembayaran dari Pembeli:</p>
+                {order.payment?.proof_of_payment ? (
+                  <div className="space-y-2">
+                    <a
+                      href={getFileUrl(order.payment.proof_of_payment)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block overflow-hidden rounded-xl border border-gray-200 hover:opacity-90"
+                    >
+                      <img
+                        src={getFileUrl(order.payment.proof_of_payment)!}
+                        alt="Bukti Transfer"
+                        className="w-full max-h-48 object-contain bg-white"
+                      />
+                    </a>
+                    <p className="text-[10px] text-gray-400 text-center">Klik gambar untuk melihat ukuran penuh</p>
+
+                    {order.payment.status !== "paid" && order.status !== "cancelled" && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={() => {
+                            setRejectReason("");
+                            setRejectModalOpen(true);
+                          }}
+                          className="flex-1 py-2 rounded-xl text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
+                        >
+                          Tolak Bukti
+                        </button>
+                        <button
+                          disabled={approving}
+                          onClick={async () => {
+                            setApproving(true);
+                            try {
+                              await api.post(`/seller/orders/${order.id}/verify-payment`, { action: "approve" });
+                              toast.success("Pembayaran berhasil diterima!");
+                              onClose();
+                              onRefresh();
+                            } catch {
+                              toast.error("Gagal memverifikasi pembayaran.");
+                            } finally {
+                              setApproving(false);
+                            }
+                          }}
+                          className="flex-1 py-2 rounded-xl text-xs font-semibold text-white bg-green-600 hover:bg-green-700 shadow-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                        >
+                          {approving ? (
+                            <>
+                              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <span>Memproses...</span>
+                            </>
+                          ) : (
+                            "Terima Pembayaran"
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-amber-600 italic">Pembeli belum mengunggah bukti pembayaran.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Modal Penolakan Bukti Pembayaran */}
+          {rejectModalOpen && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+              <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5 text-red-600">
+                    <XCircle className="w-4 h-4" /> Tolak Bukti Pembayaran
+                  </h3>
+                  <button
+                    onClick={() => setRejectModalOpen(false)}
+                    className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-600">
+                    Berikan alasan penolakan agar pembeli dapat memperbaiki atau mengunggah bukti pembayaran yang valid.
+                  </p>
+                  <textarea
+                    rows={3}
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Contoh: Nominal transfer kurang / Rekening tujuan salah / Struk buram..."
+                    className="w-full px-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-red-400 resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={() => setRejectModalOpen(false)}
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    disabled={rejecting}
+                    onClick={async () => {
+                      setRejecting(true);
+                      try {
+                        await api.post(`/seller/orders/${order.id}/verify-payment`, {
+                          action: "reject",
+                          reason: rejectReason.trim() || "Bukti transfer tidak valid",
+                        });
+                        toast.success("Bukti pembayaran telah ditolak.");
+                        setRejectModalOpen(false);
+                        onClose();
+                        onRefresh();
+                      } catch {
+                        toast.error("Gagal menolak bukti.");
+                      } finally {
+                        setRejecting(false);
+                      }
+                    }}
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 shadow-sm disabled:opacity-50"
+                  >
+                    {rejecting ? "Memproses..." : "Ya, Tolak Bukti"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── Status blocks per mode ─────────────────────────────── */}
 
@@ -571,6 +731,16 @@ export default function PesananPage() {
                             {ekspedisiLabel(o.shipping_method)}
                           </span>
                         )}
+                        {o.payment?.payment_type === "manual_umkm" && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium border ${
+                            o.payment.status === "paid" ? "bg-green-50 text-green-700 border-green-200" :
+                            o.payment.proof_of_payment ? "bg-blue-50 text-blue-700 border-blue-200 animate-pulse" :
+                            "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}>
+                            {o.payment.status === "paid" ? "Lunas (QRIS Toko)" :
+                             o.payment.proof_of_payment ? "Cek Bukti Bayar" : "Menunggu Transfer"}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm font-semibold text-gray-800 mt-1">{o.customer?.user?.name}</p>
                       <p className="text-xs text-gray-400 truncate mt-0.5">{produkLabel}</p>
@@ -597,24 +767,43 @@ export default function PesananPage() {
                   {/* Aksi cepat — hanya pending */}
                   {o.status === "pending" && (
                     <div className="mt-3 pt-3 border-t border-gray-100/80 flex items-center justify-between gap-3 bg-blue-50/50 p-3 rounded-xl">
-                      <p className="text-xs font-medium text-blue-700 flex items-center gap-1"><i className="ti ti-bolt" /> Pesanan baru masuk! Segera konfirmasi.</p>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button
-                          onClick={e => { e.stopPropagation(); handleUpdateStatus(o.id, "cancelled"); }}
-                          disabled={actioning === o.id}
-                          className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
-                        >
-                          Tolak
-                        </button>
-                        <button
-                          onClick={e => { e.stopPropagation(); handleUpdateStatus(o.id, "confirmed"); }}
-                          disabled={actioning === o.id}
-                          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm"
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          {actioning === o.id ? "Memproses..." : "Konfirmasi"}
-                        </button>
-                      </div>
+                      {o.payment?.payment_type === "manual_umkm" && o.payment.status !== "paid" ? (
+                        <>
+                          <p className="text-xs font-medium text-amber-700 flex items-center gap-1">
+                            <i className="ti ti-alert-triangle" /> Transfer Manual: Periksa bukti bayar sebelum konfirmasi pesanan.
+                          </p>
+                          <button
+                            onClick={e => { e.stopPropagation(); setSelected(o); }}
+                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition-colors shadow-sm whitespace-nowrap"
+                          >
+                            <i className="ti ti-receipt text-sm" />
+                            Periksa Bukti Bayar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs font-medium text-blue-700 flex items-center gap-1">
+                            <i className="ti ti-bolt" /> Pesanan baru masuk! Segera konfirmasi.
+                          </p>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={e => { e.stopPropagation(); handleUpdateStatus(o.id, "cancelled"); }}
+                              disabled={actioning === o.id}
+                              className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
+                            >
+                              Tolak
+                            </button>
+                            <button
+                              onClick={e => { e.stopPropagation(); handleUpdateStatus(o.id, "confirmed"); }}
+                              disabled={actioning === o.id}
+                              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              {actioning === o.id ? "Memproses..." : "Konfirmasi"}
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -640,6 +829,7 @@ export default function PesananPage() {
           order={selected}
           onClose={() => setSelected(null)}
           onUpdateStatus={handleUpdateStatus}
+          onRefresh={fetchOrders}
           actioning={actioning}
         />
       )}

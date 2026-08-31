@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
     Route::post('/profile/shop/logo', [ProfileController::class, 'updateShopLogo']);
     Route::post('/profile/shop/banner', [ProfileController::class, 'updateShopBanner']);
+    Route::post('/profile/shop/qris', [ProfileController::class, 'updateShopQris']);
     Route::post('/profile/shop/halal-cert', [ProfileController::class, 'updateHalalCert']);
     Route::match(['put', 'post'], '/profile/password', [ProfileController::class, 'changePassword']);
     Route::delete('/profile', [ProfileController::class, 'destroy']);
@@ -75,6 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/checkout/confirm', [CheckoutController::class, 'confirm']);
     Route::post('/checkout/payment/{orderId}', [PaymentController::class, 'createInvoice']);
     Route::get('/checkout/payment/{orderId}/status', [PaymentController::class, 'checkStatus']);
+    Route::post('/orders/{orderId}/upload-proof', [PaymentController::class, 'uploadProof']);
 
     // Customer orders
     Route::get('/orders', [OrderController::class, 'index']);
@@ -142,6 +144,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/seller/orders/count', [SellerOrderController::class, 'count']);
     Route::get('/seller/orders', [SellerOrderController::class, 'index']);
     Route::get('/seller/orders/{id}', [SellerOrderController::class, 'show']);
+    Route::post('/seller/orders/{id}/verify-payment', [SellerOrderController::class, 'verifyPayment']);
     Route::patch('/seller/orders/{id}/status', [SellerOrderController::class, 'updateStatus']);
 
     // Seller product management routes

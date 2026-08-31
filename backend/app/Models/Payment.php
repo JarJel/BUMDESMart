@@ -12,6 +12,7 @@ class Payment extends Model
 
     protected $fillable = [
         'order_id',
+        'payment_type',
         'snap_token',
         'midtrans_order_id',
         'payment_code',
@@ -20,6 +21,8 @@ class Payment extends Model
         'amount',
         'fee_amount',
         'payment_data',
+        'proof_of_payment',
+        'rejection_reason',
         'status',
         'paid_at',
         'expired_at',
