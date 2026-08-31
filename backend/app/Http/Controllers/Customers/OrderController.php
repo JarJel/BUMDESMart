@@ -37,7 +37,8 @@ class OrderController extends Controller
         $order = Order::with([
             'items.product:id,name,slug,weight',
             'items.variantOption:id,value',
-            'umkmProfile:id,shop_name,logo,slug,phone',
+            'umkmProfile' => fn($q) => $q->select('id', 'shop_name', 'logo', 'slug', 'phone', 'qris_image'),
+            'umkmProfile.bankAccounts' => fn($q) => $q->where('is_active', true),
             'address',
             'payment',
             'items.product.primaryImage:id,product_id,file_path',

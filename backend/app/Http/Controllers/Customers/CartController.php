@@ -29,7 +29,7 @@ class CartController extends Controller
 
             $cart->load([
                 'items.product.images',
-                'items.product.umkmProfile',
+                'items.product.umkmProfile.bankAccounts',
                 'items.product.activeDiscount',
                 'items.variant'
             ]);

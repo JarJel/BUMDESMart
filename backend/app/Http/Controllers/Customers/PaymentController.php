@@ -239,6 +239,75 @@ class PaymentController extends Controller
         ]);
     }
 
+    public function uploadProof(Request $request, int $orderId)
+    {
+        $customer = $request->user()->customer;
+
+        $order = Order::with(['payment', 'umkmProfile.user'])
+            ->where('id', $orderId)
+            ->where('customer_id', $customer->id)
+            ->firstOrFail();
+
+        $request->validate([
+            'proof' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
+        ]);
+
+        try {
+            $file = $request->file('proof');
+            $dir = storage_path('app/public/uploads/payment_proofs');
+            if (!file_exists($dir)) mkdir($dir, 0775, true);
+
+            $filename = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $dir);
+            $path = 'uploads/payment_proofs/' . $filename;
+
+            $payment = $order->payment;
+            if (!$payment) {
+                $payment = Payment::create([
+                    'order_id'         => $order->id,
+                    'payment_type'     => 'manual_umkm',
+                    'payment_code'     => 'MAN-' . strtoupper(Str::random(10)),
+                    'amount'           => $order->total,
+                    'status'           => 'pending',
+                    'proof_of_payment' => $path,
+                    'rejection_reason' => null,
+                ]);
+            } else {
+                if ($payment->proof_of_payment) {
+                    $old = storage_path('app/public/' . ltrim($payment->proof_of_payment, '/'));
+                    if (file_exists($old)) @unlink($old);
+                }
+                $payment->update([
+                    'payment_type'     => 'manual_umkm',
+                    'proof_of_payment' => $path,
+                    'rejection_reason' => null,
+                    'status'           => 'pending',
+                ]);
+            }
+
+            // Kirim notifikasi WA ke Seller jika ada
+            $sellerPhone = $order->umkmProfile->phone ?? $order->umkmProfile->user->phone ?? null;
+            if ($sellerPhone) {
+                $sellerName = $order->umkmProfile->shop_name ?? 'Mitra';
+                $customerName = $request->user()->name;
+                \App\Helpers\WaNotification::custom(
+                    $sellerPhone,
+                    "🔔 *Bukti Pembayaran Masuk!*\n\nHalo {$sellerName},\nCustomer *{$customerName}* telah mengunggah bukti pembayaran langsung untuk pesanan #*{$order->order_code}* senilai *Rp " . number_format($order->total, 0, ',', '.') . "*.\n\nSilakan cek dan verifikasi di Dashboard Seller Anda."
+                );
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bukti pembayaran berhasil diunggah. Menunggu verifikasi toko.',
+                'proof_url' => $path,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengunggah bukti pembayaran: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     private function calculateCommission(float $total): int
     {
         $type  = \App\Models\PlatformSetting::getValue('commission_type', 'flat');

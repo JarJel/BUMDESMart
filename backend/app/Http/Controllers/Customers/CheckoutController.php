@@ -21,6 +21,8 @@ use App\Models\UmkmProfile;
 use App\Models\UmkmVoucherProgram;
 use App\Models\BumdesProfile;
 use App\Models\Address;
+use App\Models\Payment;
+use Illuminate\Support\Str;
 use Exception;
 
 class CheckoutController extends Controller
@@ -89,8 +91,13 @@ class CheckoutController extends Controller
                         'stock'           => $variant ? $variant->stock : $product->stock,
                         'weight'          => $product->weight,
                         'umkm_profile'    => $product->umkmProfile ? [
-                            'id'        => $product->umkmProfile->id,
-                            'name_umkm' => $product->umkmProfile->shop_name,
+                            'id'            => $product->umkmProfile->id,
+                            'name_umkm'     => $product->umkmProfile->shop_name,
+                            'qris_image'    => $product->umkmProfile->qris_image,
+                            'bank_accounts' => \App\Models\UmkmBankAccount::where('owner_id', $product->umkmProfile->id)
+                                ->where('owner_type', 'umkm')
+                                ->where('is_active', true)
+                                ->get(['id', 'channel_code', 'account_number', 'account_name']),
                         ] : null,
                         'images' => $product->images->map(function ($img) {
                             return [
@@ -141,8 +148,13 @@ class CheckoutController extends Controller
                                 'stock'           => $variant ? $variant->stock : $product->stock,
                                 'weight'          => $product->weight,
                                 'umkm_profile'    => $product->umkmProfile ? [
-                                    'id'        => $product->umkmProfile->id,
-                                    'name_umkm' => $product->umkmProfile->shop_name,
+                                    'id'         => $product->umkmProfile->id,
+                                    'name_umkm'  => $product->umkmProfile->shop_name,
+                                    'qris_image' => $product->umkmProfile->qris_image,
+                                    'bank_accounts' => \App\Models\UmkmBankAccount::where('owner_id', $product->umkmProfile->id)
+                                        ->where('owner_type', 'umkm')
+                                        ->where('is_active', true)
+                                        ->get(['id', 'channel_code', 'account_number', 'account_name']),
                                 ] : null,
                                 'images' => $product->images->map(function ($img) {
                                     return [
@@ -175,6 +187,8 @@ class CheckoutController extends Controller
                     $tenants[$tenantKey] = [
                         'umkm_profile_id' => $umkmId,
                         'shop_name'       => $umkmProfile['name_umkm'] ?? 'Toko BUMDES',
+                        'qris_image'      => $umkmProfile['qris_image'] ?? null,
+                        'bank_accounts'   => $umkmProfile['bank_accounts'] ?? [],
                         'items'           => [],
                         'sub_total'       => 0,
                     ];
@@ -452,6 +466,7 @@ class CheckoutController extends Controller
             'delivery_type'         => 'required|in:delivered,pickup',
             'shipping_method_id'    => 'nullable|string', // kurir-lokal | pickup | ekspedisi-jne-reg | dll
             'shipping_cost_override'=> 'nullable|integer|min:1000|max:2000000', // ongkir ekspedisi dari FE (batas wajar)
+            'payment_type'          => 'nullable|in:midtrans,manual_umkm',
             'vehicle_type'          => 'nullable|in:motor,mobil', // deprecated — dibaca dari shipping_method_id
             'notes'                 => 'nullable|string|max:500',
             'product_id'            => 'nullable|integer|exists:products,id',
@@ -712,6 +727,17 @@ class CheckoutController extends Controller
                     'shipping_method' => $shippingMethodId,
                     'promotion_id'    => $orderPromotionId,
                 ]);
+
+                if (($validated['payment_type'] ?? 'midtrans') === 'manual_umkm') {
+                    Payment::create([
+                        'order_id'     => $order->id,
+                        'payment_type' => 'manual_umkm',
+                        'payment_code' => 'MAN-' . strtoupper(Str::random(10)),
+                        'amount'       => $order->total,
+                        'status'       => 'pending',
+                        'expired_at'   => now()->addDays(2),
+                    ]);
+                }
 
                 foreach ($items as $item) {
                     OrderItem::create([
