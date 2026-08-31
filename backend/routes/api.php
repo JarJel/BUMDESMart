@@ -38,9 +38,12 @@ use App\Http\Controllers\Admin\UmkmVerificationController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\AdminProductController;
 use App\Http\Controllers\Driver\DriverController;
 use App\Http\Controllers\WhatsappController;
 use App\Http\Controllers\SiteVisitController;
+
+Route::get('/test-route', function() { return 'ok'; });
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
@@ -242,6 +245,10 @@ Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('ad
     Route::post('/categories', [AdminCategoryController::class, 'store']);
     Route::put('/categories/{category}', [AdminCategoryController::class, 'update']);
     Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy']);
+
+    // Admin BUMDes - product management
+    Route::get('/products', [AdminProductController::class, 'index']);
+    Route::delete('/products/{id}', [AdminProductController::class, 'destroy']);
 
     // Admin BUMDes - driver management (hanya kurir di BUMDes ini)
     Route::get('/drivers', [AdminDriverController::class, 'index']);

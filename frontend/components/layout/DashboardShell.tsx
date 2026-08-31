@@ -75,13 +75,13 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
         `}
       >
         {/* Logo */}
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-2">
-          <div>
+        <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <img src="/logo.png" alt="BumDesMartNukita" className="h-8 w-auto" />
-              <span className="font-bold text-sm" style={{ color: accent }}>BumDesMartNukita</span>
+              <img src="/logo.png" alt="BumDesMartNukita" className="h-8 w-auto shrink-0" />
+              <span className="font-bold text-sm truncate block" style={{ color: accent }}>BumDesMartNukita</span>
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">{roleLabel}</p>
+            <p className="text-xs text-gray-400 mt-0.5 truncate">{roleLabel}</p>
           </div>
           <button
             onClick={() => setDrawerOpen(false)}

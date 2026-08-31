@@ -132,13 +132,13 @@ export default function VerifikasiPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-5">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Verifikasi Mitra</h1>
           <p className="text-sm text-gray-500 mt-0.5">Tinjau dokumen dan verifikasi pendaftaran mitra baru</p>
         </div>
         {pending > 0 && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-xl">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-xl shrink-0 self-start sm:self-auto w-fit">
             <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
             <span className="text-xs font-semibold text-yellow-700">{pending} menunggu</span>
           </div>

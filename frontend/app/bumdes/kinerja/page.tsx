@@ -21,6 +21,7 @@ export default function KinerjaPage() {
   const [loading, setLoading] = useState(true);
   const [sort, setSort]       = useState<SortKey>("rating");
   const [search, setSearch]   = useState("");
+  const [sortOpen, setSortOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -93,15 +94,34 @@ export default function KinerjaPage() {
             className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-white"
           />
         </div>
-        <select
-          value={sort}
-          onChange={e => setSort(e.target.value as SortKey)}
-          className="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:border-green-400"
-        >
-          {SORT_OPTIONS.map(o => (
-            <option key={o.key} value={o.key}>Urutkan: {o.label}</option>
-          ))}
-        </select>
+        <div className="relative shrink-0">
+          <button
+            onClick={() => setSortOpen(!sortOpen)}
+            className="flex items-center justify-between w-full sm:w-[200px] text-sm border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:border-green-400 hover:bg-gray-50 transition-colors"
+          >
+            <span className="truncate">Urutkan: {SORT_OPTIONS.find(o => o.key === sort)?.label}</span>
+            <svg className={`w-4 h-4 text-gray-500 transition-transform ${sortOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {sortOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setSortOpen(false)} />
+              <div className="absolute right-0 sm:right-auto left-0 top-full mt-2 w-full sm:w-[200px] bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-1 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                {SORT_OPTIONS.map(o => (
+                  <button
+                    key={o.key}
+                    onClick={() => { setSort(o.key); setSortOpen(false); }}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${sort === o.key ? "bg-green-50 text-green-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
+                  >
+                    Urutkan: {o.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {loading ? (
