@@ -42,6 +42,7 @@ interface UmkmStatus {
   rejection_reason: string | null;
   logo: string | null;
   banner: string | null;
+  qris_image: string | null;
 }
 
 const EMPTY_FORM: ProfileForm = {
@@ -198,6 +199,7 @@ export default function PengaturanPage() {
         rejection_reason: umkm.rejection_reason ?? null,
         logo: umkm.logo ?? null,
         banner: umkm.banner ?? null,
+        qris_image: umkm.qris_image ?? null,
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -379,6 +381,18 @@ export default function PengaturanPage() {
                 window.dispatchEvent(new Event("seller-profile-updated"));
               }}
             />
+            <div className="sm:col-span-2 border-t border-gray-50 pt-4">
+              <MediaUpload
+                label="QRIS Toko UMKM (Untuk Pembayaran Langsung)"
+                hint="Unggah gambar QRIS statis toko kamu (BCA/BRI/GoPay/DANA). Pembeli dapat scan QR ini untuk membayar langsung ke rekening tokomu."
+                current={umkmStatus.qris_image}
+                endpoint="/profile/shop/qris"
+                onDone={(path) => {
+                  setUmkmStatus(prev => prev ? { ...prev, qris_image: path } : prev);
+                  toast.success("QRIS Toko berhasil diperbarui.");
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

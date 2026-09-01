@@ -7,6 +7,7 @@ import {
   CheckCircle, XCircle, Package, MessageCircle,
   MapPin, Phone, Clock, Truck, Home, ChevronLeft,
 } from "lucide-react";
+import { getFileUrl } from "@/lib/storage";
 
 interface OrderItem {
   id: number;
@@ -42,6 +43,14 @@ interface Order {
   items: OrderItem[];
   driver?: { id: number; name: string; phone?: string } | null;
   shipment?: { tracking_number: string | null; status: string | null } | null;
+  payment?: {
+    id: number;
+    payment_type: string;
+    proof_of_payment: string | null;
+    rejection_reason: string | null;
+    status: string;
+    paid_at: string | null;
+  } | null;
 }
 
 function deliveryMode(order: Order): "pickup" | "ekspedisi" | "kurir_lokal" {
@@ -58,8 +67,15 @@ function ekspedisiLabel(method: string | null): string {
     "ekspedisi-jnt-ez": "J&T EZ",
     "ekspedisi-tiki-reg": "TIKI REG",
     "ekspedisi-pos-biasa": "POS Biasa",
+    "anteraja-reg": "AnterAja REG",
+    "sicepat-reg": "SiCepat REG",
+    "jnt-ez": "J&T EZ",
+    "ninja-xpress": "Ninja Xpress",
+    "gosend": "GoSend",
+    "grabexpress": "Grab Express",
+    "lalamove": "Lalamove",
   };
-  return map[method] ?? method.replace("ekspedisi-", "").toUpperCase();
+  return map[method] ?? method.replace("ekspedisi-", "").replace("-", " ").toUpperCase();
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -112,6 +128,10 @@ export default function SellerOrderDetailPage() {
   const [actioning, setActioning] = useState(false);
   const [resi, setResi] = useState("");
   const [resiError, setResiError] = useState("");
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejecting, setRejecting] = useState(false);
+  const [approving, setApproving] = useState(false);
 
   useEffect(() => {
     api.get(`/seller/orders/${id}`)
@@ -130,8 +150,9 @@ export default function SellerOrderDetailPage() {
       const res = await api.patch(`/seller/orders/${order.id}/status`, body);
       setOrder(res.data.data ?? { ...order, status });
       toast.success("Status pesanan diperbarui.");
-    } catch {
-      toast.error("Gagal memperbarui status.");
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Gagal memperbarui status.";
+      toast.error(msg);
     } finally {
       setActioning(false);
     }
@@ -240,7 +261,7 @@ export default function SellerOrderDetailPage() {
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Produk Dipesan</p>
         <div className="space-y-2">
-          {order.items.map(item => (
+          {(order.items || []).map(item => (
             <div key={item.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
               <div>
                 <p className="text-sm font-medium text-gray-900">
@@ -272,6 +293,149 @@ export default function SellerOrderDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Info Pembayaran & Bukti Transfer */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status Pembayaran</p>
+          <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
+            order.payment?.status === "paid" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+          }`}>
+            {order.payment?.status === "paid" ? "Lunas" : "Belum Lunas"}
+          </span>
+        </div>
+
+        <p className="text-xs text-gray-700">
+          Metode: <strong className="text-gray-900">{order.payment?.payment_type === "manual_umkm" ? "Pembayaran Langsung ke Toko (QRIS / Rekening)" : "Otomatis via Midtrans BUMDes"}</strong>
+        </p>
+
+        {order.payment?.payment_type === "manual_umkm" && (
+          <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+            <p className="text-xs font-semibold text-gray-800">Bukti Pembayaran dari Pembeli:</p>
+            {order.payment?.proof_of_payment ? (
+              <div className="space-y-3">
+                <a
+                  href={getFileUrl(order.payment.proof_of_payment)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block overflow-hidden rounded-xl border border-gray-200 hover:opacity-90 max-w-sm"
+                >
+                  <img
+                    src={getFileUrl(order.payment.proof_of_payment)!}
+                    alt="Bukti Transfer"
+                    className="w-full max-h-56 object-contain bg-gray-50 p-2"
+                  />
+                </a>
+                <p className="text-[10px] text-gray-400">Klik gambar untuk memperbesar</p>
+
+                {order.payment.status !== "paid" && order.status !== "cancelled" && (
+                  <div className="flex items-center gap-3 max-w-sm pt-1">
+                    <button
+                      onClick={() => {
+                        setRejectReason("");
+                        setRejectModalOpen(true);
+                      }}
+                      className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
+                    >
+                      Tolak Bukti
+                    </button>
+                    <button
+                      disabled={approving}
+                      onClick={async () => {
+                        setApproving(true);
+                        try {
+                          await api.post(`/seller/orders/${order.id}/verify-payment`, { action: "approve" });
+                          toast.success("Pembayaran berhasil diverifikasi!");
+                          window.location.reload();
+                        } catch {
+                          toast.error("Gagal memverifikasi pembayaran.");
+                        } finally {
+                          setApproving(false);
+                        }
+                      }}
+                      className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white bg-green-600 hover:bg-green-700 shadow-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    >
+                      {approving ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Memproses...</span>
+                        </>
+                      ) : (
+                        "Terima Pembayaran"
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-amber-600 italic">Pembeli belum mengunggah bukti transfer.</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Modal Penolakan Bukti Pembayaran */}
+      {rejectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5 text-red-600">
+                <XCircle className="w-4 h-4" /> Tolak Bukti Pembayaran
+              </h3>
+              <button
+                onClick={() => setRejectModalOpen(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              >
+                <XCircle className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-gray-600">
+                Berikan alasan penolakan agar pembeli dapat memperbaiki atau mengunggah bukti pembayaran yang valid.
+              </p>
+              <textarea
+                rows={3}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Contoh: Nominal transfer kurang / Rekening tujuan salah / Struk buram..."
+                className="w-full px-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-red-400 resize-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={() => setRejectModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200"
+              >
+                Batal
+              </button>
+              <button
+                disabled={rejecting}
+                onClick={async () => {
+                  setRejecting(true);
+                  try {
+                    await api.post(`/seller/orders/${order.id}/verify-payment`, {
+                      action: "reject",
+                      reason: rejectReason.trim() || "Bukti transfer tidak valid",
+                    });
+                    toast.success("Bukti pembayaran telah ditolak.");
+                    setRejectModalOpen(false);
+                    window.location.reload();
+                  } catch {
+                    toast.error("Gagal menolak bukti.");
+                  } finally {
+                    setRejecting(false);
+                  }
+                }}
+                className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 shadow-sm disabled:opacity-50"
+              >
+                {rejecting ? "Memproses..." : "Ya, Tolak Bukti"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status blocks */}
       {mode === "kurir_lokal" && order.status === "confirmed" && (

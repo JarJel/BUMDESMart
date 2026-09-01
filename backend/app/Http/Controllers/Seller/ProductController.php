@@ -185,6 +185,7 @@ class ProductController extends Controller
             'variant.name'              => 'required_if:has_variant,true|string|max:100',
             'variant.options'           => 'required_if:has_variant,true|array|min:1',
             'variant.options.*.value'   => 'required|string|max:100',
+            'variant.options.*.description' => 'nullable|string|max:255',
             'variant.options.*.price'   => 'required|numeric|min:0',
             'variant.options.*.stock'   => 'required|integer|min:0',
             'variant.options.*.weight'  => 'sometimes|integer|min:0',
@@ -230,6 +231,7 @@ class ProductController extends Controller
                     ProductVariantOption::create([
                         'product_variant_id' => $pv->id,
                         'value'              => $opt['value'],
+                        'description'        => $opt['description'] ?? null,
                         'price'              => (float) $opt['price'],
                         'stock'              => (int) $opt['stock'],
                         'weight'             => (int) ($opt['weight'] ?? $request->weight ?? 0),
@@ -448,6 +450,7 @@ class ProductController extends Controller
             'variant.options'                => 'sometimes|array',
             'variant.options.*.id'           => 'sometimes|integer',
             'variant.options.*.value'        => 'required_without:variant.options.*.id|string|max:100',
+            'variant.options.*.description'  => 'nullable|string|max:255',
             'variant.options.*.price'        => 'sometimes|numeric|min:0',
             'variant.options.*.stock'        => 'sometimes|integer|min:0',
             'variant.options.*.weight'       => 'sometimes|integer|min:0',
@@ -570,8 +573,9 @@ class ProductController extends Controller
                         ProductVariantOption::where('id', $opt['id'])
                             ->where('product_variant_id', $pv->id)
                             ->update(array_filter([
-                                'value'     => $opt['value'] ?? null,
-                                'price'     => isset($opt['price']) ? (float) $opt['price'] : null,
+                                'value'       => $opt['value'] ?? null,
+                                'description' => $opt['description'] ?? null,
+                                'price'       => isset($opt['price']) ? (float) $opt['price'] : null,
                                 'stock'     => isset($opt['stock']) ? (int) $opt['stock'] : null,
                                 'weight'    => isset($opt['weight']) ? (int) $opt['weight'] : null,
                                 'is_active' => $opt['is_active'] ?? null,
@@ -580,6 +584,7 @@ class ProductController extends Controller
                         ProductVariantOption::create([
                             'product_variant_id' => $pv->id,
                             'value'              => $opt['value'],
+                            'description'        => $opt['description'] ?? null,
                             'price'              => (float) $opt['price'],
                             'stock'              => (int) $opt['stock'],
                             'weight'             => (int) ($opt['weight'] ?? $product->weight ?? 0),

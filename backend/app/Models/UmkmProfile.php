@@ -20,6 +20,7 @@ class UmkmProfile extends Model
         'phone',
         'logo',
         'banner',
+        'qris_image',
         'description',
         'address',
         'city',
@@ -109,6 +110,11 @@ class UmkmProfile extends Model
     public function promotions(): HasMany
     {
         return $this->hasMany(Promotion::class, 'umkm_profile_id');
+    }
+
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(UmkmBankAccount::class, 'owner_id')->where('owner_type', 'umkm');
     }
 
     public function recalculateRating(): void

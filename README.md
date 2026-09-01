@@ -1,4 +1,4 @@
-﻿# BumDesMartNukita
+# BumDesMartNukita
 
 Platform Digital BUMDes untuk Meningkatkan Layanan Pemasaran UMKM  
 Desa Lengkong, Kecamatan Bojongsoang, Kabupaten Bandung.

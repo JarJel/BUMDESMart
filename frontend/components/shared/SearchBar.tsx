@@ -159,6 +159,7 @@ export default function SearchBar({
           type="text"
           className="w-full pl-4 pr-10 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white focus:ring-2 focus:ring-green-600/10 transition-all text-gray-700 placeholder-gray-400"
           placeholder={placeholder}
+          aria-label={placeholder}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -171,6 +172,7 @@ export default function SearchBar({
         {/* Search Icon */}
         <button
           type="button"
+          aria-label="Cari produk"
           onClick={() => {
             if (query.trim().length > 0) {
               router.push(`/produk?search=${encodeURIComponent(query)}`);

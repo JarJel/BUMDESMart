@@ -1,6 +1,6 @@
-﻿{
+{
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "BumDesMartNukita/backend",
+    "name": "bumdesmartnukita/backend",
     "type": "project",
     "description": "BumDesMartNukita - Platform Digital UMKM Desa Lengkong",
     "license": "MIT",

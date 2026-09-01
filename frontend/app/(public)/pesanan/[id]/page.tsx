@@ -14,6 +14,27 @@ function formatRp(n: number) {
   return "Rp " + Math.round(n).toLocaleString("id-ID");
 }
 
+function ekspedisiLabel(method: string | null): string {
+  if (!method) return "Ekspedisi";
+  const map: Record<string, string> = {
+    "ekspedisi-jne-reg": "JNE REG",
+    "ekspedisi-jne-yes": "JNE YES",
+    "ekspedisi-jnt-ez":  "J&T EZ",
+    "ekspedisi-tiki-reg": "TIKI REG",
+    "ekspedisi-pos-biasa": "POS Biasa",
+    "anteraja-reg": "AnterAja REG",
+    "sicepat-reg": "SiCepat REG",
+    "jnt-ez": "J&T EZ",
+    "ninja-xpress": "Ninja Xpress",
+    "gosend": "GoSend",
+    "grabexpress": "Grab Express",
+    "lalamove": "Lalamove",
+    "kurir-lokal-motor": "Kurir Lokal (Motor)",
+    "kurir-lokal-mobil": "Kurir Lokal (Mobil)",
+  };
+  return map[method] ?? method.replace("ekspedisi-", "").replace("-", " ").toUpperCase();
+}
+
 const STATUS_STEPS = [
   { key: "pending",    label: "Menunggu Bayar" },
   { key: "confirmed",  label: "Dikonfirmasi" },
@@ -87,6 +108,11 @@ export default function DetailPesananPage() {
   const [driverReview, setDriverReview] = useState<{ rating: number; comment: string } | null>(null);
   const [driverReviewForm, setDriverReviewForm] = useState({ rating: 0, comment: "" });
   const [submittingDriverReview, setSubmittingDriverReview] = useState(false);
+
+  // State Verifikasi & Konfirmasi Bukti Pembayaran
+  const [selectedProofFile, setSelectedProofFile] = useState<File | null>(null);
+  const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -360,51 +386,64 @@ export default function DetailPesananPage() {
           </div>
         )}
 
-        {/* Nomor Resi (Ekspedisi) */}
-        {order.shipment && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4">
+        {/* Nomor Resi & Info Pengiriman Ekspedisi */}
+        {(order.shipment?.tracking_number || (order.delivery_type === "delivered" && order.shipping_method && !order.shipping_method.startsWith("kurir-lokal"))) && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <p className="text-sm font-semibold text-gray-800">Info Pengiriman</p>
+              <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">Informasi Pengiriman</p>
+                <p className="text-xs text-gray-500">Ekspedisi: {ekspedisiLabel(order.shipping_method)}</p>
+              </div>
             </div>
-            <div className="space-y-2">
-              {order.shipment.courier_name && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Kurir</span>
-                  <span className="text-xs font-semibold text-gray-900">
-                    {order.shipment.courier_name}
-                    {order.shipment.service_name ? ` · ${order.shipment.service_name}` : ""}
-                  </span>
-                </div>
-              )}
-              {order.shipment.tracking_number && (
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-xs text-gray-500 shrink-0">No. Resi</span>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs font-mono font-semibold text-gray-900 truncate">
+
+            <div className="space-y-3 pt-2 border-t border-gray-50">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Kurir Pengiriman</span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                  {order.shipment?.courier_name || ekspedisiLabel(order.shipping_method)}
+                </span>
+              </div>
+
+              {order.shipment?.tracking_number ? (
+                <div className="flex items-center justify-between gap-4 bg-gray-50/80 p-3 rounded-xl border border-gray-100">
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-semibold uppercase tracking-wider">Nomor Resi</span>
+                    <span className="text-sm font-mono font-bold text-gray-900 tracking-wide">
                       {order.shipment.tracking_number}
                     </span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(order.shipment.tracking_number);
-                        toast.success("Nomor resi disalin.");
-                      }}
-                      className="shrink-0 p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
-                      title="Salin nomor resi"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
                   </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(order.shipment.tracking_number);
+                      toast.success("Nomor resi berhasil disalin!");
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
+                    title="Salin nomor resi"
+                  >
+                    <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Salin
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between text-xs text-gray-500 py-1">
+                  <span>Nomor Resi</span>
+                  <span className="italic text-gray-400">Menunggu input resi dari penjual</span>
                 </div>
               )}
-              {order.shipment.status && (
+
+              {order.shipment?.status && (
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Status</span>
-                  <span className="text-xs font-semibold capitalize text-gray-700">{order.shipment.status}</span>
+                  <span className="text-xs text-gray-500">Status Ekspedisi</span>
+                  <span className="text-xs font-semibold text-green-700">
+                    {order.shipment.status === "in_transit" ? "Sedang Dalam Perjalanan" : order.shipment.status}
+                  </span>
                 </div>
               )}
             </div>
@@ -508,6 +547,262 @@ export default function DetailPesananPage() {
           </div>
         </div>
 
+        {/* Card Pembayaran Langsung ke UMKM jika pending / belum paid & order tidak dibatalkan */}
+        {order.status !== "cancelled" && ((order.payment && order.payment.payment_type === "manual_umkm") || (!order.payment && order.status === "pending" && (order.umkm_profile?.qris_image || (order.umkm_profile?.bank_accounts && order.umkm_profile.bank_accounts.length > 0)))) && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-50 pb-3">
+              <div>
+                <p className="text-sm font-bold text-gray-900">Pembayaran Langsung ke Toko</p>
+                <p className="text-xs text-gray-400 mt-0.5">Toko: {order.umkm_profile?.shop_name || "UMKM"}</p>
+              </div>
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                order.payment?.status === "paid" ? "bg-green-50 text-green-700" :
+                order.payment?.proof_of_payment ? "bg-blue-50 text-blue-700" :
+                "bg-amber-50 text-amber-700"
+              }`}>
+                {order.payment?.status === "paid" ? "Lunas" :
+                 order.payment?.proof_of_payment ? "Menunggu Verifikasi Toko" :
+                 "Belum Bayar"}
+              </span>
+            </div>
+
+            {order.payment?.rejection_reason && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-xs font-bold text-red-800">Bukti Sebelumnya Ditolak:</p>
+                <p className="text-xs text-red-700 mt-0.5">{order.payment.rejection_reason}</p>
+              </div>
+            )}
+
+            {order.payment?.status !== "paid" && (
+              <div className="space-y-4">
+                {/* QRIS Toko jika ada */}
+                {order.umkm_profile?.qris_image && (
+                  <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <p className="text-xs font-semibold text-gray-700 mb-2">Scan QRIS Toko</p>
+                    <img
+                      src={getFileUrl(order.umkm_profile.qris_image)!}
+                      alt="QRIS Toko"
+                      className="w-48 h-48 mx-auto object-contain bg-white p-2 rounded-lg border border-gray-200 shadow-sm"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-2">Bisa di-scan menggunakan GoPay, OVO, DANA, BCA, BRI, dll</p>
+                  </div>
+                )}
+
+                {/* Rekening Toko jika ada */}
+                {order.umkm_profile?.bank_accounts && order.umkm_profile.bank_accounts.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-gray-700">Atau Transfer ke Rekening:</p>
+                    {order.umkm_profile.bank_accounts.map((acc: any) => (
+                      <div key={acc.id} className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-gray-900">{acc.channel_code} - {acc.account_number}</p>
+                          <p className="text-[11px] text-gray-500">a.n. {acc.account_name}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(acc.account_number);
+                            toast.success("Nomor rekening disalin!");
+                          }}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-200 hover:bg-white text-gray-600"
+                        >
+                          Salin
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Bukti yang sudah diupload */}
+                {order.payment?.proof_of_payment ? (
+                  <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={getFileUrl(order.payment.proof_of_payment)!}
+                        alt="Bukti Transfer"
+                        className="w-12 h-12 object-cover rounded-lg border border-blue-200"
+                      />
+                      <div>
+                        <p className="text-xs font-bold text-blue-900">Bukti Transfer Terkirim</p>
+                        <p className="text-[11px] text-blue-700">Toko sedang memverifikasi dana yang masuk.</p>
+                      </div>
+                    </div>
+                    <label className="cursor-pointer px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-700 bg-white border border-blue-200 hover:bg-blue-50">
+                      Ganti
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setSelectedProofFile(file);
+                          setProofPreviewUrl(URL.createObjectURL(file));
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      {/* Opsi 1: Kamera (Foto Langsung) */}
+                      <label className="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-green-500 bg-gray-50 hover:bg-green-50/30 transition-all text-center">
+                        <svg className="w-6 h-6 text-gray-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="text-xs font-semibold text-gray-800">Buka Kamera</span>
+                        <span className="text-[10px] text-gray-400 mt-0.5">Ambil foto struk langsung</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setSelectedProofFile(file);
+                            setProofPreviewUrl(URL.createObjectURL(file));
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+
+                      {/* Opsi 2: Ambil dari Galeri */}
+                      <label className="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-blue-500 bg-gray-50 hover:bg-blue-50/30 transition-all text-center">
+                        <svg className="w-6 h-6 text-gray-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-xs font-semibold text-gray-800">Pilih dari Galeri</span>
+                        <span className="text-[10px] text-gray-400 mt-0.5">JPG, PNG, WEBP</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setSelectedProofFile(file);
+                            setProofPreviewUrl(URL.createObjectURL(file));
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Modal Konfirmasi & Pratinjau Bukti Pembayaran */}
+        {proofPreviewUrl && selectedProofFile && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                  <i className="ti ti-eye text-green-600 text-base" /> Pratinjau Bukti Pembayaran
+                </h3>
+                <button
+                  onClick={() => {
+                    setSelectedProofFile(null);
+                    setProofPreviewUrl(null);
+                  }}
+                  className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs text-gray-600">
+                  Periksa kembali foto Anda. Pastikan nominal transfer, nama rekening, dan tanggal transfer terlihat jelas.
+                </p>
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center max-h-64">
+                  <img
+                    src={proofPreviewUrl}
+                    alt="Preview Bukti"
+                    className="max-h-64 w-full object-contain p-1"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <button
+                  disabled={uploadingProof}
+                  onClick={async () => {
+                    if (!selectedProofFile) return;
+                    setUploadingProof(true);
+                    const fd = new FormData();
+                    fd.append("proof", selectedProofFile);
+                    try {
+                      await api.post(`/orders/${order.id}/upload-proof`, fd, {
+                        headers: { "Content-Type": "multipart/form-data" },
+                      });
+                      toast.success("Bukti transfer berhasil dikirim ke penjual!");
+                      setSelectedProofFile(null);
+                      setProofPreviewUrl(null);
+                      fetchOrder();
+                    } catch {
+                      toast.error("Gagal mengunggah bukti.");
+                    } finally {
+                      setUploadingProof(false);
+                    }
+                  }}
+                  className="w-full py-2.5 rounded-xl text-xs font-bold text-white shadow-sm flex items-center justify-center gap-2 hover:opacity-95 disabled:opacity-50"
+                  style={{ background: "var(--primary)" }}
+                >
+                  {uploadingProof ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Mengunggah...
+                    </>
+                  ) : (
+                    "Ya, Kirim Bukti Transfer Ini"
+                  )}
+                </button>
+
+                <div className="flex gap-2">
+                  <label className="flex-1 py-2 rounded-xl text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 text-center cursor-pointer">
+                    Foto Ulang
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setSelectedProofFile(file);
+                        setProofPreviewUrl(URL.createObjectURL(file));
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  <label className="flex-1 py-2 rounded-xl text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 text-center cursor-pointer">
+                    Ganti dari Galeri
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setSelectedProofFile(file);
+                        setProofPreviewUrl(URL.createObjectURL(file));
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex flex-col gap-3">
           {order.status === "shipped" && (
@@ -520,11 +815,11 @@ export default function DetailPesananPage() {
               {confirming ? "Memproses..." : "Konfirmasi Terima Barang"}
             </button>
           )}
-          {order.status === "pending" && order.payment?.status !== "paid" && (
+          {order.status === "pending" && (!order.payment || (order.payment.payment_type !== "manual_umkm" && order.payment.status !== "paid")) && !(order.umkm_profile?.qris_image || (order.umkm_profile?.bank_accounts && order.umkm_profile.bank_accounts.length > 0)) && (
             <Link href={`/pembayaran?order_id=${order.id}`}
               className="block w-full text-center py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90"
               style={{ background: "var(--primary)" }}>
-              Bayar Sekarang
+              Bayar Sekarang (Midtrans)
             </Link>
           )}
           {order.status === "delivered" && (

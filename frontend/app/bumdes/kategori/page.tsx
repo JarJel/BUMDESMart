@@ -352,7 +352,7 @@ function CategoryRow({
 }) {
   return (
     <div
-      className={`flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors gap-3 ${indent > 0 ? "border-t border-gray-50" : ""}`}
+      className={`flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors gap-4 ${indent > 0 ? "border-t border-gray-50" : ""}`}
       style={{ paddingLeft: indent > 0 ? "2.5rem" : undefined }}
     >
       <div className="flex items-center gap-3 min-w-0">
@@ -362,7 +362,7 @@ function CategoryRow({
           </svg>
         )}
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-gray-900 truncate">{cat.name}</p>
             <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${cat.is_active ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}>
               {cat.is_active ? "Aktif" : "Nonaktif"}
@@ -371,11 +371,11 @@ function CategoryRow({
           {cat.description && (
             <p className="text-xs text-gray-500 mt-0.5 truncate">{cat.description}</p>
           )}
-          <p className="text-xs text-gray-400 mt-0.5">/{cat.slug}</p>
+          <p className="text-xs text-gray-400 mt-0.5 truncate">/{cat.slug}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto">
         {indent === 0 && (
           <button
             onClick={() => onAddChild(cat.id)}

@@ -1,4 +1,4 @@
-﻿export const ROLE_HOME: Record<string, string> = {
+export const ROLE_HOME: Record<string, string> = {
   super_admin:  '/admin',
   admin_bumdes: '/bumdes',
   umkm:         '/seller',

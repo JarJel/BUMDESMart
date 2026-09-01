@@ -37,9 +37,11 @@ class OrderController extends Controller
         $order = Order::with([
             'items.product:id,name,slug,weight',
             'items.variantOption:id,value',
-            'umkmProfile:id,shop_name,logo,slug,phone',
+            'umkmProfile' => fn($q) => $q->select('id', 'shop_name', 'logo', 'slug', 'phone', 'qris_image'),
+            'umkmProfile.bankAccounts' => fn($q) => $q->where('is_active', true),
             'address',
             'payment',
+            'shipment:id,order_id,tracking_number,status,shipped_at',
             'items.product.primaryImage:id,product_id,file_path',
             'driver:id,name,phone',
             'driver.driverProfile:user_id,vehicle_type,vehicle_brand,vehicle_plate,rating,photo_profile',

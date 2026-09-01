@@ -173,6 +173,11 @@ class ProfileController extends Controller
         return $this->uploadShopMedia($request, 'banner', 'banners');
     }
 
+    public function updateShopQris(Request $request)
+    {
+        return $this->uploadShopMedia($request, 'qris_image', 'qris');
+    }
+
     public function updateHalalCert(Request $request)
     {
         $user = $request->user();

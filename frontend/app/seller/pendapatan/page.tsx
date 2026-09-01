@@ -36,6 +36,9 @@ export default function PendapatanPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [showAllModal, setShowAllModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     api.get<{ data: { data: Order[] } }>("/seller/orders")
@@ -69,10 +72,14 @@ export default function PendapatanPage() {
   });
   const maxBar = Math.max(...barData, 1);
 
-  const recentTx = [...orders]
-    .filter(o => ["delivered", "confirmed", "processing", "shipped"].includes(o.status))
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 10);
+  const validTx = [...orders]
+    .filter(o => ["delivered", "completed", "confirmed", "processing", "shipped"].includes(o.status))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  const recentTx = validTx.slice(0, 5);
+
+  const totalPages = Math.ceil(validTx.length / itemsPerPage);
+  const paginatedTx = validTx.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const stats = [
     { label: "Hak Seller Bulan Ini", value: loading ? "—" : formatRp(thisMonthRevenue) },
@@ -156,8 +163,8 @@ export default function PendapatanPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-xs font-semibold text-gray-900">{t.order_code}</p>
-                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${t.status === "delivered" ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>
-                          {t.status === "delivered" ? "Selesai" : "Diproses"}
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${["delivered", "completed"].includes(t.status) ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>
+                          {["delivered", "completed"].includes(t.status) ? "Selesai" : "Diproses"}
                         </span>
                       </div>
                       <p className="text-[11px] text-gray-400 mt-0.5 truncate">
@@ -214,7 +221,144 @@ export default function PendapatanPage() {
             })}
           </div>
         )}
+        
+        {!loading && validTx.length > recentTx.length && (
+          <div className="p-4 border-t border-gray-50 text-center">
+            <button
+              onClick={() => {
+                setCurrentPage(1);
+                setShowAllModal(true);
+              }}
+              className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              Lihat Seluruh Transaksi ({validTx.length})
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Modal Riwayat Seluruh Transaksi */}
+      {showAllModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAllModal(false)} />
+          <div className="relative w-full max-w-2xl bg-white rounded-2xl h-[90vh] flex flex-col shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Seluruh Transaksi</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Semua riwayat pesanan yang masuk ke saldo Anda</p>
+              </div>
+              <button onClick={() => setShowAllModal(false)} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* List Transaksi Modal */}
+            <div className="flex-1 overflow-y-auto p-2">
+              <div className="divide-y divide-gray-50">
+                {paginatedTx.map(t => {
+                  const earned = sellerEarnings(t);
+                  const bumdesFee = Number(t.bumdes_fee ?? 0);
+                  const discount = Number(t.discount ?? 0);
+                  const subTotal = Number(t.sub_total ?? 0);
+                  const hasDeductions = bumdesFee > 0 || discount > 0;
+                  const isExpanded = expandedId === t.id;
+
+                  return (
+                    <div key={t.id}>
+                      <div
+                        className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50/50 transition-colors cursor-pointer rounded-xl"
+                        onClick={() => hasDeductions && setExpandedId(isExpanded ? null : t.id)}
+                      >
+                        {/* Kode & produk */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-semibold text-gray-900">{t.order_code}</p>
+                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${["delivered", "completed"].includes(t.status) ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>
+                              {["delivered", "completed"].includes(t.status) ? "Selesai" : "Diproses"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-400 mt-0.5 truncate">
+                            {t.customer?.user?.name} · {new Date(t.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                          </p>
+                        </div>
+
+                        {/* Nominal */}
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-bold text-gray-900">{formatRp(earned)}</p>
+                          {hasDeductions && (
+                            <p className="text-[10px] text-gray-400 line-through">{formatRp(subTotal)}</p>
+                          )}
+                        </div>
+
+                        {/* Chevron */}
+                        {hasDeductions && (
+                          <svg className={`w-4 h-4 text-gray-300 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        )}
+                      </div>
+
+                      {/* Breakdown detail */}
+                      {isExpanded && (
+                        <div className="px-4 pb-3 pt-0">
+                          <div className="bg-gray-50 rounded-xl px-4 py-3 space-y-1.5 text-xs">
+                            <div className="flex justify-between text-gray-600">
+                              <span>Subtotal produk</span>
+                              <span className="font-medium">{formatRp(subTotal)}</span>
+                            </div>
+                            {discount > 0 && (
+                              <div className="flex justify-between text-red-500">
+                                <span>Diskon voucher</span>
+                                <span>−{formatRp(discount)}</span>
+                              </div>
+                            )}
+                            {bumdesFee > 0 && (
+                              <div className="flex justify-between text-orange-500">
+                                <span>Fee BUMDes</span>
+                                <span>−{formatRp(bumdesFee)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-1.5 mt-1">
+                              <span>Hak Seller</span>
+                              <span style={{ color: "var(--primary)" }}>{formatRp(earned)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                >
+                  Sebelumnya
+                </button>
+                <span className="text-xs text-gray-500 font-medium">
+                  Halaman {currentPage} dari {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                >
+                  Selanjutnya
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { sellerApi, SellerData } from "@/lib/api/seller";
 import { StarIcon } from "@/components/ui/StarIcon";
@@ -95,6 +96,173 @@ function StickyCartBar({ items, shopName, onViewCart }: {
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Hero Banner Slider Component ─────────────────────────────────────────────
+const BANNER_SLIDES = [
+  {
+    id: 1,
+    tag: "🌱 Produk Asli Desa",
+    title: <>Hasil Bumi Pilihan, <br className="hidden sm:inline" />Langsung dari Petani</>,
+    desc: "Belanja produk segar, autentik, dan berkualitas langsung dari UMKM desa di seluruh Indonesia ke tangan Anda.",
+    btnText: "Belanja Sekarang",
+    btnLink: "/produk",
+    bgImage: "/images/hero-bg.jpg",
+    accentBadge: "bg-emerald-500/20 text-emerald-300 border-emerald-400/30",
+    btnBg: "var(--primary-light)",
+  },
+  {
+    id: 2,
+    tag: "🤝 Pemberdayaan Ekonomi",
+    title: <>Kembangkan Usaha Anda <br className="hidden sm:inline" />Bersama BUMDesMart</>,
+    desc: "Daftarkan produk UMKM desa Anda dan jangkau pasar lebih luas dengan sistem penjualan digital yang mudah & terintegrasi.",
+    btnText: "Gabung Jadi Mitra",
+    btnLink: "/mitra",
+    bgImage: "/images/mitra-hero.jpg",
+    accentBadge: "bg-amber-500/20 text-amber-300 border-amber-400/30",
+    btnBg: "#059669",
+  },
+  {
+    id: 3,
+    tag: "✨ Spesial Hari Ini",
+    title: <>Dukung Produk Lokal, <br className="hidden sm:inline" />Nikmati Diskon Spesial</>,
+    desc: "Temukan ragam olahan khas nusantara, kerajinan tangan, dan sembako berkualitas dengan harga terbaik dari produsen.",
+    btnText: "Lihat Produk Unggulan",
+    btnLink: "/produk",
+    bgImage: "/images/tentang-hero.jpg",
+    accentBadge: "bg-blue-500/20 text-blue-300 border-blue-400/30",
+    btnBg: "var(--primary-light)",
+  },
+];
+
+function HeroBannerSlider() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (isPaused) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % BANNER_SLIDES.length);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  const handlePrev = () => {
+    setCurrentSlide((prev) => (prev - 1 + BANNER_SLIDES.length) % BANNER_SLIDES.length);
+  };
+
+  const handleNext = () => {
+    setCurrentSlide((prev) => (prev + 1) % BANNER_SLIDES.length);
+  };
+
+  return (
+    <section
+      className="relative overflow-hidden group select-none"
+      style={{ minHeight: "520px" }}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      {/* Background Slides */}
+      {BANNER_SLIDES.map((slide, idx) => {
+        const isActive = idx === currentSlide;
+        return (
+          <div
+            key={slide.id}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              isActive ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0"
+            }`}
+          >
+            {/* Optimized Next.js Background Image */}
+            <div className="absolute inset-0 z-0">
+              <Image
+                src={slide.bgImage}
+                alt={typeof slide.tag === "string" ? slide.tag : "Banner Desa"}
+                fill
+                priority={idx === 0}
+                quality={80}
+                sizes="100vw"
+                className="object-cover object-center"
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: "linear-gradient(to right, rgba(15,35,25,0.94) 0%, rgba(20,55,40,0.85) 45%, rgba(27,67,50,0.5) 100%)",
+                }}
+              />
+            </div>
+
+            <div className="relative w-full h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center py-20 z-10">
+              <div
+                className={`max-w-2xl transition-all duration-700 delay-100 ${
+                  isActive ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+                }`}
+              >
+                <div
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border mb-4 backdrop-blur-sm ${slide.accentBadge}`}
+                >
+                  {slide.tag}
+                </div>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 leading-tight drop-shadow-sm">
+                  {slide.title}
+                </h1>
+                <p className="text-emerald-50/90 text-sm sm:text-base mb-8 leading-relaxed max-w-lg">
+                  {slide.desc}
+                </p>
+                <Link
+                  href={slide.btnLink}
+                  className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-semibold text-sm transition-all hover:opacity-95 shadow-xl hover:gap-3.5 active:scale-95"
+                  style={{ background: slide.btnBg, color: "white" }}
+                >
+                  {slide.btnText}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Navigation Arrows */}
+      <button
+        onClick={handlePrev}
+        aria-label="Slide Sebelumnya"
+        className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/25 hover:bg-black/50 text-white backdrop-blur-md flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 border border-white/10 hover:scale-105 active:scale-95 cursor-pointer"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      <button
+        onClick={handleNext}
+        aria-label="Slide Selanjutnya"
+        className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/25 hover:bg-black/50 text-white backdrop-blur-md flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 border border-white/10 hover:scale-105 active:scale-95 cursor-pointer"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      {/* Interactive Dots Indicator */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-black/20 backdrop-blur-sm border border-white/10">
+        {BANNER_SLIDES.map((slide, idx) => {
+          const isActive = idx === currentSlide;
+          return (
+            <button
+              key={slide.id}
+              onClick={() => setCurrentSlide(idx)}
+              aria-label={`Pindah ke slide ${idx + 1}`}
+              className={`transition-all duration-300 rounded-full cursor-pointer border-0 p-0 ${
+                isActive ? "w-7 h-2 bg-white shadow-sm" : "w-2 h-2 bg-white/40 hover:bg-white/70"
+              }`}
+            />
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -235,45 +403,8 @@ export default function BerandaPage() {
 
   return (
     <div style={{ paddingBottom: cartItems.length > 0 ? "96px" : "0" }}>
-      {/* ===== HERO ===== */}
-      <section
-        className="relative overflow-hidden flex items-center"
-        style={{
-          minHeight: "480px",
-          backgroundImage:
-            "linear-gradient(to right, rgba(20,50,35,0.92) 0%, rgba(27,67,50,0.78) 55%, rgba(27,67,50,0.35) 100%), url('/images/hero-bg.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center 60%",
-        }}
-      >
-        <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="max-w-xl">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-5 leading-tight drop-shadow-sm">
-              Hasil Bumi Pilihan, <br />Langsung dari Petani
-            </h1>
-            <p className="text-green-100/90 text-base mb-8 leading-relaxed max-w-sm">
-              Belanja produk autentik dan berkualitas langsung dari UMKM desa di seluruh Indonesia ke tangan Anda.
-            </p>
-            <Link
-              href="/produk"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90 shadow-lg hover:gap-3"
-              style={{ background: "var(--primary-light)", color: "white" }}
-            >
-              Belanja Sekarang
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-
-        {/* Carousel dots */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
-          <div className="w-7 h-2 rounded-full bg-white" />
-          <div className="w-2 h-2 rounded-full bg-white/40" />
-          <div className="w-2 h-2 rounded-full bg-white/40" />
-        </div>
-      </section>
+      {/* ===== HERO SLIDER ===== */}
+      <HeroBannerSlider />
 
       {/* ===== DIDUKUNG OLEH ===== */}
       <section className="py-6 bg-white border-b border-gray-100">
@@ -282,14 +413,14 @@ export default function BerandaPage() {
             Didukung oleh
           </p>
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-14">
-            <a href="https://kemdiktisaintek.go.id" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-              <img src="/images/sponsors/tut-wuri.jpeg" alt="Kemdiktisaintek — Tut Wuri Handayani" className="h-14 w-auto object-contain" />
+            <a href="https://kemdiktisaintek.go.id" aria-label="Website Kemdiktisaintek" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
+              <img src="/images/sponsors/tut-wuri.jpeg" alt="Kemdiktisaintek — Tut Wuri Handayani" width="140" height="56" className="h-14 w-auto object-contain" />
             </a>
-            <a href="https://kemdiktisaintek.go.id" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-              <img src="/images/sponsors/diktisaintek.jpeg" alt="Diktisaintek Berdampak" className="h-14 w-auto object-contain" />
+            <a href="https://kemdiktisaintek.go.id" aria-label="Website Diktisaintek" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
+              <img src="/images/sponsors/diktisaintek.jpeg" alt="Diktisaintek Berdampak" width="140" height="56" className="h-14 w-auto object-contain" />
             </a>
-            <a href="https://bima.kemdiktisaintek.go.id" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-              <img src="/images/sponsors/bima.jpeg" alt="BiMA — Kemdiktisaintek" className="h-10 w-auto object-contain" />
+            <a href="https://bima.kemdiktisaintek.go.id" aria-label="Website BiMA Kemdiktisaintek" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
+              <img src="/images/sponsors/bima.jpeg" alt="BiMA — Kemdiktisaintek" width="100" height="40" className="h-10 w-auto object-contain" />
             </a>
           </div>
           <p className="text-center text-xs text-gray-500 mt-5 italic">

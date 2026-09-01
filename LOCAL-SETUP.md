@@ -1,4 +1,4 @@
-﻿# BumDesMartNukita — Local Development Setup
+# BumDesMartNukita — Local Development Setup
 
 Panduan menjalankan aplikasi di lokal dengan **Midtrans Sandbox** dan **Google OAuth**.
 

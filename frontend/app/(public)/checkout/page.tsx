@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { addressApi, AddressData } from "@/lib/api/address";
 import { cartApi } from "@/lib/api/cart";
@@ -26,7 +26,13 @@ interface CartItem {
     price: number | string;
     stock?: number;
     images?: { image_path?: string; file_path?: string }[];
-    umkm_profile?: { id: number; shop_name?: string; name_umkm?: string };
+    umkm_profile?: {
+      id: number;
+      shop_name?: string;
+      name_umkm?: string;
+      qris_image?: string | null;
+      bank_accounts?: { id: number; channel_code: string; account_number: string; account_name: string }[];
+    };
     active_discount?: {
       id: number;
       type: 'percentage' | 'fixed';
@@ -123,10 +129,13 @@ export default function CheckoutPage() {
   const [shippingCost, setShippingCost] = useState<number | null>(null);
   const [loadingShipping, setLoadingShipping] = useState(false);
   const [shippingOptions, setShippingOptions] = useState<any[]>([]);
-  const [selectedShippingId, setSelectedShippingId] = useState<string>("kurir-lokal");
+  const [selectedShippingId, setSelectedShippingId] = useState<string>("");
+  const selectedShippingIdRef = useRef<string>("");
   const [showAllShipping, setShowAllShipping] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null);
   const [deletingItem, setDeletingItem] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"midtrans" | "manual_umkm">("midtrans");
+  const [updatingQtyId, setUpdatingQtyId] = useState<number | null>(null);
 
   // Address modal
   const [showModal, setShowModal] = useState(false);
@@ -134,8 +143,8 @@ export default function CheckoutPage() {
   const [form, setForm] = useState<typeof EMPTY_FORM>(EMPTY_FORM);
   const [showMap, setShowMap] = useState(false);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [cartRes, addressRes] = await Promise.all([cartApi.get(), addressApi.list()]);
       if (cartRes.data?.success) setCartItems(cartRes.data.data.items || []);
@@ -143,12 +152,12 @@ export default function CheckoutPage() {
         const list: AddressData[] = addressRes.data.data || [];
         setAddresses(list);
         const def = list.find((a) => a.is_default) || list[0];
-        if (def?.id) setSelectedAddressId(def.id);
+        if (def?.id && !selectedAddressId) setSelectedAddressId(def.id);
       }
     } catch {
       toast.error("Gagal memuat data checkout.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -167,14 +176,23 @@ export default function CheckoutPage() {
       toast.warning("Kuantitas melebihi stok yang tersedia.");
       return;
     }
+
+    setUpdatingQtyId(itemId);
+    // Optimistic update
+    setCartItems(prev => prev.map(item => item.id === itemId ? { ...item, quantity: newQty } : item));
+
     try {
       const res = await cartApi.update(itemId, newQty);
       if (res.data?.success) {
-        fetchData();
+        await fetchData(true);
         window.dispatchEvent(new Event("cart-updated"));
       }
     } catch (err: any) {
+      // Rollback on error
+      setCartItems(prev => prev.map(item => item.id === itemId ? { ...item, quantity: currentQty } : item));
       toast.error(err.response?.data?.message || "Gagal memperbarui kuantitas.");
+    } finally {
+      setUpdatingQtyId(null);
     }
   };
 
@@ -217,10 +235,24 @@ export default function CheckoutPage() {
         if (methods?.length) {
           const opts = (methods[0]?.options ?? []).filter((o: any) => o.type !== "pickup");
           setShippingOptions(opts);
-          // Reset ke kurir-lokal, atau opsi pertama yang ada
-          const defaultOpt = opts.find((o: any) => o.id === selectedShippingId) ?? opts[0];
-          setSelectedShippingId(defaultOpt?.id ?? "kurir-lokal");
-          setShippingCost(defaultOpt?.price ?? null);
+          
+          // Cek apakah opsi yang sedang dipilih user masih ada di daftar opsi terbaru
+          const currentChoice = selectedShippingIdRef.current;
+          const matchingOpt = opts.find((o: any) => o.id === currentChoice);
+
+          if (matchingOpt) {
+            // Tetap gunakan opsi pilihan user dan perbarui harganya jika ada perubahan
+            setSelectedShippingId(matchingOpt.id);
+            selectedShippingIdRef.current = matchingOpt.id;
+            setShippingCost(matchingOpt.price ?? null);
+          } else {
+            // Jika belum ada pilihan atau pilihan sebelumnya tidak valid lagi, pakai opsi pertama (default)
+            const defaultOpt = opts[0];
+            const chosenId = defaultOpt?.id ?? "kurir-lokal-motor";
+            setSelectedShippingId(chosenId);
+            selectedShippingIdRef.current = chosenId;
+            setShippingCost(defaultOpt?.price ?? null);
+          }
         } else {
           setShippingOptions([]);
           setShippingCost(null);
@@ -253,7 +285,8 @@ export default function CheckoutPage() {
     if (selectedAddressId) {
       loadCheckoutPreview(selectedAddressId, deliveryType);
     }
-  }, [selectedAddressId, deliveryType, cartItems, loadCheckoutPreview]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAddressId, deliveryType, cartItems]);
 
   // Fetch voucher saat cart items berubah
   useEffect(() => {
@@ -267,6 +300,24 @@ export default function CheckoutPage() {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartItems]);
+
+  // Cek apakah UMKM memiliki QRIS atau rekening bank aktif
+  const hasDirectPaymentSupport = (() => {
+    const apiTenants = previewData?.tenants || [];
+    if (apiTenants.length > 0) {
+      return apiTenants.some((t: any) => Boolean(t.qris_image || (t.bank_accounts && t.bank_accounts.length > 0)));
+    }
+    return cartItems.some((item) => {
+      const umkm = item.product?.umkm_profile;
+      return Boolean(umkm?.qris_image || (umkm?.bank_accounts && umkm.bank_accounts.length > 0));
+    });
+  })();
+
+  useEffect(() => {
+    if (!hasDirectPaymentSupport && paymentMethod === "manual_umkm") {
+      setPaymentMethod("midtrans");
+    }
+  }, [hasDirectPaymentSupport, paymentMethod]);
 
   const handleOpenAdd = () => {
     setEditingAddress(null);
@@ -355,6 +406,7 @@ export default function CheckoutPage() {
         delivery_type: deliveryType,
         vehicle_type: undefined,
         notes: notes || undefined,
+        payment_type: paymentMethod,
         shipping_method_id: deliveryType === 'delivered' ? selectedShippingId : undefined,
         shipping_cost_override: (deliveryType === 'delivered' && selectedShippingId && !selectedShippingId.startsWith('kurir-lokal') && shippingCost !== null)
           ? shippingCost : undefined,
@@ -370,7 +422,12 @@ export default function CheckoutPage() {
         const orders: { order_id: number; order_code: string; total: number }[] = res.data.data.orders;
         const firstOrderId = orders[0]?.order_id;
         if (firstOrderId) {
-          router.push(`/pembayaran?order_id=${firstOrderId}`);
+          if (paymentMethod === "manual_umkm") {
+            toast.success("Pesanan berhasil dibuat! Silakan transfer ke toko dan unggah bukti.");
+            router.push(`/pesanan/${firstOrderId}`);
+          } else {
+            router.push(`/pembayaran?order_id=${firstOrderId}`);
+          }
         } else {
           toast.success("Pesanan berhasil dibuat!");
           router.push("/pesanan");
@@ -558,19 +615,29 @@ export default function CheckoutPage() {
 
                           <div className="flex items-center gap-3 shrink-0">
                             {/* Qty controls */}
-                            <div className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-lg px-2 py-1">
+                            <div className="flex items-center bg-white border border-gray-200 rounded-lg p-0.5 shadow-sm">
                               <button
+                                type="button"
                                 onClick={() => handleUpdateQuantity(item.id, item.quantity, -1, stock)}
-                                disabled={item.quantity <= 1}
-                                className="text-xs text-gray-500 hover:text-gray-800 disabled:opacity-30 cursor-pointer font-bold border-0 bg-transparent"
+                                disabled={item.quantity <= 1 || updatingQtyId === item.id}
+                                aria-label="Kurangi kuantitas"
+                                className="w-7 h-7 flex items-center justify-center text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:scale-95 disabled:opacity-30 disabled:hover:bg-transparent rounded-md cursor-pointer border-0 bg-transparent transition-all"
                               >
                                 −
                               </button>
-                              <span className="text-xs font-semibold text-gray-800 w-4 text-center">{item.quantity}</span>
+                              <div className="w-8 flex items-center justify-center">
+                                {updatingQtyId === item.id ? (
+                                  <div className="w-3.5 h-3.5 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <span className="text-xs font-bold text-gray-800 select-none">{item.quantity}</span>
+                                )}
+                              </div>
                               <button
+                                type="button"
                                 onClick={() => handleUpdateQuantity(item.id, item.quantity, 1, stock)}
-                                disabled={item.quantity >= stock}
-                                className="text-xs text-gray-500 hover:text-gray-800 disabled:opacity-30 cursor-pointer font-bold border-0 bg-transparent"
+                                disabled={item.quantity >= stock || updatingQtyId === item.id}
+                                aria-label="Tambah kuantitas"
+                                className="w-7 h-7 flex items-center justify-center text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:scale-95 disabled:opacity-30 disabled:hover:bg-transparent rounded-md cursor-pointer border-0 bg-transparent transition-all"
                               >
                                 +
                               </button>
@@ -722,12 +789,45 @@ export default function CheckoutPage() {
 
             {/* Pilihan metode pengiriman */}
             {deliveryType === "delivered" && (
-              <div className="mt-3 space-y-2">
+              <div className="mt-4 space-y-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pilih Pengiriman</p>
                 {loadingPreview ? (
-                  <div className="text-xs text-gray-400 py-2">Menghitung opsi pengiriman...</div>
+                  <div className="space-y-2.5">
+                    {/* Skeleton Loading Card 1 */}
+                    <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 bg-gray-50/70 animate-pulse">
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full bg-gray-200" />
+                        <div className="w-8 h-8 rounded-lg bg-gray-200" />
+                        <div className="space-y-1.5">
+                          <div className="w-28 h-3.5 bg-gray-200 rounded" />
+                          <div className="w-20 h-2.5 bg-gray-200 rounded" />
+                        </div>
+                      </div>
+                      <div className="w-16 h-4 bg-gray-200 rounded" />
+                    </div>
+
+                    {/* Skeleton Loading Card 2 */}
+                    <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 bg-gray-50/50 animate-pulse">
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full bg-gray-200" />
+                        <div className="w-8 h-8 rounded-lg bg-gray-200" />
+                        <div className="space-y-1.5">
+                          <div className="w-32 h-3.5 bg-gray-200 rounded" />
+                          <div className="w-24 h-2.5 bg-gray-200 rounded" />
+                        </div>
+                      </div>
+                      <div className="w-14 h-4 bg-gray-200 rounded" />
+                    </div>
+
+                    <div className="flex items-center justify-center gap-2 py-1 text-xs text-gray-400">
+                      <div className="w-3.5 h-3.5 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                      <span>Sedang menghitung tarif kurir & ongkir terbaik...</span>
+                    </div>
+                  </div>
                 ) : shippingOptions.length === 0 ? (
-                  <div className="text-xs text-gray-400 py-2">Pilih alamat dulu untuk melihat opsi pengiriman</div>
+                  <div className="text-xs text-gray-400 py-3 px-4 bg-gray-50 rounded-xl border border-gray-100">
+                    Pilih alamat dulu untuk melihat opsi pengiriman
+                  </div>
                 ) : (() => {
                   const logoMap: Record<string, string> = {
                     "gosend": "/couriers/gosend.svg",
@@ -759,10 +859,20 @@ export default function CheckoutPage() {
                     const logo = getLogo(opt);
                     const isLokal = opt.type === "lokal";
                     return (
-                      <label key={opt.id} className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors ${selectedShippingId === opt.id ? "border-orange-400 bg-orange-50" : "border-gray-200 bg-white"}`}>
+                      <label key={opt.id} className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors ${selectedShippingId === opt.id ? "border-orange-400 bg-orange-50" : "border-gray-200 bg-white hover:border-gray-300"}`}>
                         <div className="flex items-center gap-3">
-                          <input type="radio" name="shipping" value={opt.id} checked={selectedShippingId === opt.id}
-                            onChange={() => { setSelectedShippingId(opt.id); setShippingCost(opt.price); }} className="accent-orange-500" />
+                          <input
+                            type="radio"
+                            name="shipping_courier_selection"
+                            value={opt.id}
+                            checked={selectedShippingId === opt.id}
+                            onChange={() => {
+                              setSelectedShippingId(opt.id);
+                              selectedShippingIdRef.current = opt.id;
+                              setShippingCost(opt.price);
+                            }}
+                            className="accent-orange-500"
+                          />
                           {logo ? (
                             <img src={logo} alt={opt.name} className="h-7 w-20 object-contain rounded" />
                           ) : isLokal && opt.vehicle === 'mobil' ? (
@@ -828,10 +938,72 @@ export default function CheckoutPage() {
 
           </div>
 
-          {/* 3. Catatan */}
+          {/* 3. Metode Pembayaran */}
+          <div className="bg-white rounded-xl border border-gray-100 p-5">
+            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full text-xs font-bold text-white flex items-center justify-center" style={{ background: "var(--primary)" }}>3</span>
+              Metode Pembayaran
+            </h2>
+
+            <div className="space-y-3">
+              {/* Opsi 1: Otomatis (Midtrans) */}
+              <label
+                className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                  paymentMethod === "midtrans" ? "border-green-600 bg-green-50/40" : "border-gray-100 hover:border-gray-200"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="payment_method_choice"
+                  value="midtrans"
+                  checked={paymentMethod === "midtrans"}
+                  onChange={() => setPaymentMethod("midtrans")}
+                  className="mt-0.5 accent-green-700"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-gray-900">Pembayaran Otomatis (Midtrans)</p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-green-100 text-green-700 rounded-full">Konfirmasi Otomatis</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Bayar via QRIS Dinamis (GoPay, OVO, ShopeePay, DANA), Virtual Account Bank (BCA, BRI, BNI, Mandiri), dll.
+                  </p>
+                </div>
+              </label>
+
+              {/* Opsi 2: Langsung ke Toko (Manual QRIS UMKM) — Hanya tampil jika toko sudah upload QRIS / rekening */}
+              {hasDirectPaymentSupport && (
+                <label
+                  className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    paymentMethod === "manual_umkm" ? "border-green-600 bg-green-50/40" : "border-gray-100 hover:border-gray-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment_method_choice"
+                    value="manual_umkm"
+                    checked={paymentMethod === "manual_umkm"}
+                    onChange={() => setPaymentMethod("manual_umkm")}
+                    className="mt-0.5 accent-green-700"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-gray-900">Bayar Langsung ke Toko (QRIS / Rekening UMKM)</p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">Langsung ke Penjual</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Scan QRIS statis toko atau transfer rekening bank UMKM, lalu unggah bukti pembayaran untuk diverifikasi penjual.
+                    </p>
+                  </div>
+                </label>
+              )}
+            </div>
+          </div>
+
+          {/* 4. Catatan */}
           <div className="bg-white rounded-xl border border-gray-100 p-5">
             <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full text-xs font-bold text-white flex items-center justify-center" style={{ background: "var(--primary)" }}>3</span>
+              <span className="w-6 h-6 rounded-full text-xs font-bold text-white flex items-center justify-center" style={{ background: "var(--primary)" }}>4</span>
               Catatan (Opsional)
             </h2>
             <textarea
@@ -899,13 +1071,27 @@ export default function CheckoutPage() {
 
             <button
               onClick={handleSubmit}
-              disabled={submitting || (deliveryType === "delivered" && !selectedAddressId)}
-              className="mt-5 w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90"
+              disabled={submitting || loadingPreview || (deliveryType === "delivered" && (!selectedAddressId || shippingCost === null))}
+              className="mt-5 w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 flex items-center justify-center gap-2"
               style={{ background: "var(--primary)" }}
             >
-              {submitting ? "Membuat Pesanan..." : "Lanjut ke Pembayaran →"}
+              {submitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Membuat Pesanan...</span>
+                </>
+              ) : loadingPreview ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Menghitung Ongkir...</span>
+                </>
+              ) : (
+                "Lanjut ke Pembayaran →"
+              )}
             </button>
-            <p className="text-xs text-gray-400 text-center mt-2">Pembayaran aman via Midtrans</p>
+            <p className="text-xs text-gray-400 text-center mt-2">
+              {paymentMethod === "manual_umkm" ? "Bayar langsung ke QRIS / Rekening Penjual" : "Pembayaran aman via Midtrans BUMDes"}
+            </p>
           </div>
         </div>
       </div>
