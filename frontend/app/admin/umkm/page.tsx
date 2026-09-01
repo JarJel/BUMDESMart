@@ -15,21 +15,28 @@ interface Umkm {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  active:   "bg-green-100 text-green-700",
-  pending:  "bg-yellow-100 text-yellow-700",
-  rejected: "bg-red-100 text-red-600",
+  active:    "bg-green-100 text-green-700",
+  pending:   "bg-yellow-100 text-yellow-700",
+  rejected:  "bg-red-100 text-red-600",
+  suspended: "bg-gray-100 text-gray-500",
 };
 
 export default function AdminUmkmPage() {
   const toast = useToast();
-  const [list, setList]       = useState<Umkm[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch]   = useState("");
-  const [page, setPage]       = useState(1);
+  const [list, setList]         = useState<Umkm[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [search, setSearch]     = useState("");
+  const [page, setPage]         = useState(1);
   const [lastPage, setLastPage] = useState(1);
-  const [total, setTotal]     = useState(0);
-  const [deleting, setDeleting] = useState(false);
+  const [total, setTotal]       = useState(0);
+
+  const [deleting, setDeleting]           = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<Umkm | null>(null);
+
+  // Dialog kedua: muncul kalau toko punya transaksi
+  const [blockedTarget, setBlockedTarget] = useState<Umkm | null>(null);
+  const [blockMsg, setBlockMsg]           = useState("");
+  const [suspending, setSuspending]       = useState(false);
 
   const handleDeleteShop = async () => {
     if (!confirmTarget) return;
@@ -40,9 +47,32 @@ export default function AdminUmkmPage() {
       setConfirmTarget(null);
       fetchList(page);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? "Gagal menghapus toko.");
+      const msg = err?.response?.data?.message ?? "Gagal menghapus toko.";
+      // Kalau 422 karena ada transaksi → buka dialog alternatif
+      if (err?.response?.status === 422) {
+        setConfirmTarget(null);
+        setBlockMsg(msg);
+        setBlockedTarget(confirmTarget);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleSuspendShop = async () => {
+    if (!blockedTarget) return;
+    setSuspending(true);
+    try {
+      await api.patch(`/super-admin/umkm/${blockedTarget.id}/status`, { status: "suspended" });
+      toast.success(`Toko "${blockedTarget.shop_name}" berhasil dinonaktifkan.`);
+      setBlockedTarget(null);
+      fetchList(page);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Gagal menonaktifkan toko.");
+    } finally {
+      setSuspending(false);
     }
   };
 
@@ -150,6 +180,7 @@ export default function AdminUmkmPage() {
         </div>
       )}
 
+      {/* Dialog konfirmasi hapus */}
       <ConfirmDialog
         open={!!confirmTarget}
         variant="danger"
@@ -160,6 +191,45 @@ export default function AdminUmkmPage() {
         onConfirm={handleDeleteShop}
         onClose={() => !deleting && setConfirmTarget(null)}
       />
+
+      {/* Dialog toko punya transaksi — tawarkan nonaktifkan */}
+      {blockedTarget && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => !suspending && setBlockedTarget(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+            <div className="h-1 w-full bg-amber-400" />
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-amber-50 text-amber-500">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-gray-900 text-center mb-1">Toko Tidak Bisa Dihapus</h3>
+              <p className="text-sm text-gray-500 text-center leading-relaxed mb-1">{blockMsg}</p>
+              <p className="text-sm text-gray-500 text-center leading-relaxed">
+                Ingin menonaktifkan toko ini saja agar tidak bisa berjualan?
+              </p>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setBlockedTarget(null)}
+                  disabled={suspending}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleSuspendShop}
+                  disabled={suspending}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50 transition-colors cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {suspending && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  Nonaktifkan Toko
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
