@@ -53,7 +53,7 @@ export default function KinerjaPage() {
 
   const [drivers, setDrivers]     = useState<DriverRow[]>([]);
   const [drLoading, setDrLoading] = useState(true);
-  const [dSort, setDSort]         = useState<DSort>("total_deliveries");
+  const [dSort] = useState<DSort>("total_deliveries");
 
   const [umkms, setUmkms]         = useState<UmkmRow[]>([]);
   const [umLoading, setUmLoading] = useState(true);
@@ -257,16 +257,8 @@ export default function KinerjaPage() {
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-100">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
               <h2 className="text-sm font-semibold text-gray-900">Ranking Kurir</h2>
-              <div className="flex gap-1 p-1 bg-gray-100 rounded-xl self-start sm:self-auto">
-                {([["total_deliveries","Pengiriman"],["rating","Rating"]] as [DSort,string][]).map(([k,lbl]) => (
-                  <button key={k} onClick={() => setDSort(k)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${dSort === k ? "bg-white shadow-sm text-gray-900" : "text-gray-400 hover:text-gray-600"}`}>
-                    {lbl}
-                  </button>
-                ))}
-              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
