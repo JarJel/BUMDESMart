@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface User {
   id: number;
@@ -48,6 +49,8 @@ export default function AdminPenggunaPage() {
   const [total, setTotal]           = useState(0);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [suspendReason, setSuspendReason] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const handleSuspend = async (user: User) => {
     const isSuspending = user.status !== "suspended";
@@ -98,16 +101,21 @@ export default function AdminPenggunaPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchUsers(1); }, [search, roleFilter]);
 
-  const handleDelete = async (user: User) => {
-    if (!confirm(`Hapus akun "${user.name}"?\n\nAksi ini tidak bisa dibatalkan. Lanjutkan?`)) return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
     try {
-      await api.delete(`/super-admin/users/${user.id}`);
+      await api.delete(`/super-admin/users/${deleteTarget.id}`);
       toast.success("Akun berhasil dihapus.");
+      setDeleteTarget(null);
       setSelectedUser(null);
       fetchUsers(page);
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? "Gagal menghapus akun.";
       toast.error(msg);
+      setDeleteTarget(null);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -248,6 +256,17 @@ export default function AdminPenggunaPage() {
         </div>
       )}
 
+      <ConfirmDialog
+        open={!!deleteTarget}
+        variant="danger"
+        title="Hapus Akun Pengguna?"
+        description={deleteTarget ? `Akun "${deleteTarget.name}" akan dihapus permanen. Jika pengguna punya transaksi, penghapusan akan ditolak otomatis.` : ""}
+        confirmLabel="Ya, Hapus Akun"
+        loading={deleteLoading}
+        onConfirm={handleDelete}
+        onClose={() => !deleteLoading && setDeleteTarget(null)}
+      />
+
       {/* User Detail Modal */}
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedUser(null)}>
@@ -322,7 +341,7 @@ export default function AdminPenggunaPage() {
                     {selectedUser.status === 'suspended' ? 'Buka Suspend' : 'Suspend'}
                   </button>
                 )}
-                <button onClick={() => handleDelete(selectedUser)} className="flex-1 py-2.5 text-sm font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors cursor-pointer">
+                <button onClick={() => setDeleteTarget(selectedUser)} className="flex-1 py-2.5 text-sm font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors cursor-pointer">
                   Hapus Akun
                 </button>
               </div>

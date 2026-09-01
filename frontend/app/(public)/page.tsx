@@ -427,8 +427,11 @@ export default function BerandaPage() {
               <img src="/images/logo-ukri.png" alt="Universitas Kebangsaan Republik Indonesia" width="56" height="56" className="h-14 w-auto object-contain" />
             </a>
           </div>
-          <p className="text-center text-xs text-gray-500 mt-5 italic">
-            Program ini dibiayai dari APBN melalui anggaran Kemdiktisaintek
+          <p className="text-center text-xs text-gray-500 mt-5 max-w-2xl mx-auto leading-relaxed">
+            Skema Pengabdian Kepada Masyarakat Kompetitif Nasional ini didanai oleh Direktorat Jenderal
+            Pendidikan Tinggi, Sains, dan Teknologi, Kementerian Pendidikan Tinggi, Sains, dan Teknologi
+            Republik Indonesia, melalui Program Hibah Pemberdayaan Masyarakat oleh Mahasiswa
+            Tahun Anggaran 2026, dengan Nomor Kontrak: 207/C3/DT.05.00/PM/2026
           </p>
         </div>
       </section>

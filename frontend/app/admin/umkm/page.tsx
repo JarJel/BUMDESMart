@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface Umkm {
   id: number;
@@ -27,19 +28,21 @@ export default function AdminUmkmPage() {
   const [page, setPage]       = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal]     = useState(0);
-  const [deleting, setDeleting] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<Umkm | null>(null);
 
-  const handleDeleteShop = async (umkm: Umkm) => {
-    if (!confirm(`Hapus toko "${umkm.shop_name}"?\n\nSemua produk dan dokumen toko ini akan ikut terhapus. Akun pemilik tetap ada.\nTindakan ini tidak bisa dibatalkan.`)) return;
-    setDeleting(umkm.id);
+  const handleDeleteShop = async () => {
+    if (!confirmTarget) return;
+    setDeleting(true);
     try {
-      await api.delete(`/super-admin/umkm/${umkm.id}`);
-      toast.success(`Toko "${umkm.shop_name}" berhasil dihapus.`);
+      await api.delete(`/super-admin/umkm/${confirmTarget.id}`);
+      toast.success(`Toko "${confirmTarget.shop_name}" berhasil dihapus.`);
+      setConfirmTarget(null);
       fetchList(page);
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? "Gagal menghapus toko.");
     } finally {
-      setDeleting(null);
+      setDeleting(false);
     }
   };
 
@@ -117,11 +120,10 @@ export default function AdminUmkmPage() {
                     </td>
                     <td className="px-5 py-3.5">
                       <button
-                        onClick={() => handleDeleteShop(u)}
-                        disabled={deleting === u.id}
-                        className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors bg-red-50 px-3 py-1.5 rounded-lg disabled:opacity-50"
+                        onClick={() => setConfirmTarget(u)}
+                        className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors bg-red-50 px-3 py-1.5 rounded-lg"
                       >
-                        {deleting === u.id ? "..." : "Hapus"}
+                        Hapus
                       </button>
                     </td>
                   </tr>
@@ -147,6 +149,17 @@ export default function AdminUmkmPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmTarget}
+        variant="danger"
+        title="Hapus Toko?"
+        description={confirmTarget ? `Toko "${confirmTarget.shop_name}" beserta semua produk dan dokumennya akan dihapus permanen. Akun pemilik tetap ada. Tindakan ini tidak bisa dibatalkan.` : ""}
+        confirmLabel="Ya, Hapus Toko"
+        loading={deleting}
+        onConfirm={handleDeleteShop}
+        onClose={() => !deleting && setConfirmTarget(null)}
+      />
     </div>
   );
 }
