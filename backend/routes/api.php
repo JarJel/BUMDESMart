@@ -331,6 +331,9 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('super-admin')->
     // Laporan
     Route::get('/reports/overview', [SuperAdminReportController::class, 'overview']);
     Route::get('/reports/bumdes', [SuperAdminReportController::class, 'bumdesBreakdown']);
+    Route::get('/stats/visits', [SuperAdminReportController::class, 'visitStats']);
+    Route::get('/stats/umkm-performance', [SuperAdminReportController::class, 'umkmPerformance']);
+    Route::get('/stats/platform', [SuperAdminReportController::class, 'platformStats']);
 
     // Pengaturan platform
     Route::get('/settings', [SuperAdminSettingController::class, 'index']);
