@@ -69,7 +69,12 @@ export default function KinerjaPage() {
       .finally(() => setDrLoading(false));
 
     api.get("/super-admin/stats/umkm-performance")
-      .then(r => setUmkms(r.data.data ?? []))
+      .then(r => setUmkms((r.data.data ?? []).map((u: any) => ({
+        ...u,
+        total_revenue: parseFloat(u.total_revenue) || 0,
+        avg_rating:    parseFloat(u.avg_rating)    || 0,
+        total_orders:  Number(u.total_orders)      || 0,
+      }))))
       .catch(() => {})
       .finally(() => setUmLoading(false));
 
