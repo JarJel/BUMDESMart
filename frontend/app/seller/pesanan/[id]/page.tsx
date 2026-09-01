@@ -98,7 +98,7 @@ function formatRp(n: number) {
 function openWhatsApp(phone: string | undefined, orderCode: string) {
   if (!phone) return;
   const clean = phone.replace(/[^0-9]/g, "").replace(/^0/, "62");
-  const text = encodeURIComponent(`Halo, saya penjual BUMDESMart. Terkait pesanan #${orderCode}, saya ingin mendiskusikan pesanan Anda.`);
+  const text = encodeURIComponent(`Halo, saya penjual BumDesMartNukita. Terkait pesanan #${orderCode}, saya ingin mendiskusikan pesanan Anda.`);
   window.open(`https://wa.me/${clean}?text=${text}`, "_blank");
 }
 
