@@ -56,7 +56,7 @@ export default function AdminDashboard() {
   const growth = (((last - first) / first) * 100).toFixed(0);
 
   const areaOptions: ApexOptions = {
-    chart: { type: "area", toolbar: { show: false }, zoom: { enabled: false }, animations: { speed: 700, easing: "easeinout", dynamicAnimation: { enabled: true, speed: 500 } } },
+    chart: { type: "area", toolbar: { show: false }, zoom: { enabled: false }, animations: { speed: 700, dynamicAnimation: { enabled: true, speed: 500 } } },
     colors: [chart.color],
     fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.02, stops: [0, 100] } },
     stroke: { curve: "smooth", width: 2.5 },
