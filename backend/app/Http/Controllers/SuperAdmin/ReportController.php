@@ -152,11 +152,10 @@ class ReportController extends Controller
         $data = UmkmProfile::select('umkm_profiles.id', 'umkm_profiles.shop_name', 'umkm_profiles.status')
             ->selectRaw('COUNT(DISTINCT orders.id) as total_orders')
             ->selectRaw('COALESCE(SUM(CASE WHEN orders.status IN ("completed","delivered") THEN orders.sub_total - orders.bumdes_fee - COALESCE(orders.service_fee,0) ELSE 0 END), 0) as total_revenue')
-            ->selectRaw('COALESCE(AVG(reviews.rating), 0) as avg_rating')
-            ->leftJoin('orders', function ($j) {
-                $j->on('orders.umkm_profile_id', '=', 'umkm_profiles.id');
-            })
-            ->leftJoin('reviews', 'reviews.umkm_profile_id', '=', 'umkm_profiles.id')
+            ->selectRaw('COALESCE(AVG(product_reviews.rating), 0) as avg_rating')
+            ->leftJoin('orders', 'orders.umkm_profile_id', '=', 'umkm_profiles.id')
+            ->leftJoin('products as pr_p', 'pr_p.umkm_profile_id', '=', 'umkm_profiles.id')
+            ->leftJoin('product_reviews', 'product_reviews.product_id', '=', 'pr_p.id')
             ->groupBy('umkm_profiles.id', 'umkm_profiles.shop_name', 'umkm_profiles.status')
             ->orderByDesc('total_revenue')
             ->with('user:id,name,email')
