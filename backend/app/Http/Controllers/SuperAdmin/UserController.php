@@ -84,9 +84,16 @@ class UserController extends Controller
             return response()->json(['message' => 'Tidak dapat menghapus akun super admin.'], 422);
         }
 
+        $orderCount = \App\Models\Order::where('customer_id', $user->id)->count();
+        if ($orderCount > 0) {
+            return response()->json([
+                'message' => "Akun ini memiliki {$orderCount} transaksi dan tidak dapat dihapus. Gunakan fitur Suspend untuk menonaktifkan akun.",
+            ], 422);
+        }
+
         $user->delete();
 
-        return response()->json(['message' => 'Pengguna berhasil dihapus.']);
+        return response()->json(['message' => 'Akun berhasil dihapus.']);
     }
 
     public function suspend(Request $request, User $user)

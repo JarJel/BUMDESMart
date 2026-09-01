@@ -400,7 +400,7 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
                 let phone = toko.phone || "";
                 if (phone.startsWith("0")) phone = "62" + phone.slice(1);
                 if (phone) {
-                  const text = encodeURIComponent(`Halo ${shopName}, saya melihat toko Anda di BUMDESMart dan tertarik dengan produk Anda.`);
+                  const text = encodeURIComponent(`Halo ${shopName}, saya melihat toko Anda di BumDesMartNukita dan tertarik dengan produk Anda.`);
                   window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
                 } else {
                   toast.error("Nomor WhatsApp toko tidak tersedia");

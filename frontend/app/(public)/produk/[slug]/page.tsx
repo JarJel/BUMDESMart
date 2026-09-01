@@ -724,7 +724,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
             {activeTab === 2 && (
               <div className="p-4 sm:p-6 space-y-4">
                 {[
-                  { icon: "ti ti-truck", title: "Pengiriman oleh Kurir BUMDESMARTNUKITA", desc: "Diantar langsung oleh kurir terverifikasi dari BUMDes sekitar. Estimasi 1–3 jam setelah pesanan dikonfirmasi." },
+                  { icon: "ti ti-truck", title: "Pengiriman oleh Kurir BumDesMartNukita", desc: "Diantar langsung oleh kurir terverifikasi dari BUMDes sekitar. Estimasi 1–3 jam setelah pesanan dikonfirmasi." },
                   { icon: "ti ti-package", title: "Pengemasan Aman", desc: "Produk dikemas oleh penjual sebelum diambil kurir. Pastikan produk sudah siap saat pesanan dikonfirmasi." },
                   { icon: "ti ti-map-pin", title: "Area Pengiriman", desc: `Pengiriman dalam area operasional BUMDes${toko?.bumdesProfile?.village ? " " + toko.bumdesProfile.village : ""}. Cek area coverage di halaman toko.` },
                   { icon: "ti ti-credit-card", title: "Pembayaran di Muka", desc: "Pembayaran dilakukan saat checkout. Pesanan akan diproses setelah pembayaran dikonfirmasi." },

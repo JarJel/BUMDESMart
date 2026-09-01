@@ -65,7 +65,7 @@ function LoginForm() {
         } catch {}
       }
       const dest = redirectTo || getRoleHome(user.role);
-      router.push(dest);
+      router.replace(dest);
     } catch (err: any) {
       const msg =
         err.response?.data?.errors?.email?.[0] ||
@@ -101,7 +101,7 @@ function LoginForm() {
         } catch {}
       }
       const dest = redirectTo || getRoleHome(user.role);
-      router.push(dest);
+      router.replace(dest);
     } catch (err: any) {
       const msg =
         err.response?.data?.error ||

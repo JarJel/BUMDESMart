@@ -161,7 +161,7 @@ function ContactCard({ title, icon, accentColor, name, phone, address, city, lat
         <div className="flex gap-2 pt-1">
           {phone && (
             <button
-              onClick={() => openWhatsApp(phone, waMessage ?? `Halo ${name ?? ""}, saya kurir BUMDESMart.`)}
+              onClick={() => openWhatsApp(phone, waMessage ?? `Halo ${name ?? ""}, saya kurir BumDesMartNukita.`)}
               className="flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors"
             >
               <MessageCircle className="h-3.5 w-3.5" />
@@ -454,7 +454,7 @@ export default function OrderDetailPage() {
         address={order.pickup_from.address}
         lat={order.pickup_from.lat}
         lng={order.pickup_from.lng}
-        waMessage={`Halo, saya kurir BUMDESMart untuk pesanan #${order.order_code}. Saya sedang dalam perjalanan ke toko.`}
+        waMessage={`Halo, saya kurir BumDesMartNukita untuk pesanan #${order.order_code}. Saya sedang dalam perjalanan ke toko.`}
       />
 
       {/* ── Titik Antar (Delivery) ─────────────────────────────────────────── */}
@@ -468,7 +468,7 @@ export default function OrderDetailPage() {
         city={order.deliver_to.city}
         lat={order.deliver_to.lat}
         lng={order.deliver_to.lng}
-        waMessage={`Halo ${order.deliver_to.recipient_name ?? ""}, saya kurir BUMDESMart. Saya sedang mengantar pesanan Anda #${order.order_code}. Apakah ada di lokasi?`}
+        waMessage={`Halo ${order.deliver_to.recipient_name ?? ""}, saya kurir BumDesMartNukita. Saya sedang mengantar pesanan Anda #${order.order_code}. Apakah ada di lokasi?`}
       />
 
       {/* ── Daftar Item ──────────────────────────────────────────────────────── */}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api/axios";
+import { useToast } from "@/components/ui/Toast";
 
 interface Umkm {
   id: number;
@@ -19,12 +20,28 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function AdminUmkmPage() {
+  const toast = useToast();
   const [list, setList]       = useState<Umkm[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState("");
   const [page, setPage]       = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal]     = useState(0);
+  const [deleting, setDeleting] = useState<number | null>(null);
+
+  const handleDeleteShop = async (umkm: Umkm) => {
+    if (!confirm(`Hapus toko "${umkm.shop_name}"?\n\nSemua produk dan dokumen toko ini akan ikut terhapus. Akun pemilik tetap ada.\nTindakan ini tidak bisa dibatalkan.`)) return;
+    setDeleting(umkm.id);
+    try {
+      await api.delete(`/super-admin/umkm/${umkm.id}`);
+      toast.success(`Toko "${umkm.shop_name}" berhasil dihapus.`);
+      fetchList(page);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Gagal menghapus toko.");
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const fetchList = async (p = 1) => {
     setLoading(true);
@@ -80,6 +97,7 @@ export default function AdminUmkmPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">BUMDes</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">Status</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">Terdaftar</th>
+                  <th className="px-5 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -96,6 +114,15 @@ export default function AdminUmkmPage() {
                     </td>
                     <td className="px-5 py-3.5 text-gray-400 text-xs">
                       {new Date(u.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <button
+                        onClick={() => handleDeleteShop(u)}
+                        disabled={deleting === u.id}
+                        className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors bg-red-50 px-3 py-1.5 rounded-lg disabled:opacity-50"
+                      >
+                        {deleting === u.id ? "..." : "Hapus"}
+                      </button>
                     </td>
                   </tr>
                 ))}

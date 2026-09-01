@@ -45,7 +45,14 @@ use App\Http\Controllers\SiteVisitController;
 
 Route::get('/test-route', function() { return 'ok'; });
 
-Route::middleware('auth:sanctum')->group(function () {
+// Status platform publik — dipakai frontend untuk cek maintenance mode
+Route::get('/platform-status', function () {
+    return response()->json([
+        'maintenance' => \App\Models\Setting::getValue('maintenance_mode', '0') === '1',
+    ]);
+});
+
+Route::middleware(['auth:sanctum', 'maintenance'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
@@ -312,6 +319,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('super-admin')->
     Route::get('/umkm', [SuperAdminUmkmController::class, 'index']);
     Route::get('/umkm/{id}', [SuperAdminUmkmController::class, 'show']);
     Route::patch('/umkm/{id}/status', [SuperAdminUmkmController::class, 'updateStatus']);
+    Route::delete('/umkm/{id}', [SuperAdminUmkmController::class, 'destroy']);
 
     // Driver management
     Route::get('/drivers', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'index']);
@@ -324,6 +332,9 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('super-admin')->
     // Laporan
     Route::get('/reports/overview', [SuperAdminReportController::class, 'overview']);
     Route::get('/reports/bumdes', [SuperAdminReportController::class, 'bumdesBreakdown']);
+    Route::get('/stats/visits', [SuperAdminReportController::class, 'visitStats']);
+    Route::get('/stats/umkm-performance', [SuperAdminReportController::class, 'umkmPerformance']);
+    Route::get('/stats/platform', [SuperAdminReportController::class, 'platformStats']);
 
     // Pengaturan platform
     Route::get('/settings', [SuperAdminSettingController::class, 'index']);
@@ -373,10 +384,10 @@ Route::get('/bumdes', [SuperAdminBumdesController::class, 'index']);
 // Berita / broadcast dari BUMDes — public (landing page) & auth (UMKM/kurir)
 Route::get('/berita', [\App\Http\Controllers\Public\BeritaController::class, 'index']);
 Route::get('/berita/{id}', [\App\Http\Controllers\Public\BeritaController::class, 'show']);
-Route::middleware('auth:sanctum')->get('/my/berita', [\App\Http\Controllers\Public\BeritaController::class, 'myBerita']);
-Route::middleware('auth:sanctum')->post('/my/berita/{id}/register', [\App\Http\Controllers\Public\BeritaController::class, 'register']);
-Route::middleware('auth:sanctum')->delete('/my/berita/{id}/register', [\App\Http\Controllers\Public\BeritaController::class, 'unregister']);
-Route::middleware('auth:sanctum')->get('/my/berita/{id}/peserta', [\App\Http\Controllers\Public\BeritaController::class, 'peserta']);
+Route::middleware(['auth:sanctum', 'maintenance'])->get('/my/berita', [\App\Http\Controllers\Public\BeritaController::class, 'myBerita']);
+Route::middleware(['auth:sanctum', 'maintenance'])->post('/my/berita/{id}/register', [\App\Http\Controllers\Public\BeritaController::class, 'register']);
+Route::middleware(['auth:sanctum', 'maintenance'])->delete('/my/berita/{id}/register', [\App\Http\Controllers\Public\BeritaController::class, 'unregister']);
+Route::middleware(['auth:sanctum', 'maintenance'])->get('/my/berita/{id}/peserta', [\App\Http\Controllers\Public\BeritaController::class, 'peserta']);
 
 // Webhook payment gateway (tidak perlu auth Sanctum)
 Route::post('/webhooks/midtrans', [WebhookController::class, 'midtrans']);

@@ -11,6 +11,7 @@ export type NavItem = {
   href: string
   label: string
   icon: React.ReactNode
+  children?: NavItem[]
 }
 
 type Props = {
@@ -26,9 +27,60 @@ function isActive(pathname: string, href: string): boolean {
   return depth <= 1 ? pathname === href : pathname.startsWith(href)
 }
 
+function isGroupActive(pathname: string, items: NavItem[]): boolean {
+  return items.some(i => isActive(pathname, i.href))
+}
+
 function initials(name?: string | null): string {
   if (!name) return '?'
   return name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+}
+
+function NavGroup({ item, accent, pathname }: { item: NavItem; accent: string; pathname: string }) {
+  const active = isGroupActive(pathname, item.children ?? [])
+  const [open, setOpen] = useState(active)
+
+  useEffect(() => { if (active) setOpen(true) }, [active])
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+          active ? 'text-white' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+        }`}
+        style={active ? { background: accent } : {}}
+      >
+        <span className={active ? 'text-white' : 'text-gray-400'}>{item.icon}</span>
+        <span className="flex-1 text-left">{item.label}</span>
+        <svg
+          className={`w-3.5 h-3.5 transition-transform shrink-0 ${open ? 'rotate-90' : ''} ${active ? 'text-white/70' : 'text-gray-300'}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="ml-4 mt-0.5 space-y-0.5 border-l border-gray-100 pl-3">
+          {(item.children ?? []).map(child => {
+            const childActive = isActive(pathname, child.href)
+            return (
+              <Link
+                key={child.href}
+                href={child.href}
+                className={`flex items-center gap-2.5 px-2 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  childActive ? 'text-indigo-700 bg-indigo-50' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                }`}
+              >
+                <span className={childActive ? 'text-indigo-600' : 'text-gray-400'}>{child.icon}</span>
+                {child.label}
+              </Link>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function DashboardShell({ children, navItems, roleLabel, accent, quickAction }: Props) {
@@ -37,7 +89,6 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
   const { user, loading } = useAuth()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  // Tutup drawer saat navigasi
   useEffect(() => { setDrawerOpen(false) }, [pathname])
 
   const handleLogout = async () => {
@@ -57,7 +108,6 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden relative">
 
-      {/* ── Backdrop mobile ── */}
       {drawerOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm md:hidden"
@@ -65,7 +115,6 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
         />
       )}
 
-      {/* ── Sidebar / Drawer ── */}
       <aside
         className={`
           fixed inset-y-0 left-0 z-40 w-56 bg-white border-r border-gray-100 flex flex-col h-full
@@ -74,7 +123,6 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
           ${drawerOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Logo */}
         <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
@@ -93,9 +141,11 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
           </button>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
+            if (item.children && item.children.length > 0) {
+              return <NavGroup key={item.label} item={item} accent={accent} pathname={pathname} />
+            }
             const active = isActive(pathname, item.href)
             return (
               <Link
@@ -115,7 +165,6 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
 
         {quickAction && <div className="px-3 pb-3">{quickAction}</div>}
 
-        {/* Logout */}
         <div className="border-t border-gray-100 px-4 py-2">
           <button
             onClick={handleLogout}
@@ -129,7 +178,6 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
           </button>
         </div>
 
-        {/* User info */}
         <div className="border-t border-gray-100 px-4 py-3 flex items-center gap-3">
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
@@ -144,12 +192,8 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
         </div>
       </aside>
 
-      {/* ── Main area ── */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-
-        {/* Topbar */}
         <header className="h-14 bg-white border-b border-gray-100 flex items-center gap-3 px-4 shrink-0">
-          {/* Hamburger — mobile only */}
           <button
             onClick={() => setDrawerOpen(true)}
             className="p-2 -ml-1 rounded-xl text-gray-500 hover:bg-gray-50 md:hidden shrink-0"
@@ -160,13 +204,11 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
             </svg>
           </button>
 
-          {/* Logo mobile */}
           <div className="flex items-center gap-1.5 md:hidden min-w-0">
             <img src="/logo.png" alt="BumDesMartNukita" className="h-7 w-auto shrink-0" />
             <span className="font-bold text-sm truncate" style={{ color: accent }}>BumDesMartNukita</span>
           </div>
 
-          {/* Search — desktop only */}
           <div className="hidden md:flex flex-1 relative">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,7 +233,6 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
           </div>
         </header>
 
-        {/* Content */}
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>

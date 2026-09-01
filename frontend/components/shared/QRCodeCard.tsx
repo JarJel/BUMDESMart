@@ -5,7 +5,7 @@ import { useState } from "react";
 
 export default function QRCodeCard({ slug, namaToko }: { slug: string; namaToko: string }) {
   const [copied, setCopied] = useState(false);
-  const url = `https://BumDesMartNukita.id/${slug}`;
+  const url = `https://bumdesmartnukita.com/${slug}`;
 
   const copy = () => {
     navigator.clipboard.writeText(url);

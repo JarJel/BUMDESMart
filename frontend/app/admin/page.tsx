@@ -1,17 +1,17 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import ApexChart from "@/components/shared/ApexChart";
 import api from "@/lib/api/axios";
 import {
-  IconUsers, IconStore, IconBox, IconMoney, IconHome,
+  IconUsers, IconStore, IconBox, IconMoney,
   IconPeople, IconTag, IconChart, IconChevronRight,
 } from "@/components/shared/Icon";
 import type { ApexOptions } from "apexcharts";
 
 const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 
-type ChartKey = "pengguna" | "pesanan" | "pendapatan" | "pendapatan_umkm";
+type ChartKey = "pengguna" | "pesanan" | "pendapatan" | "pendapatan_umkm" | "pengunjung";
 
 const roleBadge: Record<string, string> = {
   customer:    "bg-blue-50 text-blue-600",
@@ -25,40 +25,66 @@ const statusBadge: Record<string, string> = {
   suspended:"bg-red-50 text-red-600",
 };
 
-
 export default function AdminDashboard() {
-  const [activeChart, setActiveChart] = useState<ChartKey>("pengguna");
-  const [overview, setOverview]       = useState<any>(null);
-  const [users, setUsers]             = useState<any[]>([]);
+  const [activeChart, setActiveChart]   = useState<ChartKey>("pengguna");
+  const [overview, setOverview]         = useState<any>(null);
+  const [users, setUsers]               = useState<any[]>([]);
+  const [visitData, setVisitData]       = useState<{ label: string; count: number }[]>([]);
+  const [animKey, setAnimKey]           = useState(0);
+  const prevChart = useRef<ChartKey>("pengguna");
 
   useEffect(() => {
     api.get("/super-admin/reports/overview")
       .then(r => setOverview(r.data.data))
       .catch(() => {});
 
-    api.get("/super-admin/users", { params: { per_page: 5 } })
+    api.get("/super-admin/users", { params: { per_page: 10 } })
       .then(r => setUsers(r.data.data?.data ?? []))
+      .catch(() => {});
+
+    api.get("/super-admin/stats/visits", { params: { days: 7 } })
+      .then(r => setVisitData(r.data.data ?? []))
       .catch(() => {});
   }, []);
 
-  const reg7       = Array.isArray(overview?.recent_registrations) ? overview.recent_registrations : [];
-  const monthly    = Array.isArray(overview?.monthly_data) ? overview.monthly_data : [];
+  const handleChartSwitch = (k: ChartKey) => {
+    if (k === activeChart) return;
+    prevChart.current = activeChart;
+    setActiveChart(k);
+    setAnimKey(n => n + 1);
+  };
+
+  const reg7    = Array.isArray(overview?.recent_registrations) ? overview.recent_registrations : [];
+  const monthly = Array.isArray(overview?.monthly_data) ? overview.monthly_data : [];
+
   const CHART_DATA: Record<ChartKey, { label: string; data: number[]; color: string; unit: string; labels: string[] }> = {
-    pengguna:        { label: "Pengguna",        data: reg7.length    ? reg7.map((d: any) => d.count)                      : Array(7).fill(0),   color: "#6366f1", unit: "",    labels: reg7.map((d: any) => d.label) },
-    pesanan:         { label: "Pesanan",         data: monthly.length ? monthly.map((d: any) => d.orders)                  : Array(12).fill(0), color: "#0ea5e9", unit: "",    labels: months },
-    pendapatan:      { label: "Fee Platform",    data: monthly.length ? monthly.map((d: any) => d.revenue / 1e6)           : Array(12).fill(0), color: "#16a34a", unit: " Jt", labels: months },
-    pendapatan_umkm: { label: "Pendapatan UMKM", data: monthly.length ? monthly.map((d: any) => d.pendapatan_umkm / 1e6)  : Array(12).fill(0), color: "#8b5cf6", unit: " Jt", labels: months },
+    pengguna:        { label: "Pengguna",        data: reg7.length       ? reg7.map((d: any) => d.count)                    : Array(7).fill(0),  color: "#6366f1", unit: "",    labels: reg7.length ? reg7.map((d: any) => d.label) : Array(7).fill("") },
+    pesanan:         { label: "Pesanan",         data: monthly.length    ? monthly.map((d: any) => d.orders)                : Array(12).fill(0), color: "#0ea5e9", unit: "",    labels: months },
+    pendapatan:      { label: "Fee Platform",    data: monthly.length    ? monthly.map((d: any) => d.revenue / 1e6)         : Array(12).fill(0), color: "#16a34a", unit: " Jt", labels: months },
+    pendapatan_umkm: { label: "Pendapatan UMKM", data: monthly.length    ? monthly.map((d: any) => d.pendapatan_umkm / 1e6): Array(12).fill(0), color: "#8b5cf6", unit: " Jt", labels: months },
+    pengunjung:      { label: "Pengunjung",      data: visitData.length  ? visitData.map(d => d.count)                     : Array(7).fill(0),  color: "#f59e0b", unit: "",    labels: visitData.length ? visitData.map(d => d.label) : Array(7).fill("") },
   };
 
   const chart = CHART_DATA[activeChart];
   const last   = chart.data[chart.data.length - 1] ?? 0;
   const first  = chart.data[0] || 1;
   const growth = (((last - first) / first) * 100).toFixed(0);
+  const avg    = chart.data.length > 0 ? chart.data.reduce((a, b) => a + b, 0) / chart.data.length : 0;
 
   const areaOptions: ApexOptions = {
-    chart: { type: "area", toolbar: { show: false }, zoom: { enabled: false }, animations: { speed: 500 } },
+    chart: {
+      type: "area",
+      toolbar: { show: false },
+      zoom: { enabled: false },
+      animations: {
+        enabled: true,
+        speed: 600,
+        animateGradually: { enabled: true, delay: 80 },
+        dynamicAnimation: { enabled: true, speed: 500 },
+      },
+    },
     colors: [chart.color],
-    fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.02, stops: [0, 100] } },
+    fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.28, opacityTo: 0.02, stops: [0, 100] } },
     stroke: { curve: "smooth", width: 2.5 },
     markers: { size: 4, strokeWidth: 2, strokeColors: "#fff", fillOpacity: 1 },
     xaxis: {
@@ -79,17 +105,17 @@ export default function AdminDashboard() {
   };
 
   const stats = [
-    { label: "Total Pengguna",  value: overview ? overview.users.total.toLocaleString("id-ID") : "—",   sub: `${overview?.users.active ?? 0} akun aktif`,         Icon: IconPeople, bg: "bg-indigo-50", fg: "text-indigo-500" },
-    { label: "UMKM Terdaftar", value: overview ? String(overview.umkm.total) : "—",                    sub: `${overview?.umkm.active ?? 0} aktif, ${overview?.umkm.pending ?? 0} pending`, Icon: IconStore,  bg: "bg-green-50",  fg: "text-green-600"  },
-    { label: "Total BUMDes",   value: overview ? String(overview.bumdes.total) : "—",                  sub: `${overview?.bumdes.active ?? 0} aktif`,             Icon: IconBox,    bg: "bg-sky-50",    fg: "text-sky-500"    },
-    { label: "Produk Aktif",   value: overview ? overview.products.active.toLocaleString("id-ID") : "—", sub: `dari ${overview?.products.total ?? 0} total`,     Icon: IconMoney,  bg: "bg-yellow-50", fg: "text-yellow-500" },
+    { label: "Total Pengguna",  value: overview ? overview.users.total.toLocaleString("id-ID") : "—",     sub: `${overview?.users.active ?? 0} akun aktif`,         Icon: IconPeople, bg: "bg-indigo-50", fg: "text-indigo-500" },
+    { label: "UMKM Terdaftar", value: overview ? String(overview.umkm.total) : "—",                      sub: `${overview?.umkm.active ?? 0} aktif, ${overview?.umkm.pending ?? 0} pending`, Icon: IconStore,  bg: "bg-green-50",  fg: "text-green-600"  },
+    { label: "Total BUMDes",   value: overview ? String(overview.bumdes.total) : "—",                    sub: `${overview?.bumdes.active ?? 0} aktif`,             Icon: IconBox,    bg: "bg-sky-50",    fg: "text-sky-500"    },
+    { label: "Produk Aktif",   value: overview ? overview.products.active.toLocaleString("id-ID") : "—", sub: `dari ${overview?.products.total ?? 0} total`,       Icon: IconMoney,  bg: "bg-yellow-50", fg: "text-yellow-500" },
   ];
 
   const quickLinks = [
-    { href:"/admin/bumdes",   label:"Kelola BUMDes",    desc:"Tambah & verifikasi BUMDes", Icon: IconHome  },
-    { href:"/admin/pengguna", label:"Kelola Pengguna",  desc:"Suspend, ubah role, reset",  Icon: IconUsers },
-    { href:"/admin/kategori", label:"Kategori Produk",  desc:"Tambah & ubah kategori",     Icon: IconTag   },
-    { href:"/admin/laporan",  label:"Laporan Platform", desc:"Unduh laporan lengkap",      Icon: IconChart },
+    { href:"/admin/pengguna", label:"Kelola Pengguna",   desc:"Suspend, ubah role, reset",      Icon: IconUsers },
+    { href:"/admin/bumdes",   label:"Kelola BUMDes",     desc:"Tambah & verifikasi BUMDes",     Icon: IconBox   },
+    { href:"/admin/kategori", label:"Kategori Produk",   desc:"Tambah & ubah kategori",         Icon: IconTag   },
+    { href:"/admin/laporan",  label:"Laporan Platform",  desc:"Unduh laporan lengkap",           Icon: IconChart },
   ];
 
   const uTotal    = overview?.users.total ?? 0;
@@ -136,9 +162,9 @@ export default function AdminDashboard() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { label: "Total Transaksi Selesai",  value: overview ? (overview.total_transaksi ?? 0).toLocaleString("id-ID") : "—",                                              sub: "pesanan selesai di seluruh BUMDes" },
-            { label: "Total Pembeli Unik",       value: overview ? (overview.total_pembeli ?? 0).toLocaleString("id-ID") : "—",                                                sub: "customer yang pernah bertransaksi" },
-            { label: "Total Pendapatan UMKM",    value: overview ? `Rp ${Math.round(overview.total_pendapatan_umkm ?? 0).toLocaleString("id-ID")}` : "—",                     sub: "yang diterima seluruh UMKM mitra"  },
+            { label: "Total Transaksi Selesai",  value: overview ? (overview.total_transaksi ?? 0).toLocaleString("id-ID") : "—",                             sub: "pesanan selesai di seluruh BUMDes" },
+            { label: "Total Pembeli Unik",       value: overview ? (overview.total_pembeli ?? 0).toLocaleString("id-ID") : "—",                               sub: "customer yang pernah bertransaksi" },
+            { label: "Total Pendapatan UMKM",    value: overview ? `Rp ${Math.round(overview.total_pendapatan_umkm ?? 0).toLocaleString("id-ID")}` : "—",     sub: "yang diterima seluruh UMKM mitra"  },
           ].map(({ label, value, sub }) => (
             <div key={label} className="bg-gray-50 rounded-xl p-3">
               <p className="text-xs text-gray-500 mb-1 leading-tight">{label}</p>
@@ -155,14 +181,16 @@ export default function AdminDashboard() {
           <div>
             <h2 className="text-sm font-semibold text-gray-900">Pertumbuhan Platform</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              {activeChart === "pengguna" ? "Registrasi 7 hari terakhir" : `Jan – Des ${new Date().getFullYear()}`}
+              {activeChart === "pengguna" || activeChart === "pengunjung"
+                ? "7 hari terakhir"
+                : `Jan – Des ${new Date().getFullYear()}`}
             </p>
           </div>
-          <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+          <div className="flex flex-wrap gap-1 p-1 bg-gray-100 rounded-xl">
             {(Object.keys(CHART_DATA) as ChartKey[]).map(k => (
               <button
                 key={k}
-                onClick={() => setActiveChart(k)}
+                onClick={() => handleChartSwitch(k)}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                   activeChart === k ? "bg-white shadow-sm text-gray-900" : "text-gray-400 hover:text-gray-600"
                 }`}
@@ -172,7 +200,13 @@ export default function AdminDashboard() {
             ))}
           </div>
         </div>
-        <ApexChart type="area" series={[{ name: chart.label, data: chart.data }]} options={areaOptions} height={220} />
+        <ApexChart
+          key={`${activeChart}-${animKey}`}
+          type="area"
+          series={[{ name: chart.label, data: chart.data }]}
+          options={areaOptions}
+          height={220}
+        />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-gray-50">
           <div>
             <p className="text-xs text-gray-400">Nilai Tertinggi</p>
@@ -181,7 +215,7 @@ export default function AdminDashboard() {
           <div>
             <p className="text-xs text-gray-400">Rata-rata</p>
             <p className="text-sm font-bold text-gray-900 mt-0.5">
-              {(chart.data.reduce((a, b) => a + b) / chart.data.length).toFixed(chart.unit ? 1 : 0)}{chart.unit}
+              {avg.toFixed(chart.unit ? 1 : 0)}{chart.unit}
             </p>
           </div>
           <div>
@@ -235,7 +269,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Recent users */}
+      {/* Recent users — max 10 */}
       <div className="bg-white rounded-2xl border border-gray-100">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
           <h2 className="text-sm font-semibold text-gray-900">Pengguna Terbaru</h2>
@@ -256,7 +290,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {users.map(u => (
+                {users.slice(0, 10).map(u => (
                   <tr key={u.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
                     <td className="px-5 py-3 font-medium text-gray-900">{u.name}</td>
                     <td className="px-5 py-3 text-gray-500 hidden md:table-cell">{u.email}</td>

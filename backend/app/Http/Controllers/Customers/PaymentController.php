@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customers;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -180,6 +181,15 @@ class PaymentController extends Controller
             ]);
         }
 
+        // Pembayaran manual UMKM — tidak ada Midtrans, kembalikan status saja
+        if ($payment->payment_type === 'manual_umkm') {
+            return response()->json([
+                'status'       => $payment->status,
+                'order_status' => $order->status,
+                'paid_at'      => $payment->paid_at,
+            ]);
+        }
+
         // Cek status ke Midtrans
         $response = Http::withHeaders([
             'Authorization' => 'Basic ' . $this->midtransAuth(),
@@ -241,6 +251,10 @@ class PaymentController extends Controller
 
     public function uploadProof(Request $request, int $orderId)
     {
+        if (Setting::getValue('payment_qris_enabled', '1') !== '1') {
+            return response()->json(['message' => 'Metode pembayaran langsung ke UMKM sedang dinonaktifkan.'], 403);
+        }
+
         $customer = $request->user()->customer;
 
         $order = Order::with(['payment', 'umkmProfile.user'])

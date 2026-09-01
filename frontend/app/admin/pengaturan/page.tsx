@@ -14,12 +14,16 @@ interface Setting {
 const WA_KEYS = ["wa_max_attempts", "wa_retry_delay"];
 
 const LABELS: Record<string, string> = {
-  site_name:        "Nama Platform",
-  site_tagline:     "Tagline",
-  contact_email:    "Email Kontak",
-  contact_phone:    "Nomor Telepon",
-  maintenance_mode: "Mode Maintenance",
+  site_name:                "Nama Platform",
+  site_tagline:             "Tagline",
+  contact_email:            "Email Kontak",
+  contact_phone:            "Nomor Telepon",
+  maintenance_mode:         "Mode Maintenance",
+  payment_qris_enabled:     "Pembayaran QRIS / Transfer Langsung ke UMKM",
+  payment_midtrans_enabled: "Pembayaran via Midtrans",
 };
+
+const BOOLEAN_KEYS = ["maintenance_mode", "payment_qris_enabled", "payment_midtrans_enabled"];
 
 export default function AdminPengaturanPage() {
   const toast = useToast();
@@ -72,14 +76,23 @@ export default function AdminPengaturanPage() {
                 {LABELS[s.key] ?? s.key}
               </label>
               {s.description && <p className="text-xs text-gray-400 mb-2">{s.description}</p>}
-              {s.key === "maintenance_mode" ? (
+              {BOOLEAN_KEYS.includes(s.key) ? (
                 <select
                   value={form[s.key] ?? "0"}
                   onChange={e => setForm({ ...form, [s.key]: e.target.value })}
                   className="w-48 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-400"
                 >
-                  <option value="0">Nonaktif (normal)</option>
-                  <option value="1">Aktif (maintenance)</option>
+                  {s.key === "maintenance_mode" ? (
+                    <>
+                      <option value="0">Nonaktif (normal)</option>
+                      <option value="1">Aktif (maintenance)</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="1">Aktif</option>
+                      <option value="0">Nonaktif</option>
+                    </>
+                  )}
                 </select>
               ) : (
                 <input

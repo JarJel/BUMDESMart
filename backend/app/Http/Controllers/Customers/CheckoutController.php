@@ -17,6 +17,7 @@ use App\Models\ProductDiscount;
 use App\Models\ProductVariant;
 use App\Models\ProductVariantOption;
 use App\Models\Promotion;
+use App\Models\Setting;
 use App\Models\UmkmProfile;
 use App\Models\UmkmVoucherProgram;
 use App\Models\BumdesProfile;
@@ -439,11 +440,13 @@ class CheckoutController extends Controller
             return response()->json([
                 'success' => true,
                 'data'    => [
-                    'tenants'          => $tenants,         // items dikelompokkan per tenant
-                    'items'            => $items,           // flat items (kompatibilitas mundur)
-                    'addresses'        => $addresses,
-                    'shipping_methods' => $shippingMethods,
-                    'payment_methods'  => $paymentMethods,
+                    'tenants'                  => $tenants,
+                    'items'                    => $items,
+                    'addresses'                => $addresses,
+                    'shipping_methods'         => $shippingMethods,
+                    'payment_methods'          => $paymentMethods,
+                    'payment_qris_enabled'     => Setting::getValue('payment_qris_enabled', '1') === '1',
+                    'payment_midtrans_enabled' => Setting::getValue('payment_midtrans_enabled', '1') === '1',
                 ]
             ]);
         } catch (Exception $e) {

@@ -302,7 +302,10 @@ export default function CheckoutPage() {
   }, [cartItems]);
 
   // Cek apakah UMKM memiliki QRIS atau rekening bank aktif
+  const qrisEnabledByAdmin = previewData ? previewData.payment_qris_enabled !== false : true;
+
   const hasDirectPaymentSupport = (() => {
+    if (!qrisEnabledByAdmin) return false;
     const apiTenants = previewData?.tenants || [];
     if (apiTenants.length > 0) {
       return apiTenants.some((t: any) => Boolean(t.qris_image || (t.bank_accounts && t.bank_accounts.length > 0)));
