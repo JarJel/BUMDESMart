@@ -19,7 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\PreventDoubleSubmit::class,
         ]);
         $middleware->alias([
-            'role' => \App\Http\Middleware\EnsureRole::class,
+            'role'        => \App\Http\Middleware\EnsureRole::class,
+            'maintenance' => \App\Http\Middleware\CheckMaintenanceMode::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

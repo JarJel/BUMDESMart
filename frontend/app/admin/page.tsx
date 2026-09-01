@@ -56,7 +56,7 @@ export default function AdminDashboard() {
   const growth = (((last - first) / first) * 100).toFixed(0);
 
   const areaOptions: ApexOptions = {
-    chart: { type: "area", toolbar: { show: false }, zoom: { enabled: false }, animations: { speed: 500 } },
+    chart: { type: "area", toolbar: { show: false }, zoom: { enabled: false }, animations: { speed: 700, easing: "easeinout", dynamicAnimation: { enabled: true, speed: 500 } } },
     colors: [chart.color],
     fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.02, stops: [0, 100] } },
     stroke: { curve: "smooth", width: 2.5 },
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
             ))}
           </div>
         </div>
-        <ApexChart type="area" series={[{ name: chart.label, data: chart.data }]} options={areaOptions} height={220} />
+        <ApexChart key={activeChart} type="area" series={[{ name: chart.label, data: chart.data }]} options={areaOptions} height={220} />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-gray-50">
           <div>
             <p className="text-xs text-gray-400">Nilai Tertinggi</p>

@@ -41,9 +41,10 @@ function CountUp({ target, suffix = "", duration = 1800 }: { target: number; suf
     return () => observer.disconnect();
   }, [target, duration]);
 
+  const safeCount = isNaN(count) || count == null ? 0 : count;
   return (
     <p ref={ref} className="text-2xl font-bold text-white">
-      {count.toLocaleString("id-ID")}{suffix}
+      {safeCount.toLocaleString("id-ID")}{suffix}
     </p>
   );
 }
@@ -397,7 +398,7 @@ export default function BerandaPage() {
       .finally(() => setLoading(false));
 
     api.get("/stats")
-      .then(res => { if (res.data?.data) setStats(res.data.data); })
+      .then(res => { if (res.data?.data) setStats(prev => ({ ...prev, ...res.data.data })); })
       .catch(() => {});
   }, []);
 
@@ -414,13 +415,16 @@ export default function BerandaPage() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-14">
             <a href="https://kemdiktisaintek.go.id" aria-label="Website Kemdiktisaintek" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-              <img src="/images/sponsors/tut-wuri.jpeg" alt="Kemdiktisaintek — Tut Wuri Handayani" width="140" height="56" className="h-14 w-auto object-contain" />
+              <img src="/images/logo-kemendikbud.png" alt="Kemdiktisaintek — Tut Wuri Handayani" width="140" height="56" className="h-14 w-auto object-contain" />
             </a>
             <a href="https://kemdiktisaintek.go.id" aria-label="Website Diktisaintek" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-              <img src="/images/sponsors/diktisaintek.jpeg" alt="Diktisaintek Berdampak" width="140" height="56" className="h-14 w-auto object-contain" />
+              <img src="/images/logo-diktisaintek.png" alt="Diktisaintek Berdampak" width="140" height="56" className="h-14 w-auto object-contain" />
             </a>
             <a href="https://bima.kemdiktisaintek.go.id" aria-label="Website BiMA Kemdiktisaintek" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
-              <img src="/images/sponsors/bima.jpeg" alt="BiMA — Kemdiktisaintek" width="100" height="40" className="h-10 w-auto object-contain" />
+              <img src="/images/logo-bima.png" alt="BiMA — Kemdiktisaintek" width="120" height="48" className="h-12 w-auto object-contain" />
+            </a>
+            <a href="https://ukebangsaan.ac.id" aria-label="Website Universitas Kebangsaan RI" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
+              <img src="/images/logo-ukri.png" alt="Universitas Kebangsaan Republik Indonesia" width="56" height="56" className="h-14 w-auto object-contain" />
             </a>
           </div>
           <p className="text-center text-xs text-gray-500 mt-5 italic">

@@ -56,5 +56,6 @@ export const config = {
     '/seller/:path*',
     '/user/:path*',
     '/pengirim/:path*',
+    // /maintenance dikecualikan secara implisit karena tidak ada di list
   ],
 }
