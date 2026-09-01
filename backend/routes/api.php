@@ -319,6 +319,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('super-admin')->
     Route::get('/umkm', [SuperAdminUmkmController::class, 'index']);
     Route::get('/umkm/{id}', [SuperAdminUmkmController::class, 'show']);
     Route::patch('/umkm/{id}/status', [SuperAdminUmkmController::class, 'updateStatus']);
+    Route::delete('/umkm/{id}', [SuperAdminUmkmController::class, 'destroy']);
 
     // Driver management
     Route::get('/drivers', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'index']);

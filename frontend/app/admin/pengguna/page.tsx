@@ -99,13 +99,15 @@ export default function AdminPenggunaPage() {
   useEffect(() => { fetchUsers(1); }, [search, roleFilter]);
 
   const handleDelete = async (user: User) => {
-    if (!confirm(`Hapus pengguna "${user.name}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+    if (!confirm(`Hapus akun "${user.name}"?\n\nAksi ini tidak bisa dibatalkan. Lanjutkan?`)) return;
     try {
       await api.delete(`/super-admin/users/${user.id}`);
-      toast.success("Pengguna berhasil dihapus.");
+      toast.success("Akun berhasil dihapus.");
+      setSelectedUser(null);
       fetchUsers(page);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? "Gagal menghapus pengguna.");
+      const msg = err?.response?.data?.message ?? "Gagal menghapus akun.";
+      toast.error(msg);
     }
   };
 
@@ -315,19 +317,14 @@ export default function AdminPenggunaPage() {
                 }} className="flex-1 py-2.5 text-sm font-semibold border border-gray-200 bg-white rounded-xl text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer">
                   Tutup
                 </button>
-                {(selectedUser.role === 'customer' || selectedUser.role === 'umkm') ? (
+                {(selectedUser.role === 'customer' || selectedUser.role === 'umkm') && (
                   <button onClick={() => handleSuspend(selectedUser)} className="flex-1 py-2.5 text-sm font-semibold bg-orange-100 text-orange-700 rounded-xl hover:bg-orange-200 transition-colors cursor-pointer">
                     {selectedUser.status === 'suspended' ? 'Buka Suspend' : 'Suspend'}
                   </button>
-                ) : (
-                  <button onClick={() => {
-                    setSelectedUser(null);
-                    setSuspendReason("");
-                    handleDelete(selectedUser);
-                  }} className="flex-1 py-2.5 text-sm font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors cursor-pointer">
-                    Hapus
-                  </button>
                 )}
+                <button onClick={() => handleDelete(selectedUser)} className="flex-1 py-2.5 text-sm font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors cursor-pointer">
+                  Hapus Akun
+                </button>
               </div>
             </div>
           </div>

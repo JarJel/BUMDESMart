@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\UmkmProfile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class UmkmController extends Controller
@@ -72,5 +73,18 @@ class UmkmController extends Controller
         ]);
 
         return response()->json(['message' => 'Status UMKM berhasil diperbarui.', 'data' => $umkm]);
+    }
+
+    public function destroy($id)
+    {
+        $umkm = UmkmProfile::findOrFail($id);
+
+        DB::table('products')->where('umkm_profile_id', $umkm->id)->delete();
+        DB::table('umkm_documents')->where('umkm_profile_id', $umkm->id)->delete();
+
+        $shopName = $umkm->shop_name;
+        $umkm->delete();
+
+        return response()->json(['message' => "Toko \"{$shopName}\" berhasil dihapus."]);
     }
 }

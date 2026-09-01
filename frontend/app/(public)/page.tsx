@@ -423,7 +423,7 @@ export default function BerandaPage() {
             <a href="https://bima.kemdiktisaintek.go.id" aria-label="Website BiMA Kemdiktisaintek" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
               <img src="/images/logo-bima.png" alt="BiMA — Kemdiktisaintek" width="120" height="48" className="h-12 w-auto object-contain" />
             </a>
-            <a href="https://ukebangsaan.ac.id" aria-label="Website Universitas Kebangsaan RI" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
+            <a href="https://ukri.ac.id/" aria-label="Website Universitas Kebangsaan RI" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
               <img src="/images/logo-ukri.png" alt="Universitas Kebangsaan Republik Indonesia" width="56" height="56" className="h-14 w-auto object-contain" />
             </a>
           </div>
