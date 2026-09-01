@@ -292,6 +292,7 @@ class SellerOrderController extends Controller
                 'confirmed'        => \App\Helpers\WaNotification::pesananDikonfirmasi($buyerPhone, $buyerName, $order->order_code, $order->id),
                 'ready_for_pickup' => \App\Helpers\WaNotification::siapDiambil($buyerPhone, $buyerName, $order->order_code, $order->id, $shopName),
                 'shipped'          => \App\Helpers\WaNotification::dikirimEkspedisi($buyerPhone, $buyerName, $order->order_code, $order->id, $validated['tracking_number'] ?? '-'),
+                'cancelled'        => \App\Helpers\WaNotification::pesananDibatalkanBuyer($buyerPhone, $buyerName, $order->order_code, $order->id),
                 default            => null,
             };
         }

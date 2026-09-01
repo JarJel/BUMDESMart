@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Seller;
 
+use App\Helpers\WaNotification;
 use App\Http\Controllers\Controller;
+use App\Models\BumdesProfile;
 use App\Models\Disbursement;
 use App\Models\UmkmBankAccount;
 use App\Models\UmkmBalance;
+use App\Models\UmkmProfile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -137,6 +140,23 @@ class BankAccountController extends Controller
             'reference_id'   => $referenceId,
             'status'         => 'pending',
         ]);
+
+        // Notif WA ke BUMDes admin saat pencairan diminta
+        try {
+            $umkm   = UmkmProfile::where('id', $ownerId)->where('owner_type', $ownerType)->first()
+                   ?? UmkmProfile::find($ownerId);
+            $bumdes = $umkm ? BumdesProfile::find($umkm->bumdes_profile_id) : null;
+            if ($bumdes && $bumdes->user) {
+                $adminPhone = $bumdes->user->phone ?? null;
+                $shopName   = $umkm->shop_name ?? "Mitra #{$ownerId}";
+                $rpStr      = 'Rp ' . number_format($validated['amount'], 0, ',', '.');
+                if ($adminPhone) {
+                    WaNotification::pencairanDiminta($adminPhone, $bumdes->user->name ?? 'Admin BUMDes', $shopName, $rpStr, $bumdes->id);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('WA pencairan notify gagal: ' . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Permintaan pencairan berhasil diajukan.',

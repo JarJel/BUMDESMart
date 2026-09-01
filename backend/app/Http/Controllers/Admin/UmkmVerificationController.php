@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\WaNotification;
 use App\Http\Controllers\Controller;
 use App\Models\BumdesProfile;
+use App\Models\Notification;
 use App\Models\UmkmProfile;
 use Illuminate\Http\Request;
 
@@ -81,12 +83,22 @@ class UmkmVerificationController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        $bumdes = $this->getBumdesProfile($request);
+
         $umkm->update([
             'status'           => 'active',
             'verified_by'      => $request->user()->id,
             'verified_at'      => now(),
             'rejection_reason' => null,
         ]);
+
+        // Notif WA + in-app ke UMKM owner
+        if ($umkm->phone) {
+            WaNotification::akUnVerifikasi($umkm->phone, $umkm->shop_name, $bumdes->name);
+        }
+        if ($umkm->user_id) {
+            Notification::send($umkm->user_id, 'Toko Diverifikasi ✅', "Selamat! Toko \"{$umkm->shop_name}\" telah diverifikasi oleh {$bumdes->name}. Kamu sudah bisa mulai berjualan.", 'success', 'umkm_profile', $umkm->id);
+        }
 
         return response()->json(['message' => 'Mitra berhasil diverifikasi', 'data' => $umkm]);
     }
@@ -103,10 +115,23 @@ class UmkmVerificationController extends Controller
             'reason' => 'nullable|string|max:500',
         ]);
 
+        $bumdes = $this->getBumdesProfile($request);
+        $reason = $request->input('reason', '');
+
         $umkm->update([
             'status'           => 'rejected',
-            'rejection_reason' => $request->input('reason'),
+            'rejection_reason' => $reason,
         ]);
+
+        // Notif WA + in-app ke UMKM owner
+        if ($umkm->phone) {
+            WaNotification::akUnDitolak($umkm->phone, $umkm->shop_name, $bumdes->name, $reason);
+        }
+        if ($umkm->user_id) {
+            $notifMsg = "Pendaftaran toko \"{$umkm->shop_name}\" ditolak oleh {$bumdes->name}.";
+            if ($reason) $notifMsg .= " Alasan: {$reason}";
+            Notification::send($umkm->user_id, 'Pendaftaran Ditolak ❌', $notifMsg, 'error', 'umkm_profile', $umkm->id);
+        }
 
         return response()->json(['message' => 'Mitra ditolak', 'data' => $umkm]);
     }
