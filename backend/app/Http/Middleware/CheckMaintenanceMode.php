@@ -14,15 +14,13 @@ class CheckMaintenanceMode
             return $next($request);
         }
 
-        // Superadmin tetap bisa akses
         $user = $request->user();
         if ($user && $user->hasRole('super_admin')) {
             return $next($request);
         }
 
         return response()->json([
-            'maintenance' => true,
-            'message'     => 'Sistem sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.',
+            'message' => 'Sistem sedang dalam maintenance. Silakan coba beberapa saat lagi.',
         ], 503);
     }
 }
