@@ -8,6 +8,7 @@ use App\Http\Controllers\Customers\AddressController;
 use App\Http\Controllers\Customers\CartController;
 use App\Http\Controllers\Customers\WishlistController;
 use App\Http\Controllers\Customers\NotificationController;
+use App\Http\Controllers\FcmTokenController;
 use App\Http\Controllers\Customers\SellerController;
 use App\Http\Controllers\Customers\ProductController;
 use App\Http\Controllers\Customers\CheckoutController;
@@ -53,6 +54,8 @@ Route::get('/platform-status', function () {
 });
 
 Route::middleware(['auth:sanctum', 'maintenance'])->group(function () {
+    Route::post('/user/fcm-token', [FcmTokenController::class, 'store']);
+    Route::delete('/user/fcm-token', [FcmTokenController::class, 'destroy']);
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
@@ -161,6 +164,7 @@ Route::middleware(['auth:sanctum', 'maintenance'])->group(function () {
     Route::put('/seller/products/{id}', [SellerProductController::class, 'update']);
     Route::post('/seller/products/{id}', [SellerProductController::class, 'update']); // Support for multipart PUT request
     Route::delete('/seller/products/{id}', [SellerProductController::class, 'destroy']);
+    Route::post('/seller/products/{id}/appeal-ban', [SellerProductController::class, 'appealBan']);
 });
 
 // File serving — workaround nginx /storage 403 block
@@ -245,6 +249,15 @@ Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('ad
         Route::post('/restart',    [\App\Http\Controllers\Admin\WhatsappAdminController::class, 'restart']);
     });
 
+    // WhatsApp queue (shared with super_admin)
+    Route::prefix('whatsapp-queue')->group(function () {
+        Route::get('/',      [\App\Http\Controllers\SuperAdmin\WhatsappQueueController::class, 'index']);
+        Route::post('/',     [\App\Http\Controllers\SuperAdmin\WhatsappQueueController::class, 'store']);
+        Route::get('/{whatsappQueue}',    [\App\Http\Controllers\SuperAdmin\WhatsappQueueController::class, 'show']);
+        Route::delete('/{whatsappQueue}', [\App\Http\Controllers\SuperAdmin\WhatsappQueueController::class, 'destroy']);
+    });
+    Route::put('/whatsapp-settings', [\App\Http\Controllers\SuperAdmin\WhatsappQueueController::class, 'updateSettings']);
+
     // Admin BUMDes - own profile
     Route::get('/profile', [AdminProfileController::class, 'show']);
     Route::put('/profile', [AdminProfileController::class, 'update']);
@@ -259,6 +272,8 @@ Route::middleware(['auth:sanctum', 'role:admin_bumdes,super_admin'])->prefix('ad
     // Admin BUMDes - product management
     Route::get('/products', [AdminProductController::class, 'index']);
     Route::delete('/products/{id}', [AdminProductController::class, 'destroy']);
+    Route::post('/products/{id}/ban', [AdminProductController::class, 'ban']);
+    Route::post('/products/{id}/unban', [AdminProductController::class, 'unban']);
 
     // Admin BUMDes - driver management (hanya kurir di BUMDes ini)
     Route::get('/drivers', [AdminDriverController::class, 'index']);
