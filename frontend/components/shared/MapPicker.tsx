@@ -199,7 +199,7 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
 
   return (
     <div
-      className="relative border border-gray-200"
+      className="relative border border-gray-200 overflow-hidden"
       style={{ height, borderRadius: "0.75rem" }}
     >
       {/* Search Input overlay */}
@@ -266,17 +266,17 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
       {/* GPS Permission Prompt — centered floating card */}
       {showGpsPrompt && (
         <div
-          className="absolute inset-0 z-[1100] flex items-center justify-center px-5"
+          className="absolute inset-0 z-[1100] flex items-center justify-center p-2.5 sm:p-4 overflow-hidden"
           style={{ background: "rgba(15, 23, 42, 0.55)", backdropFilter: "blur(2px)", borderRadius: "0.75rem" }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 flex flex-col items-center gap-4 animate-slideUp">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[270px] sm:max-w-xs p-3.5 sm:p-4 flex flex-col items-center gap-2.5 sm:gap-3 animate-slideUp max-h-full overflow-y-auto">
 
             {/* Icon gradient circle */}
             <div
-              className="w-14 h-14 rounded-full flex items-center justify-center shadow-md"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shadow-md shrink-0"
               style={{ background: "linear-gradient(135deg, #16a34a, #4ade80)" }}
             >
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -284,36 +284,36 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
 
             {/* Title & Description */}
             <div className="text-center">
-              <h3 className="text-sm font-bold text-gray-800 mb-1.5">Izinkan Akses Lokasi?</h3>
-              <p className="text-[11px] text-gray-500 leading-relaxed">
+              <h3 className="text-xs sm:text-sm font-bold text-gray-800 mb-1">Izinkan Akses Lokasi?</h3>
+              <p className="text-[10px] sm:text-[11px] text-gray-500 leading-snug">
                 Kami butuh GPS kamu untuk menentukan titik pengiriman secara akurat.
-                Lokasi <span className="font-medium text-gray-700">hanya dipakai saat checkout</span> dan tidak disimpan.
+                Lokasi <span className="font-medium text-gray-700">hanya dipakai saat checkout</span>.
               </p>
             </div>
 
             {/* Info tip */}
-            <div className="w-full bg-sky-50 border border-sky-100 rounded-xl px-3 py-2.5 flex items-start gap-2">
+            <div className="w-full bg-sky-50 border border-sky-100 rounded-xl p-2 sm:px-3 sm:py-2 flex items-start gap-1.5 shrink-0">
               <svg className="w-3.5 h-3.5 text-sky-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
-              <p className="text-[10px] text-sky-700 leading-relaxed">
+              <p className="text-[9px] sm:text-[10px] text-sky-700 leading-tight">
                 Tidak ingin pakai GPS? Cari alamat lewat <span className="font-semibold">kotak pencarian</span> di atas peta.
               </p>
             </div>
 
             {/* Action buttons */}
-            <div className="w-full flex gap-2">
+            <div className="w-full flex gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setShowGpsPrompt(false)}
-                className="flex-1 text-xs font-medium text-gray-500 border border-gray-200 rounded-xl py-2.5 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                className="flex-1 text-[11px] sm:text-xs font-medium text-gray-500 border border-gray-200 rounded-xl py-2 hover:bg-gray-50 active:bg-gray-100 transition-colors"
               >
                 Nanti Saja
               </button>
               <button
                 type="button"
                 onClick={requestGps}
-                className="flex-1 text-xs font-semibold text-white rounded-xl py-2.5 flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                className="flex-1 text-[11px] sm:text-xs font-semibold text-white rounded-xl py-2 flex items-center justify-center gap-1 transition-all active:scale-95"
                 style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
