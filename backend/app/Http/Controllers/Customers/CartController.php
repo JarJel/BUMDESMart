@@ -27,6 +27,9 @@ class CartController extends Controller
         try {
             $cart = Cart::firstOrCreate(['customer_id' => $user->customer->id]);
 
+            // Auto-clean orphaned cart items where product no longer exists
+            CartItem::where('cart_id', $cart->id)->whereDoesntHave('product')->delete();
+
             $cart->load([
                 'items.product.images',
                 'items.product.umkmProfile.bankAccounts',
@@ -72,6 +75,13 @@ class CartController extends Controller
 
         try {
             $product = Product::find($productId);
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Produk tidak ditemukan.'
+                ], 404);
+            }
+
             $maxStock = $product->stock;
 
             if ($variantId) {
@@ -91,11 +101,15 @@ class CartController extends Controller
 
             $cart = Cart::firstOrCreate(['customer_id' => $user->customer->id]);
 
-            $firstItem = CartItem::with('product')
+            // Auto-clean orphaned cart items where product no longer exists
+            CartItem::where('cart_id', $cart->id)->whereDoesntHave('product')->delete();
+
+            $firstItem = CartItem::whereHas('product')
+                ->with('product.umkmProfile')
                 ->where('cart_id', $cart->id)
                 ->first();
 
-            if ($firstItem && $firstItem->product->umkm_profile_id !== $product->umkm_profile_id) {
+            if ($firstItem && $firstItem->product && $firstItem->product->umkm_profile_id !== $product->umkm_profile_id) {
                 return response()->json([
                     'success'      => false,
                     'message'      => 'Keranjang kamu sudah berisi produk dari toko lain.',
@@ -201,6 +215,13 @@ class CartController extends Controller
             $quantity = $request->quantity;
 
             $product = Product::find($productId);
+            if (!$product) {
+                $cartItem->delete();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Produk untuk item ini tidak lagi tersedia.'
+                ], 404);
+            }
             $maxStock = $product->stock;
 
             if ($variantId) {
