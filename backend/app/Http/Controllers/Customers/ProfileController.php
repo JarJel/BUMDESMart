@@ -240,7 +240,7 @@ class ProfileController extends Controller
             }
 
             $file = $request->file('file');
-            if (!file_exists($storagePath)) mkdir($storagePath, 0775, true);
+            if (!file_exists($storagePath)) @mkdir($storagePath, 0775, true);
 
             $filename = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $storagePath);
             $path = "uploads/shop/{$folder}/{$filename}";
@@ -251,8 +251,12 @@ class ProfileController extends Controller
                 'message' => ucfirst($field) . ' berhasil diunggah.',
                 'path' => $path,
             ]);
-        } catch (Exception $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengunggah media toko: ' . $e->getMessage(),
+                'error'   => $e->getMessage()
+            ], 500);
         }
     }
 
