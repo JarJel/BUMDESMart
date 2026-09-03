@@ -8,6 +8,7 @@ import api from "@/lib/api/axios";
 import { getFileUrl } from "@/lib/storage";
 import { SellerProfileContext, SellerProfileData } from "@/lib/context/sellerProfile";
 import NotificationDropdown from "@/components/shared/NotificationDropdown";
+import PushNotificationInit from "@/components/PushNotificationInit";
 
 const navItems = [
   {
@@ -353,6 +354,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
           </header>
 
           <main className="flex-1 overflow-y-auto">
+            <PushNotificationInit />
             {/* Banner peringatan jika halaman ini bukan pengaturan tapi status bukan aktif */}
             {!isActive && isAllowed && (
               <div className="mx-6 mt-5 px-4 py-3 rounded-xl bg-yellow-50 border border-yellow-200 flex items-start gap-3">

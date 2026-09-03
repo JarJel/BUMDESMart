@@ -1,6 +1,7 @@
 "use client"
 
 import DashboardShell, { NavItem } from "@/components/layout/DashboardShell"
+import PushNotificationInit from "@/components/PushNotificationInit"
 
 const ACCENT = "#2563eb"
 
@@ -36,6 +37,7 @@ const NAV: NavItem[] = [
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   return (
     <DashboardShell navItems={NAV} roleLabel="Customer" accent={ACCENT}>
+      <PushNotificationInit />
       {children}
     </DashboardShell>
   )
