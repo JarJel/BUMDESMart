@@ -101,12 +101,12 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: bumdesmart_cloudflared
     restart: unless-stopped
-    command: tunnel --no-autoupdate run
+    command: tunnel --no-autoupdate --protocol http2 run
     extra_hosts:
       - "region1.v2.argotunnel.com:198.41.192.57"
       - "region2.v2.argotunnel.com:198.41.200.43"
       - "api.cloudflare.com:104.19.192.29"
-      - "host.docker.internal:host-gateway"
+      - "cfd-features.argotunnel.com:104.19.192.29"
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
     depends_on:
