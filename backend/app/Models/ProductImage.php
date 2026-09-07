@@ -12,6 +12,8 @@ class ProductImage extends Model
     protected $fillable = [
         'product_id',
         'file_path',
+        'thumbnail_path',
+        'medium_path',
         'is_primary',
         'sort_order',
     ];

@@ -249,12 +249,15 @@ class ProductController extends Controller
 
                 foreach ($request->file('images') as $index => $file) {
                     $filename = \App\Helpers\ImageHelper::uploadToPathAsWebp($file, $destinationPath);
+                    $baseName = preg_replace('/\.webp$/i', '', $filename);
 
                     ProductImage::create([
-                        'product_id' => $product->id,
-                        'file_path'  => 'uploads/products/' . $filename,
-                        'is_primary' => $index === 0,
-                        'sort_order' => $index,
+                        'product_id'     => $product->id,
+                        'file_path'      => 'uploads/products/' . $filename,
+                        'thumbnail_path' => 'uploads/products/' . $baseName . '_thumb.webp',
+                        'medium_path'    => 'uploads/products/' . $baseName . '_medium.webp',
+                        'is_primary'     => $index === 0,
+                        'sort_order'     => $index,
                     ]);
                 }
             }

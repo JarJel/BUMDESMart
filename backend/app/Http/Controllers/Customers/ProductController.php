@@ -8,13 +8,52 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
+use App\Services\ElasticsearchProductService;
+
 class ProductController extends Controller
 {
+    protected ElasticsearchProductService $elasticsearchService;
+
+    public function __construct(ElasticsearchProductService $elasticsearchService)
+    {
+        $this->elasticsearchService = $elasticsearchService;
+    }
+
     public function index(Request $request) {
         try {
+            $search = $request->input('search') ?: $request->input('q');
+
+            // 1. Coba Elasticsearch Search jika tersedia
+            $esResult = $this->elasticsearchService->searchProducts([
+                'search' => $search,
+                'category_id' => $request->input('category_id'),
+                'umkm_id' => $request->input('umkm_id'),
+                'min_price' => $request->input('min_price'),
+                'max_price' => $request->input('max_price'),
+                'sort_by' => $request->input('sort_by', 'relevance'),
+                'page' => $request->input('page', 1),
+                'per_page' => $request->input('per_page', 12)
+            ]);
+
+            if ($esResult !== null) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Produk berhasil diambil (Elasticsearch)',
+                    'source' => 'elasticsearch',
+                    'data' => [
+                        'current_page' => $esResult['page'],
+                        'data' => $esResult['items'],
+                        'total' => $esResult['total'],
+                        'per_page' => $esResult['per_page'],
+                        'last_page' => $esResult['last_page'],
+                    ],
+                    'aggregations' => $esResult['aggregations']
+                ]);
+            }
+
+            // 2. Fallback ke MySQL Query jika Elasticsearch tidak aktif/bermasalah
             $query = Product::query()->where('status', 'active');
 
-            $search = $request->input('search') ?: $request->input('q');
             if (!empty($search)) {
                 $query->where('name', 'like', '%' . $search . '%');
             }
@@ -30,7 +69,7 @@ class ProductController extends Controller
             $products = $query
                 ->select(['id', 'name', 'slug', 'price', 'stock', 'weight', 'category_id', 'umkm_profile_id', 'sold_count', 'status', 'has_variant', 'created_at'])
                 ->with([
-                    'primaryImage:id,product_id,file_path,is_primary',
+                    'primaryImage:id,product_id,file_path,thumbnail_path,medium_path,is_primary',
                     'umkmProfile:id,shop_name,slug',
                     'activeDiscount:id,product_id,type,value,end_date,is_active,max_uses,used_count',
                     'variants.options',
@@ -60,7 +99,8 @@ class ProductController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Produk berhasil diambil',
+                'message' => 'Produk berhasil diambil (MySQL Fallback)',
+                'source' => 'mysql',
                 'data' => $products
             ]);
 
@@ -68,6 +108,31 @@ class ProductController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengambil produk',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Endpoint Autocomplete produk (Live Search).
+     */
+    public function autocomplete(Request $request) {
+        try {
+            $q = $request->input('q') ?: $request->input('query');
+            if (empty($q)) {
+                return response()->json(['success' => true, 'data' => []]);
+            }
+
+            $suggestions = $this->elasticsearchService->suggestKeywords($q);
+
+            return response()->json([
+                'success' => true,
+                'data' => $suggestions
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil rekomendasi pencarian',
                 'error' => $e->getMessage()
             ], 500);
         }

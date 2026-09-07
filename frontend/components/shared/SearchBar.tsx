@@ -196,7 +196,7 @@ export default function SearchBar({
             <div className="p-4 space-y-3">
               {[1, 2, 3].map((n) => (
                 <div key={n} className="flex items-center space-x-3 animate-pulse">
-                  <div className="w-8 h-8 bg-gray-200 rounded-md"></div>
+                  <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
                   <div className="flex-1 space-y-2 py-1">
                     <div className="h-4 bg-gray-200 rounded w-3/4"></div>
                     <div className="h-3 bg-gray-200 rounded w-1/2"></div>
@@ -221,18 +221,12 @@ export default function SearchBar({
                     index === activeIndex ? 'bg-green-50 text-green-900' : 'hover:bg-gray-50'
                   }`}
                 >
-                  {/* Thumbnail Produk */}
-                  {item.foto_url ? (
-                    <img
-                      src={item.foto_url}
-                      alt={item.name}
-                      className="w-8 h-8 rounded object-cover mr-3 shrink-0"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center mr-3 shrink-0">
-                      <span className="text-green-700 font-bold text-xs">P</span>
-                    </div>
-                  )}
+                  {/* Icon Search untuk Hasil Produk */}
+                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3 shrink-0 text-gray-400 group-hover:bg-green-100 group-hover:text-green-600 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-semibold text-gray-800 truncate">
                       {highlightMatch(item.name, query)}

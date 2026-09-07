@@ -16,14 +16,16 @@ class ProcessImageToWebp implements ShouldQueue
     public int $timeout = 120;
 
     /**
-     * @param string $sourcePath  Absolute path to the original uploaded file (in temp storage)
-     * @param string $targetPath  Absolute path where the final WebP should be saved
-     * @param int    $quality     WebP quality 1-100
+     * @param string $sourcePath        Absolute path to original temp file
+     * @param string $targetPath        Absolute path where primary WebP should be saved
+     * @param int    $quality           WebP quality (default 80)
+     * @param bool   $generateVariants  Generate _thumb (200px) & _medium (600px) variants
      */
     public function __construct(
         public readonly string $sourcePath,
         public readonly string $targetPath,
         public readonly int    $quality = 80,
+        public readonly bool   $generateVariants = true,
     ) {}
 
     public function handle(): void
@@ -32,13 +34,11 @@ class ProcessImageToWebp implements ShouldQueue
             return;
         }
 
-        // Ensure target directory exists
         $dir = dirname($this->targetPath);
         if (!is_dir($dir)) {
             @mkdir($dir, 0755, true);
         }
 
-        // Check GD support
         if (!extension_loaded('gd') || !function_exists('imagewebp')) {
             @rename($this->sourcePath, $this->targetPath);
             return;
@@ -47,41 +47,50 @@ class ProcessImageToWebp implements ShouldQueue
         try {
             $mime = @mime_content_type($this->sourcePath);
 
-            // Already WebP — just move
-            if ($mime === 'image/webp') {
-                @rename($this->sourcePath, $this->targetPath);
-                return;
-            }
-
-            // Non-image or unsupported — move as-is (fallback)
-            if (!$mime || !str_starts_with($mime, 'image/')) {
-                @rename($this->sourcePath, $this->targetPath);
-                return;
-            }
-
             $image = match ($mime) {
                 'image/jpeg', 'image/jpg' => function_exists('imagecreatefromjpeg') ? @imagecreatefromjpeg($this->sourcePath) : false,
                 'image/png'               => function_exists('imagecreatefrompng') ? $this->loadPng($this->sourcePath) : false,
                 'image/gif'               => function_exists('imagecreatefromgif') ? $this->loadGif($this->sourcePath) : false,
+                'image/webp'              => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($this->sourcePath) : false,
                 default                   => false,
             };
 
             if (!$image) {
-                // Conversion failed — move original as fallback
                 @rename($this->sourcePath, $this->targetPath);
                 return;
             }
 
-            $success = @imagewebp($image, $this->targetPath, $this->quality);
-            if (is_resource($image) || (class_exists('GdImage') && $image instanceof \GdImage)) {
+            // 1. Simpan gambar utama (max 1200px)
+            $largeImage = $this->resizeImage($image, 1200);
+            @imagewebp($largeImage, $this->targetPath, $this->quality);
+            if ($largeImage !== $image && (is_resource($largeImage) || $largeImage instanceof \GdImage)) {
+                @imagedestroy($largeImage);
+            }
+
+            // 2. Simpan Varian Thumbnail & Medium jika diminta
+            if ($this->generateVariants) {
+                $basePath = preg_replace('/\.webp$/i', '', $this->targetPath);
+                $thumbPath = $basePath . '_thumb.webp';
+                $mediumPath = $basePath . '_medium.webp';
+
+                $thumbImg = $this->resizeImage($image, 200);
+                @imagewebp($thumbImg, $thumbPath, $this->quality);
+                if ($thumbImg !== $image && (is_resource($thumbImg) || $thumbImg instanceof \GdImage)) {
+                    @imagedestroy($thumbImg);
+                }
+
+                $mediumImg = $this->resizeImage($image, 600);
+                @imagewebp($mediumImg, $mediumPath, $this->quality);
+                if ($mediumImg !== $image && (is_resource($mediumImg) || $mediumImg instanceof \GdImage)) {
+                    @imagedestroy($mediumImg);
+                }
+            }
+
+            if (is_resource($image) || $image instanceof \GdImage) {
                 @imagedestroy($image);
             }
 
-            if ($success) {
-                @unlink($this->sourcePath); // Delete original temp
-            } else {
-                @rename($this->sourcePath, $this->targetPath); // Fallback
-            }
+            @unlink($this->sourcePath); // Hapus temp
         } catch (\Throwable $e) {
             if (file_exists($this->sourcePath)) {
                 @rename($this->sourcePath, $this->targetPath);
@@ -89,35 +98,54 @@ class ProcessImageToWebp implements ShouldQueue
         }
     }
 
+    private function resizeImage(\GdImage|resource $srcImage, int $maxDimension): \GdImage|resource
+    {
+        $width = imagesx($srcImage);
+        $height = imagesy($srcImage);
+
+        if ($width <= $maxDimension && $height <= $maxDimension) {
+            return $srcImage;
+        }
+
+        if ($width > $height) {
+            $newWidth = $maxDimension;
+            $newHeight = (int) round(($height / $width) * $maxDimension);
+        } else {
+            $newHeight = $maxDimension;
+            $newWidth = (int) round(($width / $height) * $maxDimension);
+        }
+
+        $dstImage = imagecreatetruecolor($newWidth, $newHeight);
+        imagealphablending($dstImage, false);
+        imagesavealpha($dstImage, true);
+        $transparent = imagecolorallocatealpha($dstImage, 255, 255, 255, 127);
+        imagefilledrectangle($dstImage, 0, 0, $newWidth, $newHeight, $transparent);
+
+        imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+        return $dstImage;
+    }
+
+    private function loadPng(string $path)
+    {
+        $im = @imagecreatefrompng($path);
+        if ($im) {
+            imagealphablending($im, true);
+            imagesavealpha($im, true);
+        }
+        return $im;
+    }
+
+    private function loadGif(string $path)
+    {
+        return @imagecreatefromgif($path);
+    }
+
     public function failed(\Throwable $exception): void
     {
-        // Job gagal permanen → pindahkan file original ke target agar gambar masih bisa tampil
         if (file_exists($this->sourcePath) && !file_exists($this->targetPath)) {
             @rename($this->sourcePath, $this->targetPath);
         } elseif (file_exists($this->sourcePath)) {
             @unlink($this->sourcePath);
         }
-    }
-
-    private function loadPng(string $path)
-    {
-        if (!function_exists('imagecreatefrompng')) return false;
-        $img = @imagecreatefrompng($path);
-        if ($img) {
-            if (function_exists('imagepalettetotruecolor')) @imagepalettetotruecolor($img);
-            if (function_exists('imagealphablending')) @imagealphablending($img, true);
-            if (function_exists('imagesavealpha')) @imagesavealpha($img, true);
-        }
-        return $img;
-    }
-
-    private function loadGif(string $path)
-    {
-        if (!function_exists('imagecreatefromgif')) return false;
-        $img = @imagecreatefromgif($path);
-        if ($img && function_exists('imagepalettetotruecolor')) {
-            @imagepalettetotruecolor($img);
-        }
-        return $img;
     }
 }
