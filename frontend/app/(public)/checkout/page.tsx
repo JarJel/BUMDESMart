@@ -134,7 +134,10 @@ export default function CheckoutPage() {
   const [showAllShipping, setShowAllShipping] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null);
   const [deletingItem, setDeletingItem] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"midtrans" | "manual_umkm">("midtrans");
+  const isMidtransEnabled = !!process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+  const [paymentMethod, setPaymentMethod] = useState<"midtrans" | "manual_umkm">(
+    isMidtransEnabled ? "midtrans" : "manual_umkm"
+  );
   const [updatingQtyId, setUpdatingQtyId] = useState<number | null>(null);
 
   // Address modal
@@ -949,8 +952,8 @@ export default function CheckoutPage() {
             </h2>
 
             <div className="space-y-3">
-              {/* Opsi 1: Otomatis (Midtrans) */}
-              <label
+              {/* Opsi 1: Otomatis (Midtrans) — hanya tampil jika aktif */}
+              {isMidtransEnabled && <label
                 className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
                   paymentMethod === "midtrans" ? "border-green-600 bg-green-50/40" : "border-gray-100 hover:border-gray-200"
                 }`}
@@ -972,7 +975,7 @@ export default function CheckoutPage() {
                     Bayar via QRIS Dinamis (GoPay, OVO, ShopeePay, DANA), Virtual Account Bank (BCA, BRI, BNI, Mandiri), dll.
                   </p>
                 </div>
-              </label>
+              </label>}
 
               {/* Opsi 2: Langsung ke Toko (Manual QRIS UMKM) — Hanya tampil jika toko sudah upload QRIS / rekening */}
               {hasDirectPaymentSupport && (
