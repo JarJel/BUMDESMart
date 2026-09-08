@@ -48,7 +48,11 @@ class ImageHelper
         if (!is_dir($targetDir)) {
             mkdir($targetDir, 0775, true);
         }
-        @copy($sourceAbs, $targetAbs);
+        if (!copy($sourceAbs, $targetAbs)) {
+            // Fallback: simpan file original tanpa konversi
+            \Illuminate\Support\Facades\Log::warning("ImageHelper: copy failed from $sourceAbs to $targetAbs, storing original");
+            return $file->store($folder, 'public');
+        }
 
         // Dispatch job untuk convert ke WebP di background
         ProcessImageToWebp::dispatch($sourceAbs, $targetAbs, $quality);
