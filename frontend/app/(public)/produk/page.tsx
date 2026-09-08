@@ -267,9 +267,15 @@ function ProdukContent() {
     })
     .filter((p) => Number(p.price) <= hargaMax)
     .sort((a, b) => {
+      const getPrice = (p: any) => {
+        const allVariantOptions = (p.variants ?? []).flatMap((v: any) => v.options ?? []);
+        return p.has_variant && allVariantOptions.length > 0
+          ? Math.min(...allVariantOptions.map((o: any) => Number(o.price ?? o.price_adjustment ?? 0)))
+          : Number(p.price || 0);
+      };
       if (sort === "terlaris") return (b.sold_count ?? 0) - (a.sold_count ?? 0);
-      if (sort === "harga_asc") return Number(a.price) - Number(b.price);
-      if (sort === "harga_desc") return Number(b.price) - Number(a.price);
+      if (sort === "harga_asc") return getPrice(a) - getPrice(b);
+      if (sort === "harga_desc") return getPrice(b) - getPrice(a);
       if (sort === "terbaru") return b.id - a.id;
       return 0;
     });

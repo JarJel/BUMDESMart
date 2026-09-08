@@ -29,8 +29,11 @@ class ProductSearchController extends Controller
                 ->where('status', 'active')
                 // Optimasi query menggunakan LIKE (atau ganti fulltext index jika tabel besar)
                 ->where('name', 'LIKE', '%' . $query . '%')
-                ->select(['id', 'name', 'slug', 'price'])
-                ->with(['primaryImage:id,product_id,file_path,is_primary'])
+                ->select(['id', 'name', 'slug', 'price', 'has_variant'])
+                ->with([
+                    'primaryImage:id,product_id,file_path,is_primary',
+                    'variants.options'
+                ])
                 ->limit(10)
                 ->get()
                 ->map(function ($product) {
@@ -41,11 +44,24 @@ class ProductSearchController extends Controller
                         $fotoUrl = str_starts_with($path, 'http') ? $path : asset('storage/' . $path);
                     }
 
+                    $price = (float) $product->price;
+                    if ($product->has_variant && $product->variants && $product->variants->isNotEmpty()) {
+                        $variantPrices = $product->variants->flatMap(function ($v) {
+                            return $v->options ? $v->options->map(function ($o) {
+                                return (float) ($o->price ?? $o->price_adjustment ?? 0);
+                            }) : collect();
+                        })->filter(fn($p) => (float)$p > 0);
+
+                        if ($variantPrices->isNotEmpty()) {
+                            $price = (float) $variantPrices->min();
+                        }
+                    }
+
                     return [
                         'id' => $product->id,
                         'name' => $product->name,
                         'slug' => $product->slug,
-                        'price' => (float) $product->price,
+                        'price' => $price,
                         'foto_url' => $fotoUrl,
                     ];
                 });

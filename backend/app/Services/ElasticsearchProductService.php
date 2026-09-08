@@ -162,12 +162,25 @@ class ElasticsearchProductService
         if (!$this->isAvailable()) return;
 
         try {
-            $product->loadMissing(['category', 'umkmProfile', 'primaryImage', 'activeDiscount']);
+            $product->loadMissing(['category', 'umkmProfile', 'primaryImage', 'activeDiscount', 'variants.options']);
 
-            $discountedPrice = (float) $product->price;
+            $basePrice = (float) $product->price;
+            if ($product->has_variant && $product->variants && $product->variants->isNotEmpty()) {
+                $variantPrices = $product->variants->flatMap(function ($v) {
+                    return $v->options ? $v->options->map(function ($o) {
+                        return (float) ($o->price ?? $o->price_adjustment ?? 0);
+                    }) : collect();
+                })->filter(fn($p) => (float)$p > 0);
+
+                if ($variantPrices->isNotEmpty()) {
+                    $basePrice = (float) $variantPrices->min();
+                }
+            }
+
+            $discountedPrice = $basePrice;
             $hasDiscount = false;
             if ($product->activeDiscount) {
-                $discountedPrice = $product->activeDiscount->calculateDiscountedPrice((float) $product->price);
+                $discountedPrice = $product->activeDiscount->calculateDiscountedPrice($basePrice);
                 $hasDiscount = true;
             }
 
@@ -186,7 +199,7 @@ class ElasticsearchProductService
                 'id' => (int) $product->id,
                 'name' => $product->name,
                 'slug' => $product->slug,
-                'price' => (float) $product->price,
+                'price' => $basePrice,
                 'stock' => (int) $product->stock,
                 'weight' => (float) $product->weight,
                 'sold_count' => (int) $product->sold_count,

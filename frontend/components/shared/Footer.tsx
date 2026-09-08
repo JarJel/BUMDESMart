@@ -22,7 +22,6 @@ export default function Footer() {
             <ul className="space-y-2.5 text-xs text-green-200">
               <li><Link href="/produk" className="hover:text-white transition-colors">Terlaris</Link></li>
               <li><Link href="/produk?sort=terbaru" className="hover:text-white transition-colors">Produk Terbaru</Link></li>
-              <li><Link href="/produk?kategori=Makanan+%26+Minuman" className="hover:text-white transition-colors">Makanan & Minuman</Link></li>
             </ul>
           </div>
 
@@ -40,7 +39,7 @@ export default function Footer() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-green-300 mb-4">Bantuan</p>
             <ul className="space-y-2.5 text-xs text-green-200">
-              <li><Link href="/tentang" className="hover:text-white transition-colors">Pusat Bantuan</Link></li>
+              {/* <li><Link href="/tentang" className="hover:text-white transition-colors">Pusat Bantuan</Link></li> */}
               <li><Link href="/kebijakan-pengiriman" className="hover:text-white transition-colors">Kebijakan Pengiriman</Link></li>
               <li><Link href="/syarat-ketentuan" className="hover:text-white transition-colors">Syarat & Ketentuan</Link></li>
             </ul>
