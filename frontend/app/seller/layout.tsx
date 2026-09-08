@@ -108,6 +108,12 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeOrderCount, setActiveOrderCount] = useState(0);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    Toko: true, Penjualan: true, Promosi: false, Keuangan: false, Lainnya: false,
+  });
+
+  const toggleGroup = (label: string) =>
+    setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }));
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -233,54 +239,63 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
           )}
 
           <nav className="flex-1 px-3 py-3 overflow-y-auto">
-            {navGroups.map((group, gi) => (
-              <div key={group.label} className={gi > 0 ? "mt-3" : ""}>
-                <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{group.label}</p>
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const active = pathname === item.href || (item.href !== "/seller" && pathname.startsWith(item.href));
-                    const locked = !isActive && !ALLOWED_WHEN_INACTIVE.some(p => item.href.startsWith(p));
-                    return locked ? (
-                      <div
-                        key={item.href}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 cursor-not-allowed select-none"
-                      >
-                        <span className="text-gray-300">{item.icon}</span>
-                        {item.label}
-                        <svg className="w-3 h-3 ml-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                      </div>
-                    ) : (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${active ? "text-white" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"}`}
-                        style={active ? { background: "var(--primary)" } : {}}
-                      >
-                        <span className={active ? "text-white" : "text-gray-400"}>{item.icon}</span>
-                        {item.label}
-                        {item.href === "/seller/pesanan" && activeOrderCount > 0 && (
-                          <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                            {activeOrderCount > 99 ? "99+" : activeOrderCount}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </nav>
+            {navGroups.map((group, gi) => {
+              const isOpen = openGroups[group.label] ?? false;
+              const groupHasActive = group.items.some(item =>
+                pathname === item.href || (item.href !== "/seller" && pathname.startsWith(item.href))
+              );
+              return (
+                <div key={group.label} className={gi > 0 ? "mt-1" : ""}>
+                  <button
+                    onClick={() => toggleGroup(group.label)}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-widest text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className={groupHasActive && !isOpen ? "text-green-600" : ""}>{group.label}</span>
+                    <svg
+                      className={`w-3 h-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
 
-          {isActive && (
-            <div className="px-3 pb-3">
-              <Link href="/seller/produk/tambah" className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-colors hover:opacity-90" style={{ background: "var(--primary)" }}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Tambah Produk
-              </Link>
-            </div>
-          )}
+                  {isOpen && (
+                    <div className="mt-0.5 mb-1 space-y-0.5">
+                      {group.items.map((item) => {
+                        const active = pathname === item.href || (item.href !== "/seller" && pathname.startsWith(item.href));
+                        const locked = !isActive && !ALLOWED_WHEN_INACTIVE.some(p => item.href.startsWith(p));
+                        return locked ? (
+                          <div
+                            key={item.href}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 cursor-not-allowed select-none"
+                          >
+                            <span className="text-gray-300">{item.icon}</span>
+                            {item.label}
+                            <svg className="w-3 h-3 ml-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                          </div>
+                        ) : (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${active ? "text-white" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"}`}
+                            style={active ? { background: "var(--primary)" } : {}}
+                          >
+                            <span className={active ? "text-white" : "text-gray-400"}>{item.icon}</span>
+                            {item.label}
+                            {item.href === "/seller/pesanan" && activeOrderCount > 0 && (
+                              <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                {activeOrderCount > 99 ? "99+" : activeOrderCount}
+                              </span>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
 
           <div className="border-t border-gray-100 px-4 py-4 space-y-1">
             <button onClick={handleLogout} className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 py-1 w-full">
