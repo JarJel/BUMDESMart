@@ -110,10 +110,40 @@ export default function SellerSummaryPage() {
     finally { setUnregisteringId(null); }
   };
 
+  const getProductStock = (p: ProductData) => {
+    const allOptions = (p.variants ?? []).flatMap(v => v.options ?? []);
+    if (p.has_variant && allOptions.length > 0) {
+      return allOptions.reduce((sum, o) => sum + (o.stock ?? 0), 0);
+    }
+    return p.stock ?? 0;
+  };
+
+  const getProductPriceDisplay = (p: ProductData) => {
+    const allOptions = (p.variants ?? []).flatMap(v => v.options ?? []);
+    if (p.has_variant && allOptions.length > 0) {
+      const prices = allOptions.map(o => Number(o.price ?? o.price_adjustment ?? 0));
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      return minPrice === maxPrice
+        ? `Rp ${minPrice.toLocaleString("id")}`
+        : `Rp ${minPrice.toLocaleString("id")} – ${maxPrice.toLocaleString("id")}`;
+    }
+    return `Rp ${Number(p.price).toLocaleString("id")}`;
+  };
+
   const activeProducts = products.filter(p => p.status === "active").length;
-  const lowStock = products.filter(p => p.stock > 0 && p.stock <= 5).length;
-  const outOfStock = products.filter(p => p.stock === 0 && p.status === "active").length;
-  const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= 5);
+  const lowStock = products.filter(p => {
+    const s = getProductStock(p);
+    return s > 0 && s <= 5;
+  }).length;
+  const outOfStock = products.filter(p => {
+    const s = getProductStock(p);
+    return s === 0 && p.status === "active";
+  }).length;
+  const lowStockProducts = products.filter(p => {
+    const s = getProductStock(p);
+    return s > 0 && s <= 5;
+  });
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -365,6 +395,8 @@ export default function SellerSummaryPage() {
                   const imgUrl = imgPath ? (getFileUrl(imgPath)) : null;
                   const statusLabel = { active: "Aktif", inactive: "Arsip", draft: "Draft" }[p.status] ?? p.status;
                   const badgeClass = { active: "bg-green-50 text-green-700", inactive: "bg-gray-100 text-gray-500", draft: "bg-yellow-50 text-yellow-700" }[p.status] ?? "bg-gray-100 text-gray-500";
+                  const displayStock = getProductStock(p);
+                  const displayPrice = getProductPriceDisplay(p);
                   return (
                     <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
                       <td className="px-5 py-3">
@@ -378,20 +410,20 @@ export default function SellerSummaryPage() {
                           </div>
                           <div className="min-w-0">
                             <span className="font-medium text-gray-900 line-clamp-1">{p.name}</span>
-                            {p.stock <= 5 && p.stock > 0 && (
+                            {displayStock <= 5 && displayStock > 0 && (
                               <p className="text-[10px] text-yellow-600 font-medium">Stok menipis!</p>
                             )}
-                            {p.stock === 0 && (
+                            {displayStock === 0 && (
                               <p className="text-[10px] text-red-500 font-medium">Stok habis</p>
                             )}
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-3 text-right font-semibold text-gray-900">
-                        Rp {Number(p.price).toLocaleString("id")}
+                        {displayPrice}
                       </td>
                       <td className="px-5 py-3 text-right hidden md:table-cell">
-                        <span className={p.stock === 0 ? "text-red-500 font-semibold" : p.stock <= 5 ? "text-yellow-600 font-semibold" : "text-gray-600"}>{p.stock}</span>
+                        <span className={displayStock === 0 ? "text-red-500 font-semibold" : displayStock <= 5 ? "text-yellow-600 font-semibold" : "text-gray-600"}>{displayStock}</span>
                       </td>
                       <td className="px-5 py-3 text-center">
                         <span className={`px-2 py-0.5 rounded-full font-medium ${badgeClass}`}>{statusLabel}</span>

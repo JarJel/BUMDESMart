@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
+import { getFileUrl } from "@/lib/storage";
 
 interface UploadedDoc {
   id: number;
@@ -330,7 +331,7 @@ function DocCard({
             </span>
           </div>
           <a
-            href={uploaded.file_url}
+            href={getFileUrl(uploaded.file_path) || uploaded.file_url}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs font-medium shrink-0 hover:underline"

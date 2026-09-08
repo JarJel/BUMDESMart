@@ -33,7 +33,10 @@ class SellerDiscountController extends Controller
         $umkm = $this->umkm($request);
         if (!$umkm) return response()->json(['error' => 'Profil UMKM tidak ditemukan.'], 404);
 
-        $query = ProductDiscount::with('product:id,name,price')
+        $query = ProductDiscount::with(['product' => function ($q) {
+                $q->select('id', 'name', 'price', 'has_variant')
+                  ->with('variants.options');
+            }])
             ->where('umkm_profile_id', $umkm->id)
             ->latest();
 
@@ -57,7 +60,17 @@ class SellerDiscountController extends Controller
         // Tambahkan discounted_price ke setiap item
         $discounts->getCollection()->transform(function ($d) {
             if ($d->product) {
-                $d->discounted_price = $d->calculateDiscountedPrice((float) $d->product->price);
+                $basePrice = (float) $d->product->price;
+                if ($d->product->has_variant && $d->product->variants && $d->product->variants->isNotEmpty()) {
+                    $variantPrices = $d->product->variants->flatMap(function ($v) {
+                        return $v->options ? $v->options->map(fn($o) => (float)($o->price ?? $o->price_adjustment ?? 0)) : collect();
+                    })->filter(fn($p) => $p > 0);
+                    if ($variantPrices->isNotEmpty()) {
+                        $basePrice = (float) $variantPrices->min();
+                    }
+                }
+                $d->product->price = (string) $basePrice;
+                $d->discounted_price = $d->calculateDiscountedPrice($basePrice);
             }
             return $d;
         });

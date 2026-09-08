@@ -40,7 +40,7 @@ class ImageHelper
         $ext      = $file->extension() ?: 'tmp';
         $tempPath = $file->storeAs('temp', Str::random(32) . '.' . $ext, 'local');
 
-        $sourceAbs = storage_path('app/' . $tempPath);
+        $sourceAbs = Storage::disk('local')->path($tempPath);
         $targetAbs = Storage::disk('public')->path($targetPath);
 
         // Copy file asli langsung agar bisa diakses sebelum konversi selesai

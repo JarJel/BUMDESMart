@@ -12,7 +12,7 @@ class CleanTempImages extends Command
     public function handle(): void
     {
         $hours   = (int) $this->option('hours');
-        $tempDir = storage_path('app/temp');
+        $tempDir = \Illuminate\Support\Facades\Storage::disk('local')->path('temp');
 
         if (!is_dir($tempDir)) {
             $this->info('Temp directory does not exist, nothing to clean.');

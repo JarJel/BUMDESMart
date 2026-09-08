@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
+import { getFileUrl } from "@/lib/storage";
 
 /* ─── Types ─── */
 interface Discount {
@@ -24,6 +25,14 @@ interface Product {
   name: string;
   price: string;
   status: string;
+  has_variant?: boolean;
+  variants?: {
+    id: number;
+    name: string;
+    options?: { id: number; value?: string; price?: string | number; price_adjustment?: string | number; stock?: number }[];
+  }[];
+  primary_image?: { file_path: string } | null;
+  images?: { file_path: string }[];
 }
 
 const FILTER_TABS = [
@@ -46,6 +55,19 @@ const emptyForm = {
 const fmt = (n: number | string) =>
   `Rp ${Number(n).toLocaleString("id-ID")}`;
 
+const getProductPriceDisplay = (p: Product) => {
+  const allOptions = (p.variants ?? []).flatMap((v) => v.options ?? []);
+  if (p.has_variant && allOptions.length > 0) {
+    const prices = allOptions.map((o) => Number(o.price ?? o.price_adjustment ?? 0));
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    return minPrice === maxPrice
+      ? `Rp ${minPrice.toLocaleString("id-ID")}`
+      : `Rp ${minPrice.toLocaleString("id-ID")} – ${maxPrice.toLocaleString("id-ID")}`;
+  }
+  return `Rp ${Number(p.price || 0).toLocaleString("id-ID")}`;
+};
+
 const badge = (d: Discount) => {
   if (!d.is_active)
     return { label: "Nonaktif", cls: "bg-gray-100 text-gray-500" };
@@ -53,6 +75,190 @@ const badge = (d: Discount) => {
     return { label: "Kadaluarsa", cls: "bg-red-50 text-red-600" };
   return { label: "Aktif", cls: "bg-green-50 text-green-700" };
 };
+
+/* ─── Custom Product Select Component ─── */
+function ProductSelectDropdown({
+  products,
+  value,
+  onChange,
+}: {
+  products: Product[];
+  value: string;
+  onChange: (productId: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const preparedProducts = useMemo(() => {
+    return products.map((p) => {
+      const imgPath = p.primary_image?.file_path ?? p.images?.[0]?.file_path;
+      return {
+        ...p,
+        imgUrl: imgPath ? getFileUrl(imgPath) : null,
+        priceText: getProductPriceDisplay(p),
+      };
+    });
+  }, [products]);
+
+  const selectedProduct = useMemo(
+    () => preparedProducts.find((p) => String(p.id) === value),
+    [preparedProducts, value]
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside, { passive: true });
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredProducts = useMemo(() => {
+    if (!search.trim()) return preparedProducts;
+    const lower = search.toLowerCase();
+    return preparedProducts.filter((p) => p.name.toLowerCase().includes(lower));
+  }, [preparedProducts, search]);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm border rounded-xl bg-gray-50 transition-all text-left ${
+          isOpen
+            ? "border-green-500 ring-2 ring-green-500/20 bg-white"
+            : "border-gray-200 hover:border-gray-300"
+        }`}
+      >
+        {selectedProduct ? (
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-100 flex items-center justify-center">
+              {selectedProduct.imgUrl ? (
+                <img src={selectedProduct.imgUrl} alt={selectedProduct.name} className="w-full h-full object-cover" />
+              ) : (
+                <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-gray-900 text-xs truncate">{selectedProduct.name}</p>
+              <p className="text-[11px] font-medium text-green-700">{selectedProduct.priceText}</p>
+            </div>
+            {selectedProduct.has_variant && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 shrink-0">
+                Varian
+              </span>
+            )}
+          </div>
+        ) : (
+          <span className="text-gray-400 text-xs">-- Pilih Produk --</span>
+        )}
+        <svg
+          className={`w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-200 ${
+            isOpen ? "rotate-180 text-green-600" : ""
+          }`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Hidden input for HTML form handling */}
+      <input type="hidden" name="product_id" value={value} required />
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div className="absolute z-50 mt-1.5 w-full bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+          {products.length > 5 && (
+            <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Cari nama produk..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
+                  autoFocus
+                />
+                <svg
+                  className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-60 overflow-y-auto divide-y divide-gray-50 p-1 overscroll-contain">
+            {filteredProducts.length === 0 ? (
+              <div className="py-6 text-center text-xs text-gray-400">Tidak ada produk ditemukan</div>
+            ) : (
+              filteredProducts.map((p) => {
+                const isSelected = String(p.id) === value;
+
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(String(p.id));
+                      setIsOpen(false);
+                      setSearch("");
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 p-2.5 rounded-xl text-left transition-colors ${
+                      isSelected ? "bg-green-50/80 text-green-900" : "hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-9 h-9 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-100 flex items-center justify-center">
+                        {p.imgUrl ? (
+                          <img src={p.imgUrl} alt={p.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-xs truncate ${isSelected ? "font-bold text-green-900" : "font-semibold text-gray-800"}`}>
+                          {p.name}
+                        </p>
+                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">{p.priceText}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {p.has_variant && (
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                          Varian
+                        </span>
+                      )}
+                      {isSelected && (
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ─── Modal Form ─── */
 function DiscountModal({
@@ -92,6 +298,10 @@ function DiscountModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.product_id) {
+      setError("Silakan pilih produk terlebih dahulu.");
+      return;
+    }
     setError("");
     setSubmitting(true);
     try {
@@ -134,8 +344,8 @@ function DiscountModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-gray-100 max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gray-100 max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <h2 className="font-bold text-gray-900">
             {isEdit ? "Edit Diskon" : "Tambah Diskon"}
@@ -160,7 +370,7 @@ function DiscountModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
           {error && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
               {error}
@@ -179,20 +389,11 @@ function DiscountModal({
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Produk <span className="text-red-500">*</span>
               </label>
-              <select
-                name="product_id"
+              <ProductSelectDropdown
+                products={products}
                 value={form.product_id}
-                onChange={handleChange}
-                required
-                className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
-              >
-                <option value="">-- Pilih Produk --</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} — {fmt(p.price)}
-                  </option>
-                ))}
-              </select>
+                onChange={(id) => setForm((prev) => ({ ...prev, product_id: id }))}
+              />
             </div>
           )}
 
@@ -343,7 +544,7 @@ export default function DiskonPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await api.get("/seller/products");
+      const res = await api.get("/seller/products?per_page=100");
       const all: Product[] = res.data.data?.data ?? [];
       setProducts(all.filter((p) => p.status === "active"));
     } catch {
