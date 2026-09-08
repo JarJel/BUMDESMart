@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BumdesProfile;
+use App\Models\Notification;
 use App\Models\Product;
+use App\Helpers\WaNotification;
 use Illuminate\Http\Request;
 
 class AdminProductController extends Controller
@@ -55,6 +57,89 @@ class AdminProductController extends Controller
                 'total'        => $products->total(),
             ]
         ]);
+    }
+
+    public function ban(Request $request, $id)
+    {
+        $bumdes = $this->getBumdesProfile($request);
+        if (!$bumdes) {
+            return response()->json(['message' => 'Profil BUMDes tidak ditemukan.'], 404);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $product = Product::whereHas('umkmProfile', function ($q) use ($bumdes) {
+            $q->where('bumdes_profile_id', $bumdes->id);
+        })->findOrFail($id);
+
+        if ($product->status === 'banned') {
+            return response()->json(['message' => 'Produk sudah dalam status banned.'], 422);
+        }
+
+        $product->update([
+            'status'            => 'banned',
+            'ban_reason'        => $validated['reason'],
+            'banned_by_id'      => $request->user()->id,
+            'banned_at'         => now(),
+            'ban_appeal'        => null,
+            'ban_appeal_status' => 'none',
+        ]);
+
+        // Notif ke UMKM
+        $umkmUser = $product->umkmProfile?->user;
+        if ($umkmUser) {
+            $msg = "🚫 *Produk Dinonaktifkan*\n\nProduk *\"{$product->name}\"* Anda telah dinonaktifkan oleh Admin BUMDes.\n\nAlasan: {$validated['reason']}\n\nAnda dapat mengajukan banding melalui aplikasi jika merasa keberatan.";
+            if ($umkmUser->phone) {
+                WaNotification::custom($umkmUser->phone, $msg);
+            }
+            Notification::send($umkmUser->id, '🚫 Produk Dinonaktifkan', "Produk \"{$product->name}\" dinonaktifkan. Alasan: {$validated['reason']}", 'warning', 'product', $product->id);
+        }
+
+        return response()->json(['message' => 'Produk berhasil dibanned.', 'data' => $product]);
+    }
+
+    public function unban(Request $request, $id)
+    {
+        $bumdes = $this->getBumdesProfile($request);
+        if (!$bumdes && $request->user()->role !== 'super_admin') {
+            return response()->json(['message' => 'Profil BUMDes tidak ditemukan.'], 404);
+        }
+
+        $query = Product::query();
+        if ($request->user()->role !== 'super_admin') {
+            $query->whereHas('umkmProfile', function ($q) use ($bumdes) {
+                $q->where('bumdes_profile_id', $bumdes->id);
+            });
+        }
+
+        $product = $query->findOrFail($id);
+
+        if ($product->status !== 'banned') {
+            return response()->json(['message' => 'Produk tidak dalam status banned.'], 422);
+        }
+
+        $product->update([
+            'status'            => 'active',
+            'ban_reason'        => null,
+            'banned_by_id'      => null,
+            'banned_at'         => null,
+            'ban_appeal'        => null,
+            'ban_appeal_status' => 'none',
+        ]);
+
+        // Notif ke UMKM
+        $umkmUser = $product->umkmProfile?->user;
+        if ($umkmUser) {
+            $msg = "✅ *Produk Diaktifkan Kembali*\n\nProduk *\"{$product->name}\"* Anda telah diaktifkan kembali.";
+            if ($umkmUser->phone) {
+                WaNotification::custom($umkmUser->phone, $msg);
+            }
+            Notification::send($umkmUser->id, '✅ Produk Aktif Kembali', "Produk \"{$product->name}\" telah diaktifkan kembali.", 'success', 'product', $product->id);
+        }
+
+        return response()->json(['message' => 'Produk berhasil di-unban.', 'data' => $product]);
     }
 
     public function destroy(Request $request, $id)
