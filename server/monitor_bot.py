@@ -205,7 +205,7 @@ def ask_gemini(prompt: str, use_search=False) -> str:
         if use_search:
             body["tools"] = [{"google_search": {}}]
         resp = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GEMINI_KEY}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key={GEMINI_KEY}",
             json=body,
             timeout=30,
         )
