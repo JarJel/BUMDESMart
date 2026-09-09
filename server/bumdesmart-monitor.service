@@ -1,0 +1,17 @@
+[Unit]
+Description=BumDesMart Monitoring Bot
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=bumdes
+WorkingDirectory=/home/bumdes/BUMDESMart
+ExecStart=/usr/bin/python3 /home/bumdes/BUMDESMart/server/monitor_bot.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
