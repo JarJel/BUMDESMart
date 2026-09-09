@@ -209,7 +209,12 @@ def ask_gemini(prompt: str, use_search=False) -> str:
             json=body,
             timeout=30,
         )
-        return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+        data = resp.json()
+        # Debug: log raw response jika tidak ada candidates
+        if "candidates" not in data:
+            print(f"[Gemini raw] {json.dumps(data)[:500]}")
+            return f"[Gemini error] {data.get('error', {}).get('message', str(data))}"
+        return data["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
         return f"[Gemini error] {e}"
 
