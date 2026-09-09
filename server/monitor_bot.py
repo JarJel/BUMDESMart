@@ -219,13 +219,13 @@ def ask_gemini(prompt: str, use_search=False) -> str:
         return f"[Gemini error] {e}"
 
 def ask_ai(prompt: str, use_search=False) -> str:
-    """Groq dulu (cepat), fallback Gemini."""
+    """Groq sebagai primary. Gemini hanya jika eksplisit --search."""
     if use_search:
-        return ask_gemini(prompt, use_search=True)
-    result = ask_groq(prompt)
-    if result.startswith("[Groq error]"):
-        result = ask_gemini(prompt)
-    return result
+        result = ask_gemini(prompt, use_search=True)
+        if result.startswith("[Gemini error]"):
+            result = ask_groq(prompt)  # fallback ke Groq kalau Gemini gagal
+        return result
+    return ask_groq(prompt)
 
 # ─── Alert + AI pipeline ──────────────────────────────────────────────────────
 
