@@ -183,7 +183,7 @@ def ask_groq(prompt: str) -> str:
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"},
             json={
-                "model": "llama-3.3-70b-versatile",
+                "model": "qwen/qwen3.8-27b",
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user",   "content": prompt},
@@ -193,7 +193,12 @@ def ask_groq(prompt: str) -> str:
             },
             timeout=30,
         )
-        return resp.json()["choices"][0]["message"]["content"]
+        data = resp.json()
+        if "choices" not in data:
+            err_msg = data.get("error", {}).get("message", str(data))
+            print(f"[Groq raw] {json.dumps(data)[:300]}")
+            return f"[Groq error] {err_msg}"
+        return data["choices"][0]["message"]["content"]
     except Exception as e:
         return f"[Groq error] {e}"
 
