@@ -177,13 +177,13 @@ Jawab dalam Bahasa Indonesia, singkat dan actionable.
 Kalau ada error log: jelaskan penyebab, tingkat bahaya (rendah/sedang/tinggi), dan perintah konkret untuk fix.
 Jangan bertele-tele."""
 
-def ask_groq(prompt: str) -> str:
+def _call_groq(model: str, prompt: str) -> str:
     try:
         resp = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"},
             json={
-                "model": "qwen/qwen3.8-27b",
+                "model": model,
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user",   "content": prompt},
@@ -196,11 +196,23 @@ def ask_groq(prompt: str) -> str:
         data = resp.json()
         if "choices" not in data:
             err_msg = data.get("error", {}).get("message", str(data))
-            print(f"[Groq raw] {json.dumps(data)[:300]}")
-            return f"[Groq error] {err_msg}"
+            print(f"[Groq:{model}] {err_msg[:200]}")
+            return f"[error] {err_msg}"
         return data["choices"][0]["message"]["content"]
     except Exception as e:
-        return f"[Groq error] {e}"
+        return f"[error] {e}"
+
+def ask_groq_analyze(prompt: str) -> str:
+    """Untuk /analyze: pakai qwen3.6-27b, fallback compound-mini."""
+    result = _call_groq("qwen/qwen3.6-27b", prompt)
+    if result.startswith("[error]"):
+        print(f"[fallback] qwen gagal, pakai compound-mini")
+        result = _call_groq("groq/compound-mini", prompt)
+    return result
+
+def ask_groq_ask(prompt: str) -> str:
+    """Untuk /ask: pakai compound-mini (gratis)."""
+    return _call_groq("groq/compound-mini", prompt)
 
 def ask_gemini(prompt: str, use_search=False) -> str:
     try:
@@ -223,14 +235,20 @@ def ask_gemini(prompt: str, use_search=False) -> str:
     except Exception as e:
         return f"[Gemini error] {e}"
 
-def ask_ai(prompt: str, use_search=False) -> str:
-    """Groq sebagai primary. Gemini hanya jika eksplisit --search."""
+def ask_ai(prompt: str, use_search=False, mode="analyze") -> str:
+    """
+    mode='analyze' → qwen3.6-27b, fallback compound-mini
+    mode='ask'     → compound-mini (gratis)
+    use_search     → Gemini dengan Google Search
+    """
     if use_search:
         result = ask_gemini(prompt, use_search=True)
         if result.startswith("[Gemini error]"):
-            result = ask_groq(prompt)  # fallback ke Groq kalau Gemini gagal
+            result = ask_groq_analyze(prompt)
         return result
-    return ask_groq(prompt)
+    if mode == "ask":
+        return ask_groq_ask(prompt)
+    return ask_groq_analyze(prompt)
 
 # ─── Alert + AI pipeline ──────────────────────────────────────────────────────
 
@@ -386,19 +404,13 @@ def cmd_analyze(chat_id, msg_id, args):
 
     use_search = "--search" in args or "-s" in args
 
-    prompt = f"""Konteks server:
-{ctx}
+    prompt = f"""Server: BumDesMart (Laravel+Next.js+Docker+Cloudflare Tunnel)
 
-Status container saat ini:
-{containers}
+Container: {containers[:300]}
+Resource: {resources[:200]}
+Error terbaru: {errors[:500]}
 
-Resource:
-{resources}
-
-Error Laravel terbaru:
-{errors}
-
-Berikan analisis menyeluruh: ada masalah serius? apa yang perlu diperhatikan? ada rekomendasi tindakan?"""
+Analisis singkat: masalah serius? tindakan yang perlu dilakukan?"""
 
     analysis = ask_ai(prompt, use_search=use_search)
     reply(chat_id, msg_id, f"🤖 <b>Analisis AI:</b>\n{analysis}")
@@ -417,7 +429,7 @@ def cmd_ask(chat_id, msg_id, args):
     reply(chat_id, msg_id, "🤖 Mencari jawaban...")
     ctx    = load_server_context()
     prompt = f"Konteks server:\n{ctx}\n\nPertanyaan: {question}"
-    answer = ask_ai(prompt, use_search=use_search)
+    answer = ask_ai(prompt, use_search=use_search, mode="ask")
     reply(chat_id, msg_id, f"🤖 <b>Jawaban AI:</b>\n{answer}")
 
 def cmd_restart(chat_id, msg_id, args):
