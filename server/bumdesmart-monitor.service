@@ -7,6 +7,7 @@ Requires=docker.service
 Type=simple
 User=bumdes
 WorkingDirectory=/home/bumdes/BUMDESMart
+EnvironmentFile=/home/bumdes/BUMDESMart/server/.env
 ExecStart=/usr/bin/python3 /home/bumdes/BUMDESMart/server/monitor_bot.py
 Restart=always
 RestartSec=10
