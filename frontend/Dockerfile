@@ -1,7 +1,8 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf && npm ci --legacy-peer-deps
+ENV NAPI_SKIP_POSTINSTALL=1
+RUN npm ci --legacy-peer-deps
 
 FROM node:22-alpine AS builder
 WORKDIR /app
