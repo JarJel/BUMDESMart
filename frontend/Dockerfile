@@ -1,8 +1,7 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-ENV NAPI_SKIP_POSTINSTALL=1
-RUN npm ci --legacy-peer-deps
+RUN npm ci --legacy-peer-deps --ignore-scripts
 
 FROM node:22-alpine AS builder
 WORKDIR /app
