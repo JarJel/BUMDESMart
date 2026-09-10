@@ -28,9 +28,21 @@ class OpenWAService
      */
     public static function resolveSessionId(): ?string
     {
-        $baseUrl = rtrim(config('services.openwa.url', 'http://localhost:2785'), '/');
-        $name    = config('services.openwa.session_id', 'BumDesMartNukita');
-        $apiKey  = config('services.openwa.api_key', '');
+        $baseUrl   = rtrim(config('services.openwa.url', 'http://localhost:2785'), '/');
+        $sessionId = config('services.openwa.session_id', 'BumDesMartNukita');
+        $apiKey    = config('services.openwa.api_key', '');
+
+        // Jika env sudah berisi UUID, kembalikan langsung tanpa lookup nama
+        $isUuid = (bool) preg_match(
+            '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',
+            $sessionId
+        );
+        if ($isUuid) {
+            return $sessionId;
+        }
+
+        // Fallback: cari session berdasarkan nama, cache 1 jam
+        $name     = $sessionId;
         $cacheKey = 'openwa_session_uuid_' . $name;
 
         return Cache::remember($cacheKey, 3600, function () use ($baseUrl, $name, $apiKey) {
@@ -40,7 +52,6 @@ class OpenWAService
             }
             $http = Http::withHeaders($headers)->withoutVerifying()->timeout(10);
 
-            // Cari session yang sudah ada dengan nama ini
             $list = $http->get("{$baseUrl}/api/sessions");
             if ($list->successful()) {
                 foreach ((array) $list->json() as $session) {
@@ -50,7 +61,6 @@ class OpenWAService
                 }
             }
 
-            // Belum ada — buat session baru
             $created = $http->post("{$baseUrl}/api/sessions", ['name' => $name]);
             if ($created->successful()) {
                 return $created->json('id');
@@ -92,8 +102,8 @@ class OpenWAService
             $response = Http::withHeaders($headers)
                 ->withoutVerifying()
                 ->post("{$baseUrl}/api/sessions/{$sessionId}/messages/send-text", [
-                    'chatId'  => "{$phone}@c.us",
-                    'content' => $message,
+                    'chatId' => "{$phone}@c.us",
+                    'text'   => $message,
                 ]);
 
             if ($response->successful()) {

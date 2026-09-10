@@ -168,6 +168,15 @@ class WebhookController extends Controller
             $this->createDisbursementRecord($order, $umkmAccount, $umkmNet, 'umkm');
         } else {
             $umkmBalance->increment('available', $umkmNet);
+            // Notif WA ke UMKM: saldo siap dicairkan
+            $umkmPhone = $order->umkmProfile->phone ?? $order->umkmProfile->user?->phone;
+            $umkmName  = $order->umkmProfile->owner_name ?? $order->umkmProfile->user?->name ?? 'Mitra';
+            if ($umkmPhone && $umkmNet > 0) {
+                \App\Helpers\WaNotification::saldoSiapCair($umkmPhone, $umkmName, 'Rp ' . number_format($umkmNet, 0, ',', '.'));
+            }
+            if ($order->umkmProfile->user_id) {
+                \App\Models\Notification::send($order->umkmProfile->user_id, '💰 Saldo Siap Dicairkan', 'Saldo Rp ' . number_format($umkmNet, 0, ',', '.') . ' dari order #' . $order->order_code . ' siap dicairkan.', 'info', 'order', $order->id);
+            }
         }
 
         // Proses saldo BUMDes (bumdes_fee + service_fee)
@@ -210,6 +219,11 @@ class WebhookController extends Controller
                     $this->createDisbursementRecord($order, $bumdesAccount, $totalBumdes, 'bumdes');
                 } else {
                     $bumdesBalance->increment('available', $totalBumdes);
+                    // Notif WA ke BUMDes admin: saldo masuk
+                    $bumdesUser = $bumdesProfile->user ?? null;
+                    if ($bumdesUser?->phone && $totalBumdes > 0) {
+                        \App\Helpers\WaNotification::saldoSiapCair($bumdesUser->phone, $bumdesUser->name ?? 'Admin BUMDes', 'Rp ' . number_format($totalBumdes, 0, ',', '.'));
+                    }
                 }
             }
         }
@@ -228,6 +242,11 @@ class WebhookController extends Controller
                 $this->createDisbursementRecord($order, $driverAccount, $shippingNet, 'driver');
             } else {
                 $driverBalance->increment('available', $shippingNet);
+                // Notif WA ke kurir: saldo ongkir siap dicairkan
+                $driverUser = $order->driver ?? null;
+                if ($driverUser?->phone && $shippingNet > 0) {
+                    \App\Helpers\WaNotification::saldoSiapCair($driverUser->phone, $driverUser->name ?? 'Kurir', 'Rp ' . number_format($shippingNet, 0, ',', '.'));
+                }
             }
         }
     }

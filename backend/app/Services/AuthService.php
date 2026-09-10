@@ -2,9 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\User;
+use App\Helpers\WaNotification;
+use App\Models\BumdesProfile;
 use App\Models\Customer;
+use App\Models\Notification;
 use App\Models\UmkmProfile;
+use App\Models\User;
 use App\Jobs\SendWhatsappJob;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -73,10 +76,29 @@ class AuthService
             'status'            => 'pending',
         ]);
 
-        // 3. Kirim notifikasi WhatsApp otomatis
+        // 3. Kirim notifikasi WhatsApp otomatis ke UMKM
         if ($user->phone) {
             $message = "Halo {$user->name},\n\nTerima kasih telah mendaftar sebagai Mitra/UMKM di BumDesMartNukita!\nPendaftaran untuk toko \"{$data['shop_name']}\" telah kami terima dan saat ini sedang menunggu proses verifikasi oleh pihak BUMDes.\n\nKami akan segera memberikan informasi lebih lanjut jika akun toko Anda telah disetujui.\n\nSalam hangat,\nTim BumDesMartNukita";
             SendWhatsappJob::dispatch($user->phone, $message);
+        }
+
+        // 4. Notif ke Admin BUMDes: ada UMKM baru menunggu verifikasi
+        try {
+            $bumdes = BumdesProfile::find($data['bumdes_profile_id']);
+            if ($bumdes) {
+                $bumdesUser = \App\Models\User::find($bumdes->user_id);
+                if ($bumdesUser) {
+                    if ($bumdesUser->phone) {
+                        WaNotification::custom(
+                            $bumdesUser->phone,
+                            "🏪 *Pendaftaran Mitra Baru*\n\nAda mitra UMKM baru yang mendaftar dan menunggu verifikasi:\n\nNama Toko: *{$data['shop_name']}*\nPemilik: {$user->name}\n\nSilakan tinjau di panel Admin BUMDes."
+                        );
+                    }
+                    Notification::send($bumdesUser->id, '🏪 Mitra Baru Menunggu Verifikasi', "Toko \"{$data['shop_name']}\" oleh {$user->name} mendaftar dan menunggu persetujuan Anda.", 'info', 'umkm_profile', null);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Ignore
         }
 
         return $user->load('umkmProfile');

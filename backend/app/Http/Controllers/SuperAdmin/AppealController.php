@@ -8,8 +8,8 @@ use App\Models\User;
 use App\Models\AdminActionLog;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\AppealResolvedMail;
+use App\Helpers\WaNotification;
+use App\Models\Notification;
 
 class AppealController extends Controller
 {
@@ -68,10 +68,22 @@ class AppealController extends Controller
             }
         }
 
+        // Notif WA + in-app ke user yang mengajukan
         try {
-            Mail::to($appeal->email)->send(new AppealResolvedMail($appeal));
+            $targetUser = $appeal->user_id ? User::find($appeal->user_id) : null;
+            $isApproved = $validated['decision'] === 'approved';
+            $note       = $appeal->admin_note ? "\n\nCatatan: {$appeal->admin_note}" : '';
+            $waMsg = $isApproved
+                ? "✅ *Pengajuan Aktivasi Disetujui*\n\nAkun Anda ({$appeal->email}) telah diaktifkan kembali. Silakan login ke aplikasi.{$note}"
+                : "❌ *Pengajuan Aktivasi Ditolak*\n\nMaaf, pengajuan aktivasi akun Anda ({$appeal->email}) tidak dapat kami setujui.{$note}";
+            if ($targetUser?->phone) {
+                WaNotification::custom($targetUser->phone, $waMsg);
+            }
+            if ($targetUser) {
+                Notification::send($targetUser->id, $isApproved ? '✅ Akun Diaktifkan Kembali' : '❌ Pengajuan Ditolak', $isApproved ? 'Akun Anda telah diaktifkan kembali. Silakan login.' : 'Pengajuan aktivasi akun Anda ditolak.' . ($appeal->admin_note ? ' Alasan: ' . $appeal->admin_note : ''), $isApproved ? 'success' : 'error', 'appeal', $appeal->id);
+            }
         } catch (\Exception $e) {
-            // Log error
+            // Ignore
         }
 
         return response()->json([

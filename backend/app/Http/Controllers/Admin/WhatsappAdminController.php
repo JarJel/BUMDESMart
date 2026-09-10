@@ -42,10 +42,12 @@ class WhatsappAdminController extends Controller
             }
 
             $data = $res->json();
+            $sessionStatus = strtolower($data['status'] ?? '');
+            $isConnected = in_array($sessionStatus, ['connected', 'ready']);
             return response()->json([
-                'connected' => ($data['status'] ?? '') === 'CONNECTED',
-                'status'    => $data['status'] ?? 'UNKNOWN',
-                'name'      => $data['name']   ?? null,
+                'connected' => $isConnected,
+                'status'    => $isConnected ? 'CONNECTED' : ($data['status'] ?? 'UNKNOWN'),
+                'name'      => $data['pushName'] ?? $data['name'] ?? null,
                 'phone'     => $data['phone']  ?? null,
             ]);
         } catch (\Exception $e) {
@@ -66,7 +68,7 @@ class WhatsappAdminController extends Controller
             $statusRes = $this->openwaHttp()->timeout(10)->get("/api/sessions/{$session}");
             $status    = $statusRes->json('status') ?? '';
 
-            if (!in_array($status, ['qr_ready', 'CONNECTED', 'connected'])) {
+            if (!in_array(strtolower($status), ['qr_ready', 'connected', 'ready'])) {
                 $this->openwaHttp()->timeout(60)->post("/api/sessions/{$session}/start");
                 // Tunggu QR generate
                 sleep(5);

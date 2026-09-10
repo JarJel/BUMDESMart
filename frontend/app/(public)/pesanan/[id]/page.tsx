@@ -35,7 +35,7 @@ function ekspedisiLabel(method: string | null): string {
   return map[method] ?? method.replace("ekspedisi-", "").replace("-", " ").toUpperCase();
 }
 
-const STATUS_STEPS = [
+const STATUS_STEPS_DELIVERY = [
   { key: "pending",    label: "Menunggu Bayar" },
   { key: "confirmed",  label: "Dikonfirmasi" },
   { key: "processing", label: "Diproses" },
@@ -43,23 +43,39 @@ const STATUS_STEPS = [
   { key: "delivered",  label: "Selesai" },
 ];
 
-const STATUS_IDX: Record<string, number> = {
+const STATUS_STEPS_PICKUP = [
+  { key: "pending",           label: "Menunggu Bayar" },
+  { key: "confirmed",         label: "Pembayaran Selesai" },
+  { key: "ready_for_pickup",  label: "Siap Diambil" },
+  { key: "delivered",         label: "Selesai" },
+];
+
+const STATUS_IDX_DELIVERY: Record<string, number> = {
   pending: 0,
   confirmed: 1,
   processing: 2,
-  picking_up: 2, // driver menjemput barang masuk kategori diproses
+  picking_up: 2,
   shipped: 3,
   delivered: 4,
 };
 
+const STATUS_IDX_PICKUP: Record<string, number> = {
+  pending: 0,
+  confirmed: 1,
+  processing: 2,      // dikonfirmasi seller = otomatis diproses juga
+  ready_for_pickup: 2,
+  delivered: 3,
+};
+
 const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
-  pending:    { bg: "#FFF7ED", text: "#C2410C", label: "Menunggu Pembayaran" },
-  confirmed:  { bg: "#EFF6FF", text: "#1D4ED8", label: "Dikonfirmasi" },
-  processing: { bg: "#FEF9C3", text: "#A16207", label: "Sedang Diproses" },
-  picking_up: { bg: "#EDE9FE", text: "#5B21B6", label: "Driver Menuju Toko" },
-  shipped:    { bg: "#ECFDF5", text: "#065F46", label: "Sedang Dikirim" },
-  delivered:  { bg: "#F0FDF4", text: "#15803D", label: "Selesai" },
-  cancelled:  { bg: "#FEF2F2", text: "#DC2626", label: "Dibatalkan" },
+  pending:           { bg: "#FFF7ED", text: "#C2410C", label: "Menunggu Pembayaran" },
+  confirmed:         { bg: "#EFF6FF", text: "#1D4ED8", label: "Dikonfirmasi" },
+  processing:        { bg: "#FEF9C3", text: "#A16207", label: "Sedang Diproses" },
+  picking_up:        { bg: "#EDE9FE", text: "#5B21B6", label: "Driver Menuju Toko" },
+  ready_for_pickup:  { bg: "#D1FAE5", text: "#065F46", label: "Siap Diambil" },
+  shipped:           { bg: "#ECFDF5", text: "#065F46", label: "Sedang Dikirim" },
+  delivered:         { bg: "#F0FDF4", text: "#15803D", label: "Selesai" },
+  cancelled:         { bg: "#FEF2F2", text: "#DC2626", label: "Dibatalkan" },
 };
 
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
@@ -255,21 +271,24 @@ export default function DetailPesananPage() {
 
   if (!order) return null;
 
-  const stepIdx    = STATUS_IDX[order.status] ?? 0;
-  let badge        = STATUS_BADGE[order.status] ?? { bg: "#F3F4F6", text: "#6B7280", label: order.status };
+  const isPickup    = order.delivery_type === "pickup";
+  const stepsBase   = isPickup ? STATUS_STEPS_PICKUP : STATUS_STEPS_DELIVERY;
+  const statusIdxMap = isPickup ? STATUS_IDX_PICKUP : STATUS_IDX_DELIVERY;
+  const stepIdx     = statusIdxMap[order.status] ?? 0;
+
+  let badge = STATUS_BADGE[order.status] ?? { bg: "#F3F4F6", text: "#6B7280", label: order.status };
   if (order.status === "pending" && order.payment?.status === "paid") {
     badge = { bg: "#ECFDF5", text: "#047857", label: "Pembayaran Berhasil" };
   }
   const isCancelled = order.status === "cancelled";
-  const isReviewed = existingReviews.length > 0;
+  const isReviewed  = existingReviews.length > 0;
 
-  const steps = [
-    { key: "pending",    label: order.payment?.status === "paid" ? "Pembayaran Berhasil" : "Menunggu Bayar" },
-    { key: "confirmed",  label: "Dikonfirmasi" },
-    { key: "processing", label: "Diproses" },
-    { key: "shipped",    label: "Dikirim" },
-    { key: "delivered",  label: "Selesai" },
-  ];
+  const steps = stepsBase.map(s => ({
+    ...s,
+    label: s.key === "pending" && order.payment?.status === "paid"
+      ? (isPickup ? "Pembayaran Selesai" : "Pembayaran Berhasil")
+      : s.label,
+  }));
 
   return (
     <div style={{ background: "#F4F7F5", minHeight: "100vh" }}>

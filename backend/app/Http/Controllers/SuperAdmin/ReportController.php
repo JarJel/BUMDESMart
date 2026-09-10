@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\BumdesProfile;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\SiteVisit;
 use App\Models\UmkmProfile;
 use App\Models\User;
@@ -43,8 +44,8 @@ class ReportController extends Controller
         ];
 
         $productStats = [
-            'total'  => DB::table('products')->count(),
-            'active' => DB::table('products')->where('status', 'active')->count(),
+            'total'  => Product::count(),
+            'active' => Product::where('status', 'active')->count(),
         ];
 
         // Registrasi 7 hari terakhir

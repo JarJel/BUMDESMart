@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\WaNotification;
 use App\Models\Appeal;
+use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Http;
-use App\Mail\AppealSubmittedMail;
 
 class AppealController extends Controller
 {
@@ -45,11 +44,17 @@ class AppealController extends Controller
                 'status' => 'pending',
             ]);
 
-            // Kirim email notifikasi ke Super Admin
+            // Notif WA + in-app ke semua Super Admin
             $superAdmins = User::where('role', 'super_admin')->get();
             foreach ($superAdmins as $admin) {
                 try {
-                    Mail::to($admin->email)->send(new AppealSubmittedMail($appeal));
+                    if ($admin->phone) {
+                        WaNotification::custom(
+                            $admin->phone,
+                            "🆘 *Pengajuan Aktivasi Akun*\n\nAda pengajuan pengaktifan akun baru dari *{$email}*.\n\nAlasan: {$validated['reason']}\n\nSilakan tinjau di panel Super Admin."
+                        );
+                    }
+                    Notification::send($admin->id, '🆘 Pengajuan Aktivasi Akun', "Ada pengajuan dari {$email}: {$validated['reason']}", 'info', 'appeal', $appeal->id);
                 } catch (\Exception $e) {
                     // Ignore
                 }

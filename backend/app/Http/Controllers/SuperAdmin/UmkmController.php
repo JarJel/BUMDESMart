@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Models\UmkmProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -79,7 +80,12 @@ class UmkmController extends Controller
     {
         $umkm = UmkmProfile::findOrFail($id);
 
-        DB::table('products')->where('umkm_profile_id', $umkm->id)->delete();
+        // Soft delete semua produk, bebaskan slug dulu agar bisa dipakai ulang
+        Product::where('umkm_profile_id', $umkm->id)->each(function ($product) {
+            $product->update(['slug' => $product->slug . '-deleted-' . $product->id]);
+            $product->delete();
+        });
+
         DB::table('umkm_documents')->where('umkm_profile_id', $umkm->id)->delete();
 
         $shopName = $umkm->shop_name;
