@@ -58,6 +58,8 @@ export default function WhatsappBumdesPage() {
   const [qrData, setQrData]           = useState<string | null>(null);
   const [loadingQr, setLoadingQr]     = useState(false);
   const [acting, setActing]           = useState<string | null>(null);
+  const [qrExpiry, setQrExpiry]       = useState<number | null>(null);
+  const [qrCountdown, setQrCountdown] = useState<number>(0);
   const [testPhone, setTestPhone]     = useState("");
   const [testMsg, setTestMsg]         = useState("Halo! Ini pesan test dari sistem BumDesMartNukita.");
   const [sendingTest, setSendingTest] = useState(false);
@@ -89,7 +91,7 @@ export default function WhatsappBumdesPage() {
   const fetchQueue = useCallback(async () => {
     setLoadingQ(true);
     try {
-      const res = await api.get("/super-admin/whatsapp-queue" + (filterQ ? `?status=${filterQ}` : ""));
+      const res = await api.get("/admin/whatsapp-queue" + (filterQ ? `?status=${filterQ}` : ""));
       setItems(res.data.data?.data ?? []);
       if (res.data.settings) setSett(res.data.settings);
     } catch { toast.error("Gagal memuat antrian."); }
@@ -100,15 +102,40 @@ export default function WhatsappBumdesPage() {
   useEffect(() => { if (tab === "antrian" || tab === "pengaturan") fetchQueue(); }, [tab, fetchQueue]);
 
   /* ── aksi koneksi ── */
-  const handleQr = async () => {
-    setLoadingQr(true); setQrData(null);
+  const handleQr = async (silent = false) => {
+    if (!silent) { setLoadingQr(true); setQrData(null); }
     try {
       const res = await api.get("/admin/whatsapp/qr");
-      setQrData(res.data.qr ?? null);
-      if (!res.data.qr) toast.error("QR tidak tersedia. Cek apakah session sudah terhubung.");
-    } catch { toast.error("Gagal mengambil QR code."); }
-    finally { setLoadingQr(false); }
+      const qr = res.data.qr ?? null;
+      setQrData(qr);
+      if (qr) {
+        setQrExpiry(Date.now() + 55_000); // refresh 5 detik sebelum 60s expired
+      } else if (!silent) {
+        toast.error("QR tidak tersedia. Cek apakah session sudah terhubung.");
+      }
+    } catch { if (!silent) toast.error("Gagal mengambil QR code."); }
+    finally { if (!silent) setLoadingQr(false); }
   };
+
+  // Auto-refresh QR setiap 55 detik selama QR ditampilkan dan belum connected
+  useEffect(() => {
+    if (!qrData || status?.connected) return;
+    const remaining = qrExpiry ? qrExpiry - Date.now() : 55_000;
+    const t = setTimeout(() => handleQr(true), Math.max(remaining, 5_000));
+    return () => clearTimeout(t);
+  }, [qrData, qrExpiry, status?.connected]);
+
+  // Countdown timer — update setiap detik selama QR ditampilkan
+  useEffect(() => {
+    if (!qrData || status?.connected || !qrExpiry) return;
+    const tick = () => {
+      const secs = Math.max(0, Math.round((qrExpiry - Date.now()) / 1000));
+      setQrCountdown(secs);
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [qrData, qrExpiry, status?.connected]);
   const handleAction = async (action: "disconnect" | "restart") => {
     setActing(action);
     try {
@@ -130,7 +157,7 @@ export default function WhatsappBumdesPage() {
   const handleManual = async (e: React.FormEvent) => {
     e.preventDefault(); setSendingM(true);
     try {
-      await api.post("/super-admin/whatsapp-queue", manualForm);
+      await api.post("/admin/whatsapp-queue", manualForm);
       toast.success("Pesan masuk antrian.");
       setMF({ phone: "", message: "", context: "manual" });
       fetchQueue();
@@ -139,7 +166,7 @@ export default function WhatsappBumdesPage() {
   };
   const handleDelete = async (id: number) => {
     if (!confirm("Hapus item ini?")) return;
-    try { await api.delete(`/super-admin/whatsapp-queue/${id}`); toast.success("Dihapus."); fetchQueue(); }
+    try { await api.delete(`/admin/whatsapp-queue/${id}`); toast.success("Dihapus."); fetchQueue(); }
     catch { toast.error("Gagal menghapus."); }
   };
 
@@ -147,7 +174,7 @@ export default function WhatsappBumdesPage() {
   const handleSaveSett = async (e: React.FormEvent) => {
     e.preventDefault(); setSS(true);
     try {
-      await api.put("/super-admin/whatsapp-settings", {
+      await api.put("/admin/whatsapp-settings", {
         wa_max_attempts: parseInt(sett.wa_max_attempts),
         wa_retry_delay: parseInt(sett.wa_retry_delay),
       });
@@ -193,22 +220,38 @@ export default function WhatsappBumdesPage() {
             </div>
             {loadingStatus && !status ? (
               <div className="h-16 animate-pulse bg-gray-50 rounded-xl" />
+            ) : status?.connected ? (
+              <div className="rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 p-5 text-white">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-3xl shrink-0">
+                    📱
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-green-100 mb-1">WhatsApp Terhubung</p>
+                    {status.name  && <p className="text-lg font-bold leading-tight truncate">{status.name}</p>}
+                    {status.phone && <p className="text-sm text-green-100 mt-0.5">+{status.phone}</p>}
+                  </div>
+                  <div className="shrink-0">
+                    <span className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-full text-xs font-semibold">
+                      <span className="w-2 h-2 rounded-full bg-green-200 animate-pulse" />
+                      Aktif
+                    </span>
+                  </div>
+                </div>
+              </div>
             ) : status && (
               <div className="flex items-center gap-4">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${status.connected ? "bg-green-50" : "bg-gray-50"}`}>
-                  {status.connected ? "📱" : "❌"}
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 bg-gray-50">
+                  ❌
                 </div>
                 <div className="flex-1 min-w-0">
                   <Badge map={CONN_BADGE} val={status.status} />
-                  {status.connected && (
-                    <div className="mt-1.5 space-y-0.5">
-                      {status.name  && <p className="text-sm font-medium text-gray-900">{status.name}</p>}
-                      {status.phone && <p className="text-xs text-gray-500">+{status.phone}</p>}
-                    </div>
-                  )}
                   {status.error && <p className="text-xs text-red-500 mt-1">{status.error}</p>}
                   {!status.connected && status.status !== "error" && (
                     <p className="text-xs text-gray-400 mt-1">Klik "Ambil QR" untuk menghubungkan nomor WA.</p>
+                  )}
+                  {!status.connected && (status.status === "failed" || status.status === "STOPPED" || status.status === "stopped") && (
+                    <p className="text-xs text-blue-500 mt-1">Sistem akan mencoba reconnect otomatis setiap 5 menit. Status diperbarui otomatis.</p>
                   )}
                 </div>
               </div>
@@ -255,7 +298,13 @@ export default function WhatsappBumdesPage() {
                   <div className="p-4 bg-gray-50 rounded-xl text-xs text-gray-500 break-all max-w-xs">{qrData}</div>
                 )}
               </div>
-              <p className="text-[11px] text-center text-gray-400 mt-3">QR expired ~60 detik. Klik "Ambil QR Code" lagi jika kadaluarsa.</p>
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <span className={`text-xs font-semibold tabular-nums px-3 py-1 rounded-full ${
+                  qrCountdown <= 10 ? "bg-red-50 text-red-500" : "bg-gray-100 text-gray-500"
+                }`}>
+                  {qrCountdown > 0 ? `⏱ Ganti QR dalam ${qrCountdown} detik` : "⏳ Memperbarui QR..."}
+                </span>
+              </div>
             </div>
           )}
 

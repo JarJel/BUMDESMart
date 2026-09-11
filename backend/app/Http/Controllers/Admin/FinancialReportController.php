@@ -79,15 +79,9 @@ class FinancialReportController extends Controller
             ->orderBy('period')
             ->get();
 
-        // Driver withdrawals/earnings in period
-        $driverEarnings = DB::table('driver_earnings')
-            ->join('driver_profiles', 'driver_earnings.driver_profile_id', '=', 'driver_profiles.id')
-            ->where('driver_profiles.bumdes_profile_id', $bumdesId)
-            ->whereBetween('driver_earnings.created_at', [$from, $to])
-            ->sum('driver_earnings.amount');
-
-        // Fallback: if no driver_earnings table, estimate from orders shipping_cost
-        $driverEarningsFromOrders = (clone $base)->sum('orders.shipping_cost');
+        // Driver earnings: estimasi dari shipping_cost order selesai dalam periode
+        $driverEarnings = (clone $base)->sum('orders.shipping_cost');
+        $driverEarningsFromOrders = $driverEarnings;
 
         return response()->json([
             'data' => [

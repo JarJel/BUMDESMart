@@ -9,6 +9,7 @@ use App\Models\BumdesProfile;
 use App\Models\DriverProfile;
 use App\Models\UmkmProfile;
 use App\Models\User;
+use App\Helpers\WaNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
@@ -66,6 +67,7 @@ class BroadcastController extends Controller
 
         // Kumpulkan penerima
         $emails = $this->collectEmails($bumdes, $validated['target'], $validated['umkm_category'] ?? null);
+        $phones = $this->collectPhones($bumdes, $validated['target'], $validated['umkm_category'] ?? null);
 
         // Kirim email
         foreach ($emails as $email) {
@@ -80,6 +82,11 @@ class BroadcastController extends Controller
             }
         }
 
+        // Kirim WA broadcast
+        foreach ($phones as $phone) {
+            WaNotification::broadcast($phone, $bumdes->name, $validated['title'], $validated['content'], $bumdes->id);
+        }
+
         $broadcast = BumdesBroadcast::create([
             'bumdes_profile_id'  => $bumdes->id,
             'title'              => $validated['title'],
@@ -88,7 +95,7 @@ class BroadcastController extends Controller
             'photos'             => !empty($photoPaths) ? $photoPaths : null,
             'target'             => $validated['target'],
             'umkm_category'      => $validated['umkm_category'] ?? null,
-            'recipient_count'    => count($emails),
+            'recipient_count'    => count($phones) > 0 ? count($phones) : count($emails),
             'sent_at'            => now(),
             'event_date'             => $validated['event_date'] ?? null,
             'allow_registration'     => $validated['allow_registration'] ?? false,
@@ -97,9 +104,9 @@ class BroadcastController extends Controller
         ]);
 
         return response()->json([
-            'message'         => 'Berita berhasil diterbitkan ke ' . count($emails) . ' penerima.',
+            'message'         => 'Berita berhasil diterbitkan ke ' . count($phones) . ' penerima.',
             'data'            => $broadcast,
-            'recipient_count' => count($emails),
+            'recipient_count' => count($phones),
         ], 201);
     }
 
@@ -175,24 +182,42 @@ class BroadcastController extends Controller
         return response()->json(['message' => 'Berita berhasil dihapus.']);
     }
 
+    private function collectPhones(BumdesProfile $bumdes, string $target, ?string $umkmCategory): array
+    {
+        $phones = [];
+
+        if (in_array($target, ['all', 'umkm'])) {
+            $umkmUserIds = UmkmProfile::where('bumdes_profile_id', $bumdes->id)->pluck('user_id');
+            $phones = array_merge($phones, User::whereIn('id', $umkmUserIds)->whereNotNull('phone')->pluck('phone')->toArray());
+        }
+
+        if (in_array($target, ['all', 'driver'])) {
+            $driverUserIds = DriverProfile::where('bumdes_profile_id', $bumdes->id)->pluck('user_id');
+            $phones = array_merge($phones, User::whereIn('id', $driverUserIds)->whereNotNull('phone')->pluck('phone')->toArray());
+        }
+
+        if ($target === 'umkm_category' && $umkmCategory) {
+            $umkmUserIds = UmkmProfile::where('bumdes_profile_id', $bumdes->id)
+                ->where('business_category', $umkmCategory)
+                ->pluck('user_id');
+            $phones = User::whereIn('id', $umkmUserIds)->whereNotNull('phone')->pluck('phone')->toArray();
+        }
+
+        return array_unique(array_filter($phones));
+    }
+
     private function collectEmails(BumdesProfile $bumdes, string $target, ?string $umkmCategory): array
     {
         $emails = [];
 
         if (in_array($target, ['all', 'umkm'])) {
-            $query = UmkmProfile::where('bumdes_profile_id', $bumdes->id);
-            if ($target === 'umkm_category' && $umkmCategory) {
-                $query->where('business_category', $umkmCategory);
-            }
-            $umkmUserIds = $query->pluck('user_id');
-            $umkmEmails  = User::whereIn('id', $umkmUserIds)->pluck('email')->toArray();
-            $emails      = array_merge($emails, $umkmEmails);
+            $umkmUserIds = UmkmProfile::where('bumdes_profile_id', $bumdes->id)->pluck('user_id');
+            $emails = array_merge($emails, User::whereIn('id', $umkmUserIds)->pluck('email')->toArray());
         }
 
         if (in_array($target, ['all', 'driver'])) {
             $driverUserIds = DriverProfile::where('bumdes_profile_id', $bumdes->id)->pluck('user_id');
-            $driverEmails  = User::whereIn('id', $driverUserIds)->pluck('email')->toArray();
-            $emails        = array_merge($emails, $driverEmails);
+            $emails = array_merge($emails, User::whereIn('id', $driverUserIds)->pluck('email')->toArray());
         }
 
         if ($target === 'umkm_category' && $umkmCategory) {

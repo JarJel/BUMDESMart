@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Models\BumdesProfile;
+use App\Models\Notification;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\ProductVariantOption;
+use App\Helpers\WaNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -622,6 +625,49 @@ class ProductController extends Controller
         }
     }
 
+    public function appealBan(Request $request, $id)
+    {
+        $user = $request->user();
+        if ($user->role !== 'umkm') {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $umkmProfile = $user->umkmProfile;
+        if (!$umkmProfile) {
+            return response()->json(['success' => false, 'message' => 'Profil UMKM tidak ditemukan.'], 404);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        $product = Product::where('umkm_profile_id', $umkmProfile->id)
+            ->where('status', 'banned')
+            ->findOrFail($id);
+
+        if ($product->ban_appeal_status === 'pending') {
+            return response()->json(['success' => false, 'message' => 'Banding sedang dalam proses review.'], 422);
+        }
+
+        $product->update([
+            'ban_appeal'        => $validated['reason'],
+            'ban_appeal_status' => 'pending',
+        ]);
+
+        // Notif ke BUMDes admin
+        $bumdes = BumdesProfile::find($umkmProfile->bumdes_profile_id);
+        $bumdesUser = $bumdes?->user;
+        if ($bumdesUser) {
+            $msg = "📋 *Banding Ban Produk*\n\nMitra *{$umkmProfile->shop_name}* mengajukan banding untuk produk *\"{$product->name}\"*.\n\nAlasan: {$validated['reason']}\n\nSilakan tinjau di panel Admin BUMDes.";
+            if ($bumdesUser->phone) {
+                WaNotification::custom($bumdesUser->phone, $msg);
+            }
+            Notification::send($bumdesUser->id, '📋 Banding Ban Produk', "{$umkmProfile->shop_name} mengajukan banding untuk produk \"{$product->name}\".", 'info', 'product', $product->id);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Banding berhasil diajukan. Admin BUMDes akan meninjaunya.']);
+    }
+
     #[OA\Delete(
         path: "/seller/products/{id}",
         summary: "Delete Seller Product",
@@ -679,15 +725,10 @@ class ProductController extends Controller
 
         DB::beginTransaction();
         try {
-            $productImages = ProductImage::where('product_id', $product->id)->get();
-            foreach ($productImages as $img) {
-                $p = storage_path('app/public/' . ltrim($img->file_path, '/'));
-                if (file_exists($p)) @unlink($p);
-                $pOld = public_path($img->file_path);
-                if (file_exists($pOld)) @unlink($pOld);
-            }
+            // Bebaskan slug agar bisa dipakai ulang oleh produk baru
+            $product->update(['slug' => $product->slug . '-deleted-' . $product->id]);
 
-            $product->delete();
+            $product->delete(); // soft delete — file gambar tetap ada (data historis order)
 
             DB::commit();
 

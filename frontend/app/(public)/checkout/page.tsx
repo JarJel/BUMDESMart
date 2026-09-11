@@ -134,7 +134,10 @@ export default function CheckoutPage() {
   const [showAllShipping, setShowAllShipping] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null);
   const [deletingItem, setDeletingItem] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"midtrans" | "manual_umkm">("midtrans");
+  const isMidtransEnabled = !!process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+  const [paymentMethod, setPaymentMethod] = useState<"midtrans" | "manual_umkm">(
+    isMidtransEnabled ? "midtrans" : "manual_umkm"
+  );
   const [updatingQtyId, setUpdatingQtyId] = useState<number | null>(null);
 
   // Address modal
@@ -201,8 +204,15 @@ export default function CheckoutPage() {
     try {
       const res = await cartApi.remove(itemId);
       if (res.data?.success) {
-        fetchData();
         window.dispatchEvent(new Event("cart-updated"));
+        const remaining = cartItems.filter(i => i.id !== itemId);
+        if (remaining.length === 0) {
+          toast.info("Semua produk dihapus. Yuk pilih produk desa lainnya!");
+          router.replace("/produk");
+          return;
+        }
+        setCartItems(remaining);
+        fetchData(true);
         toast.success("Produk dihapus dari pesanan.");
       }
     } catch {
@@ -460,18 +470,10 @@ export default function CheckoutPage() {
   }
 
   if (cartItems.length === 0) {
+    router.replace("/produk");
     return (
-      <div className="max-w-md mx-auto text-center py-20 px-4">
-        <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-        </div>
-        <h2 className="text-lg font-bold text-gray-900 mb-2">Keranjang Belanja Kosong</h2>
-        <p className="text-gray-500 text-sm mb-6">Tambahkan produk desa terlebih dahulu.</p>
-        <Link href="/produk" className="inline-block px-6 py-2.5 rounded-xl text-white font-semibold text-sm" style={{ background: "var(--primary)" }}>
-          Belanja Sekarang
-        </Link>
+      <div className="flex items-center justify-center min-h-screen" style={{ background: "#F4F7F5" }}>
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-600" />
       </div>
     );
   }
@@ -954,8 +956,8 @@ export default function CheckoutPage() {
             </h2>
 
             <div className="space-y-3">
-              {/* Opsi 1: Otomatis (Midtrans) */}
-              <label
+              {/* Opsi 1: Otomatis (Midtrans) — hanya tampil jika aktif */}
+              {isMidtransEnabled && <label
                 className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
                   paymentMethod === "midtrans" ? "border-green-600 bg-green-50/40" : "border-gray-100 hover:border-gray-200"
                 }`}
@@ -977,7 +979,7 @@ export default function CheckoutPage() {
                     Bayar via QRIS Dinamis (GoPay, OVO, ShopeePay, DANA), Virtual Account Bank (BCA, BRI, BNI, Mandiri), dll.
                   </p>
                 </div>
-              </label>
+              </label>}
 
               {/* Opsi 2: Langsung ke Toko (Manual QRIS UMKM) — Hanya tampil jika toko sudah upload QRIS / rekening */}
               {hasDirectPaymentSupport && (

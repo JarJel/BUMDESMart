@@ -38,12 +38,14 @@ const STATUS_MAP: Record<string, string> = {
   active: "Aktif",
   inactive: "Arsip",
   draft: "Draft",
+  banned: "Disuspend",
 };
 
 const statusBadge: Record<string, string> = {
   active: "bg-green-50 text-green-700",
   inactive: "bg-gray-100 text-gray-500",
   draft: "bg-yellow-50 text-yellow-700",
+  banned: "bg-red-50 text-red-700",
 };
 
 export default function AdminBumdesProdukPage() {
@@ -57,6 +59,11 @@ export default function AdminBumdesProdukPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [detailProduct, setDetailProduct] = useState<ProductData | null>(null);
+  const [banProductId, setBanProductId] = useState<number | null>(null);
+  const [banReason, setBanReason] = useState("");
+  const [banning, setBanning] = useState(false);
+  const [unbanProductId, setUnbanProductId] = useState<number | null>(null);
+  const [unbanning, setUnbanning] = useState(false);
   const toast = useToast();
 
   const fetchProducts = () => {
@@ -86,6 +93,37 @@ export default function AdminBumdesProdukPage() {
   const getImageUrl = (p: ProductData) => {
     const path = p.primary_image?.file_path ?? p.images?.[0]?.file_path;
     return getFileUrl(path);
+  };
+
+  const handleBan = async () => {
+    if (!banProductId || !banReason.trim()) return;
+    setBanning(true);
+    try {
+      await api.post(`/admin/products/${banProductId}/ban`, { reason: banReason });
+      toast.success("Produk berhasil disuspend.");
+      setBanProductId(null);
+      setBanReason("");
+      fetchProducts();
+    } catch {
+      toast.error("Gagal mensuspend produk.");
+    } finally {
+      setBanning(false);
+    }
+  };
+
+  const handleUnban = async () => {
+    if (!unbanProductId) return;
+    setUnbanning(true);
+    try {
+      await api.post(`/admin/products/${unbanProductId}/unban`);
+      toast.success("Produk berhasil diaktifkan kembali.");
+      setUnbanProductId(null);
+      fetchProducts();
+    } catch {
+      toast.error("Gagal mengaktifkan produk.");
+    } finally {
+      setUnbanning(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -203,6 +241,23 @@ export default function AdminBumdesProdukPage() {
                           <button onClick={() => setDetailProduct(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50" title="Detail Produk">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                           </button>
+                          {p.status === "banned" ? (
+                            <button
+                              onClick={() => setUnbanProductId(p.id)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50"
+                              title="Aktifkan Kembali"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => { setBanProductId(p.id); setBanReason(""); }}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50"
+                              title="Suspend Produk"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                            </button>
+                          )}
                           <button
                             onClick={() => setConfirmDeleteId(p.id)}
                             className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-40"
@@ -255,6 +310,47 @@ export default function AdminBumdesProdukPage() {
         onConfirm={handleDelete}
         onClose={() => setConfirmDeleteId(null)}
       />
+
+      <ConfirmDialog
+        open={unbanProductId !== null}
+        title="Aktifkan Kembali Produk"
+        description="Produk akan diaktifkan kembali dan bisa dilihat oleh pembeli. Lanjutkan?"
+        confirmLabel="Ya, Aktifkan"
+        variant="info"
+        loading={unbanning}
+        onConfirm={handleUnban}
+        onClose={() => setUnbanProductId(null)}
+      />
+
+      {/* Modal Suspend / Ban */}
+      {banProductId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { setBanProductId(null); setBanReason(""); } }}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl animate-in zoom-in-95 duration-200">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Suspend Produk</h2>
+            <p className="text-sm text-gray-500 mb-4">Produk akan disembunyikan dari katalog dan UMKM akan diberitahu melalui notifikasi.</p>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Alasan Suspend <span className="text-red-500">*</span></label>
+            <textarea
+              value={banReason}
+              onChange={e => setBanReason(e.target.value)}
+              rows={3}
+              placeholder="Contoh: Produk tidak sesuai kategori, mengandung konten melanggar aturan, dll."
+              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-orange-400 resize-none"
+            />
+            <div className="flex justify-end gap-3 mt-5">
+              <button onClick={() => { setBanProductId(null); setBanReason(""); }} className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200">
+                Batal
+              </button>
+              <button
+                onClick={handleBan}
+                disabled={!banReason.trim() || banning}
+                className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 rounded-xl hover:bg-orange-600 disabled:opacity-50"
+              >
+                {banning ? "Memproses..." : "Suspend Produk"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Detail */}
       {detailProduct && (

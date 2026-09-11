@@ -36,19 +36,20 @@ class ImageHelper
         $filename   = Str::random(40) . '.webp';
         $targetPath = rtrim($folder, '/') . '/' . $filename;
 
-        // Save original to temp storage (local disk, not public)
-        $ext      = $file->extension() ?: 'tmp';
-        $tempPath = $file->storeAs('temp', Str::random(32) . '.' . $ext, 'local');
+        // Simpan original ke public disk dulu (bisa langsung diakses)
+        $ext          = $file->extension() ?: 'tmp';
+        $originalPath = $folder . '/_orig_' . Str::random(32) . '.' . $ext;
+        Storage::disk('public')->put($originalPath, file_get_contents($file->getRealPath()));
 
-        $sourceAbs = Storage::disk('local')->path($tempPath);
+        $sourceAbs = Storage::disk('public')->path($originalPath);
         $targetAbs = Storage::disk('public')->path($targetPath);
 
-        // Copy file asli langsung agar bisa diakses sebelum konversi selesai
-        $targetDir = dirname($targetAbs);
-        if (!is_dir($targetDir)) {
-            mkdir($targetDir, 0775, true);
+        // Copy ke target path agar bisa diakses sebelum konversi selesai
+        if (!copy($sourceAbs, $targetAbs)) {
+            Storage::disk('public')->delete($originalPath);
+            \Illuminate\Support\Facades\Log::warning("ImageHelper: copy failed, storing original");
+            return $originalPath;
         }
-        @copy($sourceAbs, $targetAbs);
 
         // Dispatch job untuk convert ke WebP di background
         ProcessImageToWebp::dispatch($sourceAbs, $targetAbs, $quality);

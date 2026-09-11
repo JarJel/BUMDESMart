@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Mail;
+use App\Helpers\WaNotification;
 use App\Mail\AccountSuspendedMail;
 use App\Models\AdminActionLog;
+use App\Models\Notification;
+use Illuminate\Support\Facades\Mail;
 
 class UserController extends Controller
 {
@@ -84,10 +86,28 @@ class UserController extends Controller
             return response()->json(['message' => 'Tidak dapat menghapus akun super admin.'], 422);
         }
 
-        $orderCount = \App\Models\Order::where('customer_id', $user->id)->count();
+        // Cek transaksi dari semua sisi: pembeli, seller (UMKM), kurir, dan alamat
+        $orderCount = 0;
+        if ($user->role === 'customer') {
+            $orderCount = \App\Models\Order::where('customer_id', $user->id)->count();
+        } elseif ($user->role === 'umkm' && $user->umkmProfile) {
+            $orderCount = \App\Models\Order::where('umkm_profile_id', $user->umkmProfile->id)->count();
+        } elseif ($user->role === 'pengirim') {
+            $orderCount = \App\Models\Order::where('driver_id', $user->id)->count();
+        }
+
+        // Cek juga alamat user yang mungkin direferensikan oleh orders
+        if ($orderCount === 0) {
+            $addressIds = \App\Models\Address::where('user_id', $user->id)->pluck('id');
+            if ($addressIds->isNotEmpty()) {
+                $orderCount = \App\Models\Order::whereIn('address_id', $addressIds)->count();
+            }
+        }
+
         if ($orderCount > 0) {
             return response()->json([
-                'message' => "Akun ini memiliki {$orderCount} transaksi dan tidak dapat dihapus. Gunakan fitur Suspend untuk menonaktifkan akun.",
+                'message' => "Akun ini memiliki {$orderCount} riwayat transaksi dan tidak dapat dihapus. Gunakan fitur Suspend untuk menonaktifkan akun.",
+                'can_suspend' => true,
             ], 422);
         }
 
@@ -124,11 +144,22 @@ class UserController extends Controller
             'reason'         => $validated['reason'],
         ]);
 
-        // Kirim email notifikasi
+        // Notif email + WA + in-app ke user yang di-suspend
         try {
             Mail::to($user->email)->send(new AccountSuspendedMail($user, $validated['reason']));
         } catch (\Exception $e) {
-            // Log error or ignore
+            // Ignore jika email gagal
+        }
+        try {
+            if ($user->phone) {
+                WaNotification::custom(
+                    $user->phone,
+                    "🚫 *Akun Ditangguhkan*\n\nHalo {$user->name},\n\nAkun Anda di BumDesMartNukita telah ditangguhkan.\n\nAlasan: {$validated['reason']}\n\nJika Anda merasa ini keliru, silakan ajukan permohonan pengaktifan kembali melalui halaman login."
+                );
+            }
+            Notification::send($user->id, '🚫 Akun Ditangguhkan', "Akun Anda telah ditangguhkan. Alasan: {$validated['reason']}", 'error', 'user', $user->id);
+        } catch (\Exception $e) {
+            // Ignore
         }
 
         return response()->json(['message' => 'Pengguna berhasil ditangguhkan.']);
