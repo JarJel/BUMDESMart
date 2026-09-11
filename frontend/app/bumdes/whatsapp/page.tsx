@@ -258,7 +258,7 @@ export default function WhatsappBumdesPage() {
             )}
             <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-50">
               {!status?.connected ? (
-                <button onClick={handleQr} disabled={loadingQr}
+                <button onClick={() => handleQr()} disabled={loadingQr}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 3.5V16M4 4h4v4H4V4zm0 12h4v4H4v-4zm12-12h4v4h-4V4z" />
