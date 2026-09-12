@@ -232,7 +232,7 @@ export default function SearchBar({
                       {highlightMatch(item.name, query)}
                     </div>
                     <div className="text-[10px] text-gray-500 mt-0.5">
-                      Rp {item.price.toLocaleString('id-ID')}
+                      Rp {(item.price ?? 0).toLocaleString('id-ID')}
                     </div>
                   </div>
                 </div>

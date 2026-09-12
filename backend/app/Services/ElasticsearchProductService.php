@@ -164,18 +164,7 @@ class ElasticsearchProductService
         try {
             $product->loadMissing(['category', 'umkmProfile', 'primaryImage', 'activeDiscount', 'variants.options']);
 
-            $basePrice = (float) $product->price;
-            if ($product->has_variant && $product->variants && $product->variants->isNotEmpty()) {
-                $variantPrices = $product->variants->flatMap(function ($v) {
-                    return $v->options ? $v->options->map(function ($o) {
-                        return (float) ($o->price ?? $o->price_adjustment ?? 0);
-                    }) : collect();
-                })->filter(fn($p) => (float)$p > 0);
-
-                if ($variantPrices->isNotEmpty()) {
-                    $basePrice = (float) $variantPrices->min();
-                }
-            }
+            $basePrice = (float) $product->min_price;
 
             $discountedPrice = $basePrice;
             $hasDiscount = false;

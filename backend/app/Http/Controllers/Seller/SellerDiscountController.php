@@ -60,15 +60,7 @@ class SellerDiscountController extends Controller
         // Tambahkan discounted_price ke setiap item
         $discounts->getCollection()->transform(function ($d) {
             if ($d->product) {
-                $basePrice = (float) $d->product->price;
-                if ($d->product->has_variant && $d->product->variants && $d->product->variants->isNotEmpty()) {
-                    $variantPrices = $d->product->variants->flatMap(function ($v) {
-                        return $v->options ? $v->options->map(fn($o) => (float)($o->price ?? $o->price_adjustment ?? 0)) : collect();
-                    })->filter(fn($p) => $p > 0);
-                    if ($variantPrices->isNotEmpty()) {
-                        $basePrice = (float) $variantPrices->min();
-                    }
-                }
+                $basePrice = (float) $d->product->min_price;
                 $d->product->price = (string) $basePrice;
                 $d->discounted_price = $d->calculateDiscountedPrice($basePrice);
             }

@@ -92,4 +92,43 @@ class Product extends Model
             ->where(fn($q) => $q->whereNull('end_date')->orWhere('end_date', '>', now()))
             ->where(fn($q) => $q->whereNull('max_uses')->orWhereColumn('used_count', '<', 'max_uses'));
     }
+
+    /**
+     * Accessor untuk harga minimum (terutama jika produk memiliki varian atau harga di DB = 0).
+     */
+    public function getMinPriceAttribute(): float
+    {
+        $basePrice = (float) $this->price;
+
+        if ($this->has_variant || $basePrice <= 0) {
+            if ($this->relationLoaded('variants') && $this->variants->isNotEmpty()) {
+                $variantPrices = $this->variants->flatMap(function ($v) {
+                    return $v->options ? $v->options->filter(fn($o) => $o->is_active ?? true)->map(function ($o) {
+                        return (float) ($o->price ?? $o->price_adjustment ?? 0);
+                    }) : collect();
+                })->filter(fn($p) => (float)$p > 0);
+
+                if ($variantPrices->isNotEmpty()) {
+                    return (float) $variantPrices->min();
+                }
+            }
+
+            try {
+                $minOptionPrice = \App\Models\ProductVariantOption::whereHas('productVariant', function ($q) {
+                    $q->where('product_id', $this->id);
+                })
+                ->where('is_active', true)
+                ->where('price', '>', 0)
+                ->min('price');
+
+                if ($minOptionPrice !== null && (float) $minOptionPrice > 0) {
+                    return (float) $minOptionPrice;
+                }
+            } catch (\Throwable $e) {
+                // Ignore exception fallback
+            }
+        }
+
+        return $basePrice;
+    }
 }

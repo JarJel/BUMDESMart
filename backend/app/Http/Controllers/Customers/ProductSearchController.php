@@ -32,7 +32,8 @@ class ProductSearchController extends Controller
                 ->select(['id', 'name', 'slug', 'price', 'has_variant'])
                 ->with([
                     'primaryImage:id,product_id,file_path,is_primary',
-                    'variants.options'
+                    'variants.options',
+                    'activeDiscount:id,product_id,type,value,end_date,is_active,max_uses,used_count'
                 ])
                 ->limit(10)
                 ->get()
@@ -44,17 +45,9 @@ class ProductSearchController extends Controller
                         $fotoUrl = str_starts_with($path, 'http') ? $path : asset('storage/' . $path);
                     }
 
-                    $price = (float) $product->price;
-                    if ($product->has_variant && $product->variants && $product->variants->isNotEmpty()) {
-                        $variantPrices = $product->variants->flatMap(function ($v) {
-                            return $v->options ? $v->options->map(function ($o) {
-                                return (float) ($o->price ?? $o->price_adjustment ?? 0);
-                            }) : collect();
-                        })->filter(fn($p) => (float)$p > 0);
-
-                        if ($variantPrices->isNotEmpty()) {
-                            $price = (float) $variantPrices->min();
-                        }
+                    $price = (float) $product->min_price;
+                    if ($product->activeDiscount) {
+                        $price = (float) $product->activeDiscount->calculateDiscountedPrice($price);
                     }
 
                     return [

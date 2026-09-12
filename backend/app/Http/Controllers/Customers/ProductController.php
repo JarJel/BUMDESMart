@@ -90,6 +90,7 @@ class ProductController extends Controller
                 if ($product->umkmProfile) {
                     $product->umkmProfile->has_halal_cert = isset($halalSet[$product->umkm_profile_id]);
                 }
+                $product->price = $product->min_price;
                 if ($product->activeDiscount) {
                     $product->activeDiscount->discounted_price =
                         $product->activeDiscount->calculateDiscountedPrice((float) $product->price);
