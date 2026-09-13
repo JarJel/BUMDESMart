@@ -15,7 +15,7 @@ class OrderController extends Controller
         $customerId = $request->user()->customer->id;
 
         $query = Order::with([
-            'items.product:id,name,slug',
+            'items.product:id,name,slug,is_pre_order,pre_order_days',
             'items.product.primaryImage:id,product_id,file_path',
             'umkmProfile:id,shop_name,logo,slug',
             'payment:id,order_id,status,payment_data',
@@ -35,7 +35,7 @@ class OrderController extends Controller
         $customerId = $request->user()->customer->id;
 
         $order = Order::with([
-            'items.product:id,name,slug,weight',
+            'items.product:id,name,slug,weight,is_pre_order,pre_order_days',
             'items.variantOption:id,value',
             'umkmProfile' => fn($q) => $q->select('id', 'shop_name', 'logo', 'slug', 'phone', 'qris_image'),
             'umkmProfile.bankAccounts' => fn($q) => $q->where('is_active', true),

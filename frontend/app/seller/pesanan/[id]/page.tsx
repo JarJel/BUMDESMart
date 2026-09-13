@@ -11,7 +11,7 @@ import { getFileUrl } from "@/lib/storage";
 
 interface OrderItem {
   id: number;
-  product: { id: number; name: string; slug: string };
+  product: { id: number; name: string; slug: string; is_pre_order?: boolean; pre_order_days?: number };
   product_name: string;
   quantity: number;
   product_price: number;
@@ -264,12 +264,19 @@ export default function SellerOrderDetailPage() {
           {(order.items || []).map(item => (
             <div key={item.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
               <div>
-                <p className="text-sm font-medium text-gray-900">
-                  {item.product_name || item.product?.name}
-                  {item.variant_option && (
-                    <span className="text-gray-500 font-normal"> — {item.variant_option.value}</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="text-sm font-medium text-gray-900">
+                    {item.product_name || item.product?.name}
+                    {item.variant_option && (
+                      <span className="text-gray-500 font-normal"> — {item.variant_option.value}</span>
+                    )}
+                  </p>
+                  {item.product?.is_pre_order && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                      PO ({item.product.pre_order_days || 0} Hari)
+                    </span>
                   )}
-                </p>
+                </div>
                 <p className="text-xs text-gray-500 mt-0.5">{formatRp(item.product_price)} × {item.quantity}</p>
               </div>
               <p className="text-sm font-semibold text-gray-900">{formatRp(item.product_price * item.quantity)}</p>
@@ -376,7 +383,7 @@ export default function SellerOrderDetailPage() {
 
       {/* Modal Penolakan Bukti Pembayaran */}
       {rejectModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-fadeIn">
           <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5 text-red-600">

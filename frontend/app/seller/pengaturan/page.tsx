@@ -19,6 +19,25 @@ const CATEGORY_OPTIONS = [
   { value: "lainnya",              label: "Lainnya" },
 ];
 
+const BANK_OPTIONS = [
+  { code: "BCA",     name: "BCA",        minLen: 10, maxLen: 10 },
+  { code: "BNI",     name: "BNI",        minLen: 10, maxLen: 10 },
+  { code: "BRI",     name: "BRI",        minLen: 15, maxLen: 15 },
+  { code: "MANDIRI", name: "Mandiri",    minLen: 13, maxLen: 13 },
+  { code: "PERMATA", name: "Permata",    minLen: 10, maxLen: 10 },
+  { code: "DANAMON", name: "Danamon",    minLen: 10, maxLen: 14 },
+  { code: "BSI",     name: "BSI",        minLen: 10, maxLen: 10 },
+  { code: "CIMB",    name: "CIMB Niaga", minLen: 13, maxLen: 14 },
+];
+
+interface BankAccount {
+  id: number;
+  channel_code: string;
+  account_number: string;
+  account_name: string;
+  is_active: boolean;
+}
+
 interface ProfileForm {
   shop_name: string;
   owner_name: string;
@@ -162,6 +181,74 @@ export default function PengaturanPage() {
   const [openHours, setOpenHours] = useState<Record<string, { open: string; close: string; closed: boolean }>>(DEFAULT_HOURS);
   const [togglingShop, setTogglingShop] = useState(false);
   const [savingHours, setSavingHours] = useState(false);
+
+  // Bank Account state
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [loadingBankAccounts, setLoadingBankAccounts] = useState(true);
+  const [showAddBankForm, setShowAddBankForm] = useState(false);
+  const [addBankLoading, setAddBankLoading] = useState(false);
+  const [bankForm, setBankForm] = useState({ channel_code: "", account_number: "", account_name: "" });
+  const [addBankMsg, setAddBankMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const fetchBankAccounts = useCallback(() => {
+    api.get("/seller/bank-accounts")
+      .then(r => {
+        setBankAccounts(r.data.data?.accounts ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingBankAccounts(false));
+  }, []);
+
+  useEffect(() => {
+    fetchBankAccounts();
+  }, [fetchBankAccounts]);
+
+  const handleAddBankAccount = async () => {
+    if (!bankForm.channel_code) {
+      setAddBankMsg({ type: "err", text: "Pilih bank terlebih dahulu." });
+      return;
+    }
+    if (!bankForm.account_number.trim() || !bankForm.account_name.trim()) {
+      setAddBankMsg({ type: "err", text: "Isi semua field rekening." });
+      return;
+    }
+    const selectedBank = BANK_OPTIONS.find(b => b.code === bankForm.channel_code);
+    if (selectedBank) {
+      const accLen = bankForm.account_number.trim().length;
+      if (accLen < selectedBank.minLen || accLen > selectedBank.maxLen) {
+        const lenText = selectedBank.minLen === selectedBank.maxLen 
+          ? `${selectedBank.minLen} digit` 
+          : `${selectedBank.minLen}-${selectedBank.maxLen} digit`;
+        setAddBankMsg({ type: "err", text: `Nomor rekening ${selectedBank.name} harus ${lenText}.` });
+        return;
+      }
+    }
+    
+    setAddBankLoading(true);
+    setAddBankMsg(null);
+    try {
+      await api.post("/seller/bank-accounts", bankForm);
+      setAddBankMsg({ type: "ok", text: "Rekening berhasil ditambahkan." });
+      setBankForm({ channel_code: "", account_number: "", account_name: "" });
+      setShowAddBankForm(false);
+      toast.success("Rekening berhasil ditambahkan.");
+      fetchBankAccounts();
+    } catch (e: any) {
+      setAddBankMsg({ type: "err", text: e?.response?.data?.message ?? "Gagal menambahkan rekening." });
+    } finally {
+      setAddBankLoading(false);
+    }
+  };
+
+  const handleDeleteBankAccount = async (id: number) => {
+    try {
+      await api.delete(`/seller/bank-accounts/${id}`);
+      toast.success("Rekening berhasil dihapus.");
+      fetchBankAccounts();
+    } catch {
+      toast.error("Gagal menghapus rekening.");
+    }
+  };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fetchProfile = useCallback(async () => {
@@ -392,6 +479,102 @@ export default function PengaturanPage() {
                   toast.success("QRIS Toko berhasil diperbarui.");
                 }}
               />
+            </div>
+
+            {/* Rekening Bank Toko */}
+            <div className="sm:col-span-2 border-t border-gray-50 pt-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-xs font-semibold text-gray-900 block">Rekening Bank Toko</label>
+                  <p className="text-xs text-gray-400 mt-0.5">Tambah &amp; kelola rekening bank untuk toko kamu</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddBankForm(v => !v); setAddBankMsg(null); }}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-xl text-white"
+                  style={{ background: "var(--primary)" }}
+                >
+                  {showAddBankForm ? "Batal" : "+ Tambah Rekening"}
+                </button>
+              </div>
+
+              {showAddBankForm && (
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <select
+                      value={bankForm.channel_code}
+                      onChange={e => setBankForm(f => ({ ...f, channel_code: e.target.value, account_number: "" }))}
+                      className="px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-white"
+                    >
+                      <option value="" disabled>Pilih Bank...</option>
+                      {BANK_OPTIONS.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Nomor rekening"
+                      value={bankForm.account_number}
+                      onChange={e => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        const max = BANK_OPTIONS.find(b => b.code === bankForm.channel_code)?.maxLen || 20;
+                        setBankForm(f => ({ ...f, account_number: val.slice(0, max) }));
+                      }}
+                      className="px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-white"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Nama pemilik rekening"
+                      value={bankForm.account_name}
+                      onChange={e => setBankForm(f => ({ ...f, account_name: e.target.value }))}
+                      className="px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-white"
+                    />
+                  </div>
+                  {addBankMsg && (
+                    <p className={`text-xs font-medium ${addBankMsg.type === "ok" ? "text-green-600" : "text-red-500"}`}>{addBankMsg.text}</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleAddBankAccount}
+                    disabled={addBankLoading}
+                    className="text-xs font-semibold px-4 py-2 rounded-xl text-white disabled:opacity-50"
+                    style={{ background: "var(--primary)" }}
+                  >
+                    {addBankLoading ? "Menyimpan..." : "Simpan Rekening"}
+                  </button>
+                </div>
+              )}
+
+              <div className="divide-y divide-gray-50 border border-gray-100 rounded-2xl overflow-hidden bg-white">
+                {loadingBankAccounts ? (
+                  <p className="px-5 py-4 text-xs text-center text-gray-400">Memuat rekening...</p>
+                ) : bankAccounts.length === 0 ? (
+                  <p className="px-5 py-4 text-xs text-center text-gray-400">Belum ada rekening tersimpan.</p>
+                ) : (
+                  bankAccounts.map(a => (
+                    <div key={a.id} className="flex items-center gap-3 px-4 py-3">
+                      <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-700 shrink-0">
+                        {a.channel_code.slice(0, 3)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-gray-900">{a.account_name}</p>
+                        <p className="text-[11px] text-gray-500">{a.channel_code} · {a.account_number}</p>
+                      </div>
+                      {a.is_active && (
+                        <span className="text-[10px] bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium shrink-0">Aktif</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteBankAccount(a.id)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+                        title="Hapus rekening"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>

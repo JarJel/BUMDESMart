@@ -41,6 +41,8 @@ export interface ProductData {
   is_digital: boolean
   sold_count: number
   status: string
+  is_pre_order?: boolean
+  pre_order_days?: number
   created_at: string
   updated_at: string
   primary_image?: ProductImage | null

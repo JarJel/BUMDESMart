@@ -208,18 +208,16 @@ export default function SearchBar({
 
           {/* List Hasil Pencarian */}
           <div
-            className={`max-h-80 overflow-y-auto divide-y divide-gray-100 transition-opacity duration-200 ${
-              isLoading ? 'opacity-50' : 'opacity-100'
-            }`}
+            className={`max-h-80 overflow-y-auto divide-y divide-gray-100 transition-opacity duration-200 ${isLoading ? 'opacity-50' : 'opacity-100'
+              }`}
           >
             {results.length > 0 ? (
               results.map((item, index) => (
                 <div
                   key={item.id}
                   onClick={() => handleSelectItem(item)}
-                  className={`flex items-center px-4 py-3 cursor-pointer transition-colors duration-150 ${
-                    index === activeIndex ? 'bg-green-50 text-green-900' : 'hover:bg-gray-50'
-                  }`}
+                  className={`flex items-center px-4 py-3 cursor-pointer transition-colors duration-150 ${index === activeIndex ? 'bg-green-50 text-green-900' : 'hover:bg-gray-50'
+                    }`}
                 >
                   {/* Icon Search untuk Hasil Produk */}
                   <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3 shrink-0 text-gray-400 group-hover:bg-green-100 group-hover:text-green-600 transition-colors">

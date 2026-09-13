@@ -91,6 +91,8 @@ class CheckoutController extends Controller
                         'final_price'     => $finalPrice,
                         'stock'           => $variant ? $variant->stock : $product->stock,
                         'weight'          => $product->weight,
+                        'is_pre_order'    => (bool) $product->is_pre_order,
+                        'pre_order_days'  => $product->pre_order_days,
                         'umkm_profile'    => $product->umkmProfile ? [
                             'id'            => $product->umkmProfile->id,
                             'name_umkm'     => $product->umkmProfile->shop_name,
@@ -148,6 +150,8 @@ class CheckoutController extends Controller
                                 'final_price'     => $finalPrice,
                                 'stock'           => $variant ? $variant->stock : $product->stock,
                                 'weight'          => $product->weight,
+                                'is_pre_order'    => (bool) $product->is_pre_order,
+                                'pre_order_days'  => $product->pre_order_days,
                                 'umkm_profile'    => $product->umkmProfile ? [
                                     'id'         => $product->umkmProfile->id,
                                     'name_umkm'  => $product->umkmProfile->shop_name,

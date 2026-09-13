@@ -601,6 +601,8 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ slug: s
               onBuyNow={handleBuyNow} 
               isPreOrder={produk.is_pre_order}
               preOrderDays={produk.pre_order_days}
+              sellerPhone={toko?.phone || toko?.telepon || toko?.no_hp}
+              productName={produk.name}
             />
           </div>
         </div>

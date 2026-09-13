@@ -2,11 +2,6 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api/axios";
 
-interface Balance {
-  pending: number;
-  available: number;
-}
-
 interface Order {
   id: number;
   order_code: string;
@@ -23,6 +18,7 @@ interface Order {
 }
 
 const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const monthNamesFull = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 
 function formatRp(n: number) {
   return "Rp " + Math.round(n).toLocaleString("id");
@@ -38,6 +34,7 @@ export default function PendapatanPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showAllModal, setShowAllModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -52,18 +49,21 @@ export default function PendapatanPage() {
   const now = new Date();
   const thisMonth = now.getMonth();
   const thisYear = now.getFullYear();
+  const currentMonthName = monthNamesFull[thisMonth];
 
-  const deliveredOrders = orders.filter(o => o.status === "delivered");
-  const thisMonthDelivered = deliveredOrders.filter(o => {
+  // Pesanan selesai (status 'delivered' atau 'completed')
+  const completedOrders = orders.filter(o => ["delivered", "completed"].includes(o.status));
+  const thisMonthCompleted = completedOrders.filter(o => {
     const d = new Date(o.created_at);
     return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
   });
 
-  const thisMonthRevenue = thisMonthDelivered.reduce((s, o) => s + sellerEarnings(o), 0);
-  const avgPerTx = thisMonthDelivered.length > 0 ? thisMonthRevenue / thisMonthDelivered.length : 0;
+  const activeCompletedList = thisMonthCompleted.length > 0 ? thisMonthCompleted : completedOrders;
+  const activeRevenue = activeCompletedList.reduce((s, o) => s + sellerEarnings(o), 0);
+  const avgPerTx = activeCompletedList.length > 0 ? activeRevenue / activeCompletedList.length : 0;
 
   const barData = months.map((_, i) => {
-    return deliveredOrders
+    return completedOrders
       .filter(o => {
         const d = new Date(o.created_at);
         return d.getMonth() === i && d.getFullYear() === thisYear;
@@ -82,9 +82,8 @@ export default function PendapatanPage() {
   const paginatedTx = validTx.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const stats = [
-    { label: "Hak Seller Bulan Ini", value: loading ? "—" : formatRp(thisMonthRevenue) },
-    { label: "Transaksi Selesai Bulan Ini", value: loading ? "—" : `${thisMonthDelivered.length} transaksi` },
-    { label: "Rata-rata per Transaksi", value: loading ? "—" : (avgPerTx > 0 ? formatRp(avgPerTx) : "—") },
+    { label: "Transaksi Bulan Ini", value: loading ? "—" : `${thisMonthCompleted.length} transaksi` },
+    { label: "Rata-rata Transaksi", value: loading ? "—" : formatRp(avgPerTx) },
   ];
 
   return (
@@ -95,7 +94,7 @@ export default function PendapatanPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {stats.map(c => (
           <div key={c.label} className="bg-white rounded-2xl border border-gray-100 p-5">
             <p className="text-xs text-gray-400 mb-2">{c.label}</p>
@@ -104,33 +103,61 @@ export default function PendapatanPage() {
         ))}
       </div>
 
-      {/* Info banner */}
-      <div className="bg-blue-50 border border-blue-100 rounded-2xl px-5 py-3 flex items-start gap-3">
-        <svg className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p className="text-xs text-blue-700 leading-relaxed">
-          <strong>Hak Seller</strong> = Subtotal produk − Diskon voucher − Fee BUMDes. Ongkir dan biaya layanan tidak masuk ke pendapatan seller.
-        </p>
-      </div>
-
       {/* Chart */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-gray-900">Tren Hak Seller {thisYear}</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-sm font-semibold text-gray-900">Grafik Pendapatan {currentMonthName} {thisYear}</h2>
+          <span className="text-xs text-gray-400 font-medium">Tahun {thisYear}</span>
         </div>
-        <div className="flex items-end gap-1.5 h-36">
-          {barData.map((v, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1">
-              <div
-                className="w-full rounded-t-sm"
-                style={{ height: `${(v / maxBar) * 100}%`, background: "var(--primary)", opacity: v > 0 ? 0.75 + (v / maxBar) * 0.25 : 0.15, minHeight: v > 0 ? 4 : 2 }}
-              />
-            </div>
+        
+        <div className="relative flex items-end gap-2 h-44 pt-6 pb-2">
+          {barData.map((v, i) => {
+            const isCurrent = i === thisMonth;
+            const barHeightPct = maxBar > 0 ? (v / maxBar) * 100 : 0;
+            return (
+              <div 
+                key={i} 
+                className="flex-1 flex flex-col items-center justify-end h-full group relative"
+                onMouseEnter={() => setHoveredBar(i)}
+                onMouseLeave={() => setHoveredBar(null)}
+              >
+                {/* Tooltip */}
+                {hoveredBar === i && (
+                  <div className="absolute -top-9 z-10 bg-gray-900 text-white text-[10px] font-semibold py-1 px-2.5 rounded-lg shadow-lg whitespace-nowrap">
+                    {months[i]}: {formatRp(v)}
+                  </div>
+                )}
+                
+                {/* Nilai singkat di atas bar jika ada nilai */}
+                {v > 0 && hoveredBar !== i && (
+                  <span className="text-[9px] font-semibold text-gray-500 mb-1">
+                    {v >= 1000000 ? `${(v / 1000000).toFixed(1)}jt` : `${Math.round(v / 1000)}k`}
+                  </span>
+                )}
+
+                <div
+                  className={`w-full rounded-t-lg transition-all duration-300 ${
+                    isCurrent ? "bg-green-600" : "bg-green-500/70 hover:bg-green-500"
+                  }`}
+                  style={{
+                    height: `${barHeightPct}%`,
+                    minHeight: v > 0 ? 6 : 2,
+                    opacity: v > 0 ? 1 : 0.2,
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex justify-between text-xs text-gray-400 mt-2 px-1 border-t border-gray-50 pt-2">
+          {months.map((m, i) => (
+            <span 
+              key={m} 
+              className={`text-center flex-1 font-medium ${i === thisMonth ? "text-green-700 font-bold" : ""}`}
+            >
+              {m}
+            </span>
           ))}
-        </div>
-        <div className="flex justify-between text-xs text-gray-400 mt-2">
-          {months.map(m => <span key={m}>{m}</span>)}
         </div>
       </div>
 
@@ -362,3 +389,4 @@ export default function PendapatanPage() {
     </div>
   );
 }
+

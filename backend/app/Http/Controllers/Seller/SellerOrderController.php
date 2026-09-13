@@ -56,7 +56,7 @@ class SellerOrderController extends Controller
         $umkm = $this->getUmkm($request);
 
         $query = Order::with([
-            'items.product:id,name,slug',
+            'items.product:id,name,slug,is_pre_order,pre_order_days',
             'items.variantOption:id,value',
             'customer.user:id,name,email,phone',
             'address:id,label,address,city,province,postal_code,recipient_name,phone',
@@ -94,7 +94,7 @@ class SellerOrderController extends Controller
         $umkm = $this->getUmkm($request);
 
         $order = Order::with([
-            'items.product:id,name,slug,weight',
+            'items.product:id,name,slug,weight,is_pre_order,pre_order_days',
             'items.variantOption:id,value',
             'customer.user:id,name,email,phone',
             'address',
@@ -221,6 +221,7 @@ class SellerOrderController extends Controller
             'ekspedisi' => [
                 'pending'   => ['confirmed', 'shipped', 'cancelled'],
                 'confirmed' => ['shipped', 'cancelled'],
+                'shipped'   => ['shipped', 'cancelled'],
             ],
             default => [ // kurir_lokal — kurir yang handle setelah confirmed
                 'pending'   => ['confirmed', 'cancelled'],
@@ -238,7 +239,9 @@ class SellerOrderController extends Controller
             'note'            => 'nullable|string|max:300',
         ]);
 
-        $newStatus = $validated['status'];
+        $oldStatus       = $order->status;
+        $newStatus       = $validated['status'];
+        $isStatusChanged = ($oldStatus !== $newStatus);
 
         if (!in_array($newStatus, $validNext)) {
             return response()->json([

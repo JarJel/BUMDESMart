@@ -57,11 +57,11 @@ export function ProductCard({ product, compact = false, storeHref, highlighted =
               e.currentTarget.src = 'https://placehold.co/400x400?text=No+Image';
             }}
           />
-          {product.is_pre_order ? (
+          {Boolean(product.is_pre_order) || product.is_pre_order == 1 ? (
             <span
-              className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full text-white bg-amber-600 uppercase tracking-wider shadow-sm"
+              className="absolute top-2 left-2 text-[10px] font-extrabold px-2 py-0.5 rounded-full text-white bg-amber-600 uppercase tracking-wider shadow-sm z-10"
             >
-              PRE-ORDER
+              {product.pre_order_days ? `PRE-ORDER (${product.pre_order_days} HARI)` : "PRE-ORDER"}
             </span>
           ) : !compact && soldCount > 300 ? (
             <span

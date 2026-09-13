@@ -305,7 +305,14 @@ function TokoContent({ toko, products }: { toko: any; products: any[] }) {
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
               <div className="min-w-0 pr-2">
                 <p className="text-xs text-gray-400 truncate">{variantProduct.umkm_profile?.shop_name || shopName}</p>
-                <h3 className="text-sm font-bold text-gray-900 line-clamp-1">{variantProduct.name}</h3>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="text-sm font-bold text-gray-900 line-clamp-1">{variantProduct.name}</h3>
+                  {(Boolean(variantProduct.is_pre_order) || variantProduct.is_pre_order == 1) && (
+                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                      Pre-Order {variantProduct.pre_order_days ? `(${variantProduct.pre_order_days} Hari)` : ""}
+                    </span>
+                  )}
+                </div>
               </div>
               <button onClick={() => setVariantProduct(null)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0 text-gray-500 hover:bg-gray-200">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>

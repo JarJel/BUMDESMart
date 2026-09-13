@@ -25,6 +25,8 @@ interface CartItem {
     name: string;
     price: number | string;
     stock?: number;
+    is_pre_order?: boolean;
+    pre_order_days?: number;
     images?: { image_path?: string; file_path?: string }[];
     umkm_profile?: {
       id: number;
@@ -437,13 +439,13 @@ export default function CheckoutPage() {
         if (firstOrderId) {
           if (paymentMethod === "manual_umkm") {
             toast.success("Pesanan berhasil dibuat! Silakan transfer ke toko dan unggah bukti.");
-            router.push(`/pesanan/${firstOrderId}`);
+            router.replace(`/pesanan/${firstOrderId}`);
           } else {
-            router.push(`/pembayaran?order_id=${firstOrderId}`);
+            router.replace(`/pembayaran?order_id=${firstOrderId}`);
           }
         } else {
           toast.success("Pesanan berhasil dibuat!");
-          router.push("/pesanan");
+          router.replace("/pesanan");
         }
       }
     } catch (err: any) {
@@ -606,7 +608,14 @@ export default function CheckoutPage() {
                               )}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-xs font-semibold text-gray-800 truncate">{item.product?.name}</p>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="text-xs font-semibold text-gray-800 truncate">{item.product?.name}</p>
+                                {item.product?.is_pre_order && (
+                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                    Pre-Order ({item.product.pre_order_days || 0} Hari)
+                                  </span>
+                                )}
+                              </div>
                               {item.variant && (
                                 <p className="text-[10px] text-gray-400 mt-0.5">
                                   {item.variant.product_variant?.name
@@ -753,6 +762,18 @@ export default function CheckoutPage() {
                 </div>
               ))}
             </div>
+
+            {cartItems.some((i) => i.product?.is_pre_order) && (
+              <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-2.5 text-amber-900 text-xs">
+                <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="font-semibold text-amber-900">Pesanan Mengandung Produk Pre-Order</p>
+                  <p className="text-amber-700 mt-0.5">Produk Pre-Order akan diproses dan dikirim sesuai estimasi waktu pengerjaan yang tertera pada masing-masing produk.</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 2. Metode Pengiriman */}

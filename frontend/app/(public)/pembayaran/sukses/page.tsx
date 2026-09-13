@@ -27,7 +27,7 @@ function PembayaranSuksesContent() {
           if (found) {
             setOrderId(found.id);
             // Redirect otomatis ke detail pesanan
-            router.push(`/pesanan/${found.id}`);
+            router.replace(`/pesanan/${found.id}`);
           }
         }
       } catch (err) {

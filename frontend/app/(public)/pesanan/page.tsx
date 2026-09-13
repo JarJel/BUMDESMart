@@ -54,15 +54,15 @@ export default function PesananPage() {
 
       {/* Header dengan tombol kembali */}
       <div className="flex items-center gap-3 mb-5">
-        <button
-          onClick={() => router.back()}
-          className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-white border border-gray-100 transition-colors shrink-0"
+        <Link
+          href="/profil"
+          className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-white border border-gray-100 transition-colors shrink-0 flex items-center justify-center"
           aria-label="Kembali"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-        </button>
+        </Link>
         <h1 className="text-lg font-bold text-gray-900 flex-1">Pesanan Saya</h1>
         <Link href="/" className="text-xs text-gray-400 hover:text-green-700 transition-colors">
           Beranda

@@ -139,6 +139,8 @@ class ElasticsearchProductService
                                 'has_halal_cert' => ['type' => 'boolean'],
                                 'has_discount' => ['type' => 'boolean'],
                                 'discounted_price' => ['type' => 'double'],
+                                'is_pre_order' => ['type' => 'boolean'],
+                                'pre_order_days' => ['type' => 'integer'],
                                 'primary_image' => ['type' => 'keyword'],
                                 'created_at' => ['type' => 'date', 'format' => 'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd']
                             ]
@@ -200,6 +202,8 @@ class ElasticsearchProductService
                 'has_halal_cert' => $hasHalal,
                 'has_discount' => $hasDiscount,
                 'discounted_price' => $discountedPrice,
+                'is_pre_order' => (bool) $product->is_pre_order,
+                'pre_order_days' => (int) $product->pre_order_days,
                 'primary_image' => $product->primaryImage->file_path ?? null,
                 'created_at' => $product->created_at ? $product->created_at->format('Y-m-d H:i:s') : now()->format('Y-m-d H:i:s')
             ];

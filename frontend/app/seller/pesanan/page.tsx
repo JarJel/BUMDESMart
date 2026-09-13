@@ -11,7 +11,7 @@ import {
 
 interface OrderItem {
   id: number;
-  product: { id: number; name: string; slug: string };
+  product: { id: number; name: string; slug: string; is_pre_order?: boolean; pre_order_days?: number };
   product_name: string;
   quantity: number;
   product_price: number;
@@ -156,11 +156,11 @@ function OrderDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative ml-auto w-full max-w-lg bg-white h-full overflow-y-auto shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col z-10 animate-fadeIn">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white z-10 flex-shrink-0">
           <div>
             <h2 className="text-base font-bold text-gray-900">Detail Pesanan</h2>
             <p className="text-xs text-gray-500 mt-0.5">{order.order_code}</p>
@@ -188,7 +188,7 @@ function OrderDrawer({
           </div>
         </div>
 
-        <div className="p-6 space-y-5 flex-1">
+        <div className="p-6 space-y-5 flex-1 overflow-y-auto">
           {/* Status + waktu */}
           <div className="flex items-center justify-between">
             <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${STATUS_COLOR[order.status] ?? ""}`}>
@@ -239,12 +239,19 @@ function OrderDrawer({
               {order.items.map(item => (
                 <div key={item.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {item.product_name || item.product?.name}
-                      {item.variant_option && (
-                        <span className="text-gray-500 font-normal"> — {item.variant_option.value}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-sm font-medium text-gray-900">
+                        {item.product_name || item.product?.name}
+                        {item.variant_option && (
+                          <span className="text-gray-500 font-normal"> — {item.variant_option.value}</span>
+                        )}
+                      </p>
+                      {item.product?.is_pre_order && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                          PO ({item.product.pre_order_days || 0} Hari)
+                        </span>
                       )}
-                    </p>
+                    </div>
                     <p className="text-xs text-gray-500 mt-0.5">{formatRp(item.product_price)} × {item.quantity}</p>
                   </div>
                   <p className="text-sm font-semibold text-gray-900">{formatRp(item.product_price * item.quantity)}</p>
@@ -348,7 +355,7 @@ function OrderDrawer({
 
           {/* Modal Penolakan Bukti Pembayaran */}
           {rejectModalOpen && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 animate-fadeIn">
               <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                   <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5 text-red-600">
@@ -523,8 +530,8 @@ function OrderDrawer({
           )}
         </div>
 
-        {/* ── Action buttons sticky bottom ───────────────────────────── */}
-        <div className="px-6 py-5 border-t border-gray-100 space-y-2 sticky bottom-0 bg-white">
+        {/* ── Action buttons bottom ───────────────────────────── */}
+        <div className="px-6 py-4 border-t border-gray-100 space-y-2 bg-white flex-shrink-0">
           {/* PENDING — semua mode */}
           {order.status === "pending" && (
             <>
@@ -633,7 +640,7 @@ export default function PesananPage() {
       };
       toast.success(messages[status] ?? "Status diperbarui.");
       fetchOrders();
-      setSelected(prev => prev?.id === id ? { ...prev, status } : prev);
+      setSelected(prev => prev?.id === id ? (res.data?.data ?? { ...prev, status }) : prev);
     } catch (err: any) {
       const msg = err.response?.data?.message || "Gagal mengubah status pesanan.";
       toast.error(msg);
@@ -728,6 +735,12 @@ export default function PesananPage() {
                         <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${STATUS_COLOR[o.status] ?? ""}`}>
                           {STATUS_LABEL[o.status] ?? o.status}
                         </span>
+                        {/* Badge PO */}
+                        {o.items.some(i => i.product?.is_pre_order) && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 font-medium">
+                            Pre-Order
+                          </span>
+                        )}
                         {/* Badge mode pengiriman */}
                         {mode === "pickup" && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-50 text-teal-600 border border-teal-200 font-medium">

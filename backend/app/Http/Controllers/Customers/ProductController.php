@@ -67,7 +67,7 @@ class ProductController extends Controller
             }
 
             $products = $query
-                ->select(['id', 'name', 'slug', 'price', 'stock', 'weight', 'category_id', 'umkm_profile_id', 'sold_count', 'status', 'has_variant', 'created_at'])
+                ->select(['id', 'name', 'slug', 'price', 'stock', 'weight', 'category_id', 'umkm_profile_id', 'sold_count', 'status', 'has_variant', 'is_pre_order', 'pre_order_days', 'created_at'])
                 ->with([
                     'primaryImage:id,product_id,file_path,thumbnail_path,medium_path,is_primary',
                     'umkmProfile:id,shop_name,slug',
