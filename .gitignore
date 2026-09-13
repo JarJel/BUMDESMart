@@ -27,3 +27,7 @@ frontend/next-env.d.ts
 # ===== OS =====
 .DS_Store
 Thumbs.db
+
+server/.env
+server/audit_log.jsonl
+
