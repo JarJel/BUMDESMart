@@ -46,7 +46,7 @@ class SellerDocumentController extends Controller
                 'uploaded'    => $uploaded ? [
                     'id'         => $uploaded->id,
                     'file_path'  => $uploaded->file_path,
-                    'file_url'   => asset('storage/' . $uploaded->file_path),
+                    'file_url'   => url('/api/v1/files/' . ltrim(str_replace('storage/', '', $uploaded->file_path), '/')),
                     'status'     => $uploaded->status,
                     'updated_at' => $uploaded->updated_at,
                 ] : null,
@@ -80,7 +80,9 @@ class SellerDocumentController extends Controller
             return response()->json(['error' => 'Dokumen tidak ditemukan atau tidak sesuai BUMDes.'], 404);
         }
 
-        $path = \App\Helpers\ImageHelper::uploadAsWebp($request->file('file'), 'umkm-documents');
+        // Store document in private storage (not accessible via public symlink)
+        $file = $request->file('file');
+        $path = $file->store('private/umkm-documents', 'local');
 
         $doc = UmkmDocument::updateOrCreate(
             [
@@ -100,7 +102,7 @@ class SellerDocumentController extends Controller
             'message' => 'Dokumen berhasil diupload.',
             'data'    => [
                 'id'       => $doc->id,
-                'file_url' => asset('storage/' . $doc->file_path),
+                'file_url' => url('/api/v1/files/' . ltrim(str_replace('storage/', '', $doc->file_path), '/')),
                 'status'   => $doc->status,
             ],
         ], 201);

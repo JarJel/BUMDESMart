@@ -1,8 +1,11 @@
 "use client"
 
+import { useState, useEffect } from "react"
+import axios from "axios"
 import DashboardShell, { NavItem } from "@/components/layout/DashboardShell"
 import PushNotificationInit from "@/components/PushNotificationInit"
 
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1"
 const ACCENT = "#2D6A4F"
 
 const S = (d: string) => (
@@ -104,8 +107,51 @@ const NAV: NavItem[] = [
 ]
 
 export default function BumdesLayout({ children }: { children: React.ReactNode }) {
+  const [pendingCount, setPendingCount] = useState<number>(0)
+
+  useEffect(() => {
+    let isMounted = true
+    const fetchPendingVerifications = async () => {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
+        if (!token) return
+        const res = await axios.get(`${API}/admin/umkm?status=pending`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const list = res.data?.data ?? []
+        if (isMounted) {
+          setPendingCount(list.length)
+        }
+      } catch {
+        // quiet catch
+      }
+    }
+
+    fetchPendingVerifications()
+    const interval = setInterval(fetchPendingVerifications, 15000)
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
+  }, [])
+
+  const navItemsWithBadge = NAV.map((item) => {
+    if (item.children) {
+      return {
+        ...item,
+        children: item.children.map((child) => {
+          if (child.href === "/bumdes/verifikasi" && pendingCount > 0) {
+            return { ...child, badge: pendingCount }
+          }
+          return child
+        }),
+      }
+    }
+    return item
+  })
+
   return (
-    <DashboardShell navItems={NAV} roleLabel="Admin BUMDes" accent={ACCENT}>
+    <DashboardShell navItems={navItemsWithBadge} roleLabel="Admin BUMDes" accent={ACCENT}>
       <PushNotificationInit />
       {children}
     </DashboardShell>

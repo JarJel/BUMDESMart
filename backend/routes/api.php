@@ -167,9 +167,45 @@ Route::middleware(['auth:sanctum', 'maintenance'])->group(function () {
     Route::post('/seller/products/{id}/appeal-ban', [SellerProductController::class, 'appealBan']);
 });
 
-// File serving — workaround nginx /storage 403 block
-Route::get('/files/{path}', function (string $path) {
+// File serving — secure private document serving & public storage fallback
+Route::get('/files/{path}', function (\Illuminate\Http\Request $request, string $path) {
+    // SECURITY CHECK: If accessing private UMKM documents, require authentication & authorization!
+    if (str_starts_with($path, 'private/') || str_starts_with($path, 'umkm-documents/')) {
+        $token = $request->header('Authorization') ? str_replace('Bearer ', '', $request->header('Authorization')) : $request->query('token');
+        $user = null;
+        if ($token) {
+            $personalToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+            if ($personalToken) {
+                $user = $personalToken->tokenable;
+            }
+        }
+        if (!$user && auth('sanctum')->check()) {
+            $user = auth('sanctum')->user();
+        }
+
+        if (!$user) {
+            abort(401, 'Unauthenticated. Akses dokumen privat membutuhkan login.');
+        }
+
+        // Validate permissions for the document
+        $doc = \App\Models\UmkmDocument::where('file_path', $path)
+            ->orWhere('file_path', 'storage/' . $path)
+            ->orWhere('file_path', 'private/' . $path)
+            ->first();
+
+        if ($doc) {
+            $isSuperAdmin  = $user->role === 'super_admin';
+            $isBumdesAdmin = $user->role === 'admin_bumdes' && $user->bumdesProfile && $doc->umkmProfile && $user->bumdesProfile->id === $doc->umkmProfile->bumdes_profile_id;
+            $isOwner       = $user->umkmProfile && $doc->umkmProfile && $user->umkmProfile->id === $doc->umkm_profile_id;
+
+            if (!$isSuperAdmin && !$isBumdesAdmin && !$isOwner) {
+                abort(403, 'Anda tidak memiliki hak akses untuk membaca dokumen ini.');
+            }
+        }
+    }
+
     $candidates = [
+        storage_path('app/' . $path),
         storage_path('app/public/' . $path),
         public_path($path),
     ];
@@ -181,12 +217,17 @@ Route::get('/files/{path}', function (string $path) {
         }
     }
     if (!$fullPath) {
-        abort(404);
+        abort(404, 'File tidak ditemukan.');
     }
-    // Cegah path traversal: pastikan file masih di dalam direktori yang diizinkan
+    // Pastikan file berada di direktori yang diizinkan
     $realPath    = realpath($fullPath);
-    $allowedDirs = [realpath(storage_path('app/public')), realpath(public_path())];
-    $allowed     = false;
+    $allowedDirs = array_filter([
+        realpath(storage_path('app/private')),
+        realpath(storage_path('app')),
+        realpath(storage_path('app/public')),
+        realpath(public_path())
+    ]);
+    $allowed = false;
     foreach ($allowedDirs as $dir) {
         if ($dir && str_starts_with($realPath, $dir . DIRECTORY_SEPARATOR)) {
             $allowed = true;
@@ -194,10 +235,13 @@ Route::get('/files/{path}', function (string $path) {
         }
     }
     if (!$allowed) {
-        abort(403);
+        abort(403, 'Akses direktori ditolak.');
     }
     $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
-    return response()->file($fullPath, ['Content-Type' => $mime]);
+    return response()->file($fullPath, [
+        'Content-Type'  => $mime,
+        'Cache-Control' => 'private, no-transform, no-store, must-revalidate',
+    ]);
 })->where('path', '.*');
 
 Route::middleware('throttle:10,1')->group(function () {

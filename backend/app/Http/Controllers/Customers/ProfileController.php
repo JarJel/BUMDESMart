@@ -77,13 +77,6 @@ class ProfileController extends Controller
                 if ($user->umkmProfile) {
                     $isActive = $user->umkmProfile->status === 'active';
 
-                    if ($isActive && $request->has('shop_name')) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Nama toko tidak dapat diubah setelah terverifikasi. Hubungi admin BUMDes untuk mengubah nama toko.',
-                        ], 422);
-                    }
-
                     if ($isActive && $request->has('business_category') && $request->business_category !== $user->umkmProfile->business_category) {
                         return response()->json([
                             'success' => false,

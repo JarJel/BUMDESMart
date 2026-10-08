@@ -1,22 +1,152 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useToast } from "@/components/ui/Toast";
+import { ChevronDown, Check } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
 const steps = ["Pilih BUMDes", "Informasi Akun", "Profil Toko", "Tinjau"];
 
 const CATEGORIES = [
-  { value: "makanan_minuman", label: "Makanan & Minuman" },
-  { value: "fashion_kerajinan", label: "Fashion & Kerajinan" },
-  { value: "pertanian_peternakan", label: "Pertanian & Peternakan" },
-  { value: "perdagangan_umum", label: "Perdagangan Umum" },
-  { value: "jasa", label: "Jasa" },
+  {
+    value: "makanan_minuman",
+    label: "Makanan & Minuman",
+    description: "Kuliner, jajanan pasar, olahan hasil tani, minuman",
+  },
+  {
+    value: "fashion_kerajinan",
+    label: "Fashion & Kerajinan",
+    description: "Pakaian, batik, tas, aksesoris, kriya tangan",
+  },
+  {
+    value: "pertanian_peternakan",
+    label: "Pertanian & Peternakan",
+    description: "Bibit, hasil panen, beras, pupuk, ternak",
+  },
+  {
+    value: "perdagangan_umum",
+    label: "Perdagangan Umum",
+    description: "Toko kelontong, sembako, alat rumah tangga",
+  },
+  {
+    value: "jasa",
+    label: "Jasa",
+    description: "Layanan perbaikan, jahit, kebersihan, servis",
+  },
 ];
+
+function CustomCategorySelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const selectedCategory = CATEGORIES.find((c) => c.value === value);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`w-full px-4 py-2.5 text-sm border rounded-xl flex items-center justify-between transition-all duration-200 text-left bg-gray-50/80 hover:bg-white ${
+          isOpen
+            ? "border-green-500 ring-2 ring-green-500/20 bg-white shadow-md"
+            : value
+            ? "border-green-400 bg-emerald-50/20 text-gray-900 font-medium"
+            : "border-gray-200 text-gray-400"
+        }`}
+      >
+        <div className="min-w-0 pr-2">
+          {selectedCategory ? (
+            <div className="truncate">
+              <span className="font-semibold text-gray-900 block truncate text-sm">
+                {selectedCategory.label}
+              </span>
+              <span className="text-[11px] text-gray-400 font-normal block truncate">
+                {selectedCategory.description}
+              </span>
+            </div>
+          ) : (
+            <span className="text-gray-400 font-normal">-- Pilih kategori usaha --</span>
+          )}
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${
+            isOpen ? "rotate-180 text-green-600" : ""
+          }`}
+        />
+      </button>
+
+      {/* Custom Menu Dropdown (Text Only) */}
+      {isOpen && (
+        <div className="absolute z-50 mt-2 w-full bg-white border border-gray-100 rounded-2xl shadow-xl shadow-gray-200/80 py-1.5 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="px-4 py-2 bg-gray-50/70 border-b border-gray-100 flex items-center justify-between">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+              Kategori Usaha Mitra
+            </span>
+            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
+              5 Pilihan
+            </span>
+          </div>
+          <div className="max-h-64 overflow-y-auto p-1.5 space-y-1">
+            {CATEGORIES.map((c) => {
+              const isSelected = c.value === value;
+              return (
+                <div
+                  key={c.value}
+                  onClick={() => {
+                    onChange(c.value);
+                    setIsOpen(false);
+                  }}
+                  className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-150 ${
+                    isSelected
+                      ? "bg-emerald-50 border border-emerald-200 shadow-sm"
+                      : "hover:bg-gray-50 border border-transparent"
+                  }`}
+                >
+                  <div className="min-w-0 pr-2">
+                    <p
+                      className={`text-sm font-semibold truncate ${
+                        isSelected ? "text-green-950" : "text-gray-900"
+                      }`}
+                    >
+                      {c.label}
+                    </p>
+                    <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">
+                      {c.description}
+                    </p>
+                  </div>
+                  {isSelected && (
+                    <Check className="w-4 h-4 text-green-600 flex-shrink-0 ml-2" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface BumdesProfile {
   id: number;
@@ -323,17 +453,10 @@ export default function DaftarMerchantPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Kategori Usaha <span className="text-red-500">*</span>
                 </label>
-                <select
-                  name="business_category"
+                <CustomCategorySelect
                   value={form.business_category}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
-                >
-                  <option value="">-- Pilih kategori usaha --</option>
-                  {CATEGORIES.map(c => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setForm((prev) => ({ ...prev, business_category: val }))}
+                />
                 <p className="text-xs text-gray-400 mt-1.5">Pilih kategori yang paling sesuai dengan jenis usaha kamu</p>
               </div>
               <div>
@@ -411,17 +534,43 @@ export default function DaftarMerchantPage() {
                 </span>
               </label>
 
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setStep(2)} className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50">
-                  ← Kembali
+              <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="w-full sm:flex-1 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Kembali
                 </button>
                 <button
+                  type="button"
                   onClick={handleSubmit}
-                  disabled={submitting}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                  style={{ background: "var(--primary)" }}
+                  disabled={!agreed || submitting}
+                  className={`w-full sm:flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-sm ${
+                    !agreed || submitting
+                      ? "bg-gray-200 text-gray-400 border border-gray-200 cursor-not-allowed shadow-none opacity-80"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 active:scale-[0.99]"
+                  }`}
                 >
-                  {submitting ? "Mengirim..." : <span className="inline-flex items-center gap-1.5">Kirim Pendaftaran <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg></span>}
+                  {submitting ? (
+                    <span className="inline-flex items-center gap-2">
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Mengirim...
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
+                      Kirim Pendaftaran
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </span>
+                  )}
                 </button>
               </div>
             </div>

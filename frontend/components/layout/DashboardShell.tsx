@@ -11,6 +11,7 @@ export type NavItem = {
   href: string
   label: string
   icon: React.ReactNode
+  badge?: number | string
   children?: NavItem[]
 }
 
@@ -42,6 +43,12 @@ function NavGroup({ item, accent, pathname }: { item: NavItem; accent: string; p
 
   useEffect(() => { if (active) setOpen(true) }, [active])
 
+  const groupBadge = (item.children ?? []).reduce((acc, c) => {
+    if (typeof c.badge === "number") return acc + c.badge
+    if (c.badge) return acc + 1
+    return acc
+  }, typeof item.badge === "number" ? item.badge : item.badge ? 1 : 0)
+
   return (
     <div>
       <button
@@ -53,6 +60,13 @@ function NavGroup({ item, accent, pathname }: { item: NavItem; accent: string; p
       >
         <span className={active ? 'text-white' : 'text-gray-400'}>{item.icon}</span>
         <span className="flex-1 text-left">{item.label}</span>
+        {groupBadge > 0 && (
+          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-all ${
+            active ? 'bg-white text-emerald-800' : 'bg-rose-500 text-white'
+          }`}>
+            {groupBadge}
+          </span>
+        )}
         <svg
           className={`w-3.5 h-3.5 transition-transform shrink-0 ${open ? 'rotate-90' : ''} ${active ? 'text-white/70' : 'text-gray-300'}`}
           fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -73,7 +87,12 @@ function NavGroup({ item, accent, pathname }: { item: NavItem; accent: string; p
                 }`}
               >
                 <span className={childActive ? 'text-indigo-600' : 'text-gray-400'}>{child.icon}</span>
-                {child.label}
+                <span className="flex-1 truncate text-left">{child.label}</span>
+                {!!child.badge && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-500 text-white shadow-sm">
+                    {child.badge}
+                  </span>
+                )}
               </Link>
             )
           })}
@@ -157,7 +176,14 @@ export default function DashboardShell({ children, navItems, roleLabel, accent, 
                 style={active ? { background: accent } : {}}
               >
                 <span className={active ? 'text-white' : 'text-gray-400'}>{item.icon}</span>
-                {item.label}
+                <span className="flex-1 text-left">{item.label}</span>
+                {!!item.badge && (
+                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-all ${
+                    active ? 'bg-white text-emerald-800' : 'bg-rose-500 text-white'
+                  }`}>
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             )
           })}

@@ -23,6 +23,27 @@ const statusBadge: Record<string, string> = {
 
 const tabs = ["Semua", "Aktif", "Draft", "Arsip"];
 
+function getProductMetrics(p: ProductData) {
+  const allOptions = (p.variants ?? []).flatMap(v => v.options ?? []);
+  const isVariant = p.has_variant && allOptions.length > 0;
+  let displayPrice: string;
+  let displayStock: number;
+
+  if (isVariant) {
+    const prices = allOptions.map(o => Number(o.price ?? o.price_adjustment ?? 0));
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    displayPrice = minPrice === maxPrice
+      ? `Rp ${minPrice.toLocaleString("id")}`
+      : `Rp ${minPrice.toLocaleString("id")} – ${maxPrice.toLocaleString("id")}`;
+    displayStock = allOptions.reduce((sum, o) => sum + (o.stock ?? 0), 0);
+  } else {
+    displayPrice = `Rp ${Number(p.price).toLocaleString("id")}`;
+    displayStock = p.stock;
+  }
+  return { displayPrice, displayStock, isVariant };
+}
+
 export default function ProdukPage() {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +110,7 @@ export default function ProdukPage() {
 
   return (
     <>
-    <div className="p-6 space-y-5">
+    <div className="p-4 sm:p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Produk Saya</h1>
@@ -97,17 +118,18 @@ export default function ProdukPage() {
         </div>
         <Link href="/seller/produk/tambah" className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90" style={{ background: "var(--primary)" }}>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          Tambah Produk
+          <span className="hidden sm:inline">Tambah Produk</span>
+          <span className="sm:hidden">Tambah</span>
         </Link>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-100">
+      <div className="flex gap-1 border-b border-gray-100 overflow-x-auto pb-0.5">
         {tabs.map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab ? "border-green-600 text-green-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+            className={`px-3.5 sm:px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab ? "border-green-600 text-green-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
           >
             {tab}
             <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
@@ -126,7 +148,7 @@ export default function ProdukPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
         {loading ? (
           <div className="text-center py-16 text-sm text-gray-400">Memuat produk...</div>
         ) : filtered.length === 0 ? (
@@ -134,19 +156,19 @@ export default function ProdukPage() {
             {products.length === 0 ? "Belum ada produk. Yuk tambah produk pertamamu!" : "Tidak ada produk yang sesuai filter."}
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[340px] sm:min-w-full">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-xs text-gray-500">
-                <th className="px-4 py-3 w-10">
+                <th className="px-2.5 sm:px-4 py-3 w-8 sm:w-10">
                   <input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? [] : filtered.map(p => p.id))} className="rounded" />
                 </th>
-                <th className="text-left px-4 py-3 font-medium">Produk</th>
+                <th className="text-left px-2 sm:px-4 py-3 font-medium">Produk</th>
                 <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Kategori</th>
-                <th className="text-right px-4 py-3 font-medium">Harga</th>
+                <th className="text-right px-2 sm:px-4 py-3 font-medium">Harga</th>
                 <th className="text-right px-4 py-3 font-medium hidden md:table-cell">Stok</th>
                 <th className="text-center px-4 py-3 font-medium hidden md:table-cell">Status</th>
                 <th className="text-center px-4 py-3 font-medium hidden md:table-cell">Aksi</th>
-                <th className="text-center px-4 py-3 font-medium md:hidden">Detail</th>
+                <th className="text-center px-2 sm:px-4 py-3 font-medium md:hidden">Detail</th>
               </tr>
             </thead>
             <tbody>
@@ -154,43 +176,28 @@ export default function ProdukPage() {
                 const imgUrl = getImageUrl(p);
                 const statusLabel = STATUS_MAP[p.status] ?? p.status;
                 const badgeClass = statusBadge[p.status] ?? "bg-gray-100 text-gray-500";
-
-                // Compute display price and stock for variant products
-                const allOptions = (p.variants ?? []).flatMap(v => v.options ?? []);
-                const isVariant = p.has_variant && allOptions.length > 0;
-                let displayPrice: string;
-                let displayStock: number;
-
-                if (isVariant) {
-                  const prices = allOptions.map(o => Number(o.price ?? o.price_adjustment ?? 0));
-                  const minPrice = Math.min(...prices);
-                  const maxPrice = Math.max(...prices);
-                  displayPrice = minPrice === maxPrice
-                    ? `Rp ${minPrice.toLocaleString("id")}`
-                    : `Rp ${minPrice.toLocaleString("id")} – ${maxPrice.toLocaleString("id")}`;
-                  displayStock = allOptions.reduce((sum, o) => sum + (o.stock ?? 0), 0);
-                } else {
-                  displayPrice = `Rp ${Number(p.price).toLocaleString("id")}`;
-                  displayStock = p.stock;
-                }
+                const { displayPrice, displayStock } = getProductMetrics(p);
 
                 return (
                   <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
-                    <td className="px-4 py-3">
+                    <td className="px-2.5 sm:px-4 py-3">
                       <input type="checkbox" checked={selected.includes(p.id)} onChange={() => toggleSelect(p.id)} className="rounded" />
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center">
+                    <td className="px-2 sm:px-4 py-3">
+                      <div className="flex items-center gap-2.5 sm:gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center">
                           {imgUrl ? (
                             <img src={imgUrl} alt={p.name} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = "none"; }} />
                           ) : (
                             <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                           )}
                         </div>
-                        <div>
+                        <div className="cursor-pointer md:cursor-default" onClick={() => setDetailProduct(p)}>
                           <p className="font-medium text-gray-900 text-xs line-clamp-1">{p.name}</p>
-                          <p className="text-gray-400 text-xs">{p.slug}</p>
+                          <p className="text-[11px] text-gray-500 mt-0.5 md:hidden">
+                            Stok: <strong className={displayStock === 0 ? "text-red-500" : "text-gray-700"}>{displayStock}</strong>
+                          </p>
+                          <p className="text-gray-400 text-xs hidden md:block">{p.slug}</p>
                         </div>
                       </div>
                     </td>
@@ -199,7 +206,7 @@ export default function ProdukPage() {
                         {p.category?.name ?? "-"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-xs font-semibold text-gray-900">
+                    <td className="px-2 sm:px-4 py-3 text-right text-xs font-semibold text-gray-900 whitespace-nowrap">
                       {displayPrice}
                     </td>
                     <td className="px-4 py-3 text-right text-xs hidden md:table-cell">
@@ -222,8 +229,8 @@ export default function ProdukPage() {
                         </button>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center md:hidden">
-                      <button onClick={() => setDetailProduct(p)} className="px-3 py-1.5 rounded-lg text-gray-600 bg-gray-100 hover:bg-gray-200 text-xs font-medium transition-colors">
+                    <td className="px-2 sm:px-4 py-3 text-center md:hidden">
+                      <button onClick={() => setDetailProduct(p)} className="px-2.5 py-1.5 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 text-xs font-semibold transition-colors whitespace-nowrap">
                         Detail
                       </button>
                     </td>
@@ -252,51 +259,71 @@ export default function ProdukPage() {
       onClose={() => setConfirmDeleteId(null)}
     />
 
-    {detailProduct && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-        <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-xl animate-in zoom-in-95 duration-200">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
-              {getImageUrl(detailProduct) ? (
-                <img src={getImageUrl(detailProduct)!} alt={detailProduct.name} className="w-full h-full object-cover" />
-              ) : (
-                <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-              )}
+    {detailProduct && (() => {
+      const { displayPrice, displayStock, isVariant } = getProductMetrics(detailProduct);
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                {getImageUrl(detailProduct) ? (
+                  <img src={getImageUrl(detailProduct)!} alt={detailProduct.name} className="w-full h-full object-cover" />
+                ) : (
+                  <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                )}
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm line-clamp-2 leading-snug">{detailProduct.name}</h3>
+                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{detailProduct.slug}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-gray-900 text-sm line-clamp-2 leading-snug">{detailProduct.name}</h3>
-              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{detailProduct.slug}</p>
+            
+            <div className="space-y-2.5 mb-5 bg-gray-50 p-3.5 rounded-xl border border-gray-100 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-medium">Kategori</span>
+                <span className="font-semibold text-gray-800">{detailProduct.category?.name ?? "-"}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-medium">Harga</span>
+                <span className="font-bold text-gray-900">{displayPrice}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-medium">Stok Produk</span>
+                <span className={`font-semibold ${displayStock === 0 ? "text-red-500" : "text-gray-900"}`}>
+                  {displayStock} {displayStock === 0 ? "(Habis)" : ""}
+                  {isVariant ? " (Total Variasi)" : ""}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-1 border-t border-gray-200/60">
+                <span className="text-gray-500 font-medium">Status</span>
+                <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusBadge[detailProduct.status] ?? "bg-gray-100 text-gray-500"}`}>
+                  {STATUS_MAP[detailProduct.status] ?? detailProduct.status}
+                </span>
+              </div>
             </div>
-          </div>
-          
-          <div className="mb-5 bg-gray-50 p-3 rounded-xl border border-gray-100">
-            <p className="text-[11px] text-gray-500 mb-1.5 uppercase font-semibold tracking-wider">Status Produk</p>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium inline-block ${statusBadge[detailProduct.status] ?? "bg-gray-100 text-gray-500"}`}>
-              {STATUS_MAP[detailProduct.status] ?? detailProduct.status}
-            </span>
-          </div>
-          
-          <div className="flex gap-2">
-            <Link href={`/seller/produk/${detailProduct.id}/edit`} className="flex-1 py-2 text-center text-sm font-semibold text-green-700 bg-green-50 rounded-xl hover:bg-green-100 transition-colors">
-              Edit
-            </Link>
-            <button 
-              onClick={() => {
-                setConfirmDeleteId(detailProduct.id);
-                setDetailProduct(null);
-              }} 
-              className="flex-1 py-2 text-center text-sm font-semibold text-red-700 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
-            >
-              Hapus
+            
+            <div className="flex gap-2">
+              <Link href={`/seller/produk/${detailProduct.id}/edit`} className="flex-1 py-2 text-center text-sm font-semibold text-green-700 bg-green-50 rounded-xl hover:bg-green-100 transition-colors">
+                Edit
+              </Link>
+              <button 
+                onClick={() => {
+                  setConfirmDeleteId(detailProduct.id);
+                  setDetailProduct(null);
+                }} 
+                className="flex-1 py-2 text-center text-sm font-semibold text-red-700 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+              >
+                Hapus
+              </button>
+            </div>
+            
+            <button onClick={() => setDetailProduct(null)} className="w-full mt-2 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+              Tutup
             </button>
           </div>
-          
-          <button onClick={() => setDetailProduct(null)} className="w-full mt-2 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-            Tutup
-          </button>
         </div>
-      </div>
-    )}
+      );
+    })()}
     </>
   );
 }

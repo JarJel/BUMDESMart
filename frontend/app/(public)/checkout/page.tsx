@@ -434,7 +434,33 @@ export default function CheckoutPage() {
       const res = await checkoutApi.confirm(payload);
 
       if (res.data?.success) {
-        const orders: { order_id: number; order_code: string; total: number }[] = res.data.data.orders;
+        const orders: {
+          order_id: number;
+          order_code: string;
+          total: number;
+          seller_phone?: string;
+          seller_shop_name?: string;
+        }[] = res.data.data.orders ?? [];
+
+        // Otomatisasi redirect ke WA Seller dengan pesan draft pesanan
+        orders.forEach((ord) => {
+          if (ord.seller_phone) {
+            let cleanPhone = ord.seller_phone.replace(/\D/g, "");
+            if (cleanPhone.startsWith("0")) cleanPhone = "62" + cleanPhone.slice(1);
+            if (cleanPhone) {
+              const text = encodeURIComponent(
+                `Halo ${ord.seller_shop_name || "Seller"}, saya telah membuat pesanan baru!\n\n` +
+                `*Kode Pesanan:* ${ord.order_code}\n` +
+                `*Total:* Rp ${Math.round(ord.total).toLocaleString("id-ID")}\n` +
+                `*Pengiriman:* ${deliveryType === "delivered" ? "Dikirim ke Alamat" : "Ambil Sendiri di Toko"}\n` +
+                `*Metode Pembayaran:* ${paymentMethod === "manual_umkm" ? "Transfer Bank / QRIS Direct" : "Midtrans"}\n\n` +
+                `Mohon segera diproses. Terima kasih!`
+              );
+              window.open(`https://wa.me/${cleanPhone}?text=${text}`, "_blank");
+            }
+          }
+        });
+
         const firstOrderId = orders[0]?.order_id;
         if (firstOrderId) {
           if (paymentMethod === "manual_umkm") {

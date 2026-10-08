@@ -112,7 +112,86 @@ const BANKS = [
 
 type Tab = "overview" | "transactions" | "disbursements" | "bank" | "umkm_accounts" | "umkm_transactions";
 
-/* ─── Page ───────────────────────────────────────────── */
+function CustomBankSelect({
+  value,
+  onChange,
+  options,
+  error,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  error?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`w-full px-3.5 py-2.5 text-sm border rounded-xl text-left font-medium transition-all hover:bg-white ${
+          isOpen
+            ? "border-green-500 ring-2 ring-green-500/20 bg-white shadow-sm"
+            : error
+            ? "border-red-300 bg-gray-50"
+            : "border-gray-200 hover:border-gray-300 bg-gray-50"
+        }`}
+      >
+        <span className={`block truncate ${value ? "text-gray-900 font-medium" : "text-gray-400"}`}>
+          {value || "Pilih bank..."}
+        </span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-gray-100 rounded-xl shadow-lg p-1.5 space-y-0.5 z-30 max-h-56 overflow-y-auto">
+          <button
+            type="button"
+            onClick={() => {
+              onChange("");
+              setIsOpen(false);
+            }}
+            className="w-full text-left px-3.5 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:bg-gray-50"
+          >
+            Pilih bank...
+          </button>
+          {options.map((b) => {
+            const isSelected = b === value;
+            return (
+              <button
+                key={b}
+                type="button"
+                onClick={() => {
+                  onChange(b);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-3.5 py-2 rounded-lg text-sm transition-colors ${
+                  isSelected
+                    ? "bg-green-50 text-green-700 font-semibold"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {b}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SaldoPage() {
   const toast = useToast();
 
@@ -705,14 +784,12 @@ export default function SaldoPage() {
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">Bank</label>
-            <select
+            <CustomBankSelect
               value={bankForm.channel_code}
-              onChange={e => setBankForm(f => ({ ...f, channel_code: e.target.value }))}
-              className={`w-full px-3.5 py-2.5 text-sm border rounded-xl focus:outline-none focus:border-green-400 bg-gray-50 ${bankErrors.channel_code ? "border-red-300" : "border-gray-200"}`}
-            >
-              <option value="">Pilih bank...</option>
-              {BANKS.map(b => <option key={b} value={b}>{b}</option>)}
-            </select>
+              onChange={(val) => setBankForm(f => ({ ...f, channel_code: val }))}
+              options={BANKS}
+              error={Boolean(bankErrors.channel_code)}
+            />
             {bankErrors.channel_code && <p className="text-xs text-red-500 mt-1">{bankErrors.channel_code}</p>}
           </div>
 

@@ -139,7 +139,7 @@ export default function VerifikasiPage() {
         </div>
         {pending > 0 && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-xl shrink-0 self-start sm:self-auto w-fit">
-            <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-yellow-400" />
             <span className="text-xs font-semibold text-yellow-700">{pending} menunggu</span>
           </div>
         )}
@@ -164,94 +164,140 @@ export default function VerifikasiPage() {
 
       {/* List */}
       {loading ? (
-        <div className="text-center py-16 text-sm text-gray-400">Memuat data...</div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center text-sm text-gray-400">
+          Memuat data...
+        </div>
       ) : list.length === 0 ? (
-        <div className="text-center py-16 text-sm text-gray-400">Tidak ada data mitra.</div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center text-sm text-gray-400">
+          Tidak ada data mitra.
+        </div>
       ) : (
-        <div className="space-y-3">
-          {list.map((u) => (
-            <div key={u.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {u.logo ? (
-                      <img src={getFileUrl(u.logo)} alt={u.shop_name} className="w-10 h-10 rounded-xl object-cover shrink-0 border border-gray-100" />
-                    ) : (
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
-                        style={{ background: "#2D6A4F" }}
-                      >
-                        {u.shop_name[0]}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-gray-600">
+              <thead className="bg-gray-50/70 border-b border-gray-100 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                <tr>
+                  <th scope="col" className="px-4 md:px-5 py-3.5">Nama Toko & Kategori</th>
+                  <th scope="col" className="hidden md:table-cell px-5 py-3.5">Pemilik & Kontak</th>
+                  <th scope="col" className="hidden md:table-cell px-5 py-3.5 whitespace-nowrap">Tanggal Daftar</th>
+                  <th scope="col" className="hidden md:table-cell px-5 py-3.5">Status</th>
+                  <th scope="col" className="px-4 md:px-5 py-3.5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {list.map((u) => (
+                  <tr key={u.id} className="hover:bg-gray-50/80 transition-colors">
+                    <td className="px-4 md:px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        {u.logo ? (
+                          <img
+                            src={getFileUrl(u.logo)}
+                            alt={u.shop_name}
+                            className="w-10 h-10 rounded-xl object-cover shrink-0 border border-gray-100"
+                          />
+                        ) : (
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm"
+                            style={{ background: "#2D6A4F" }}
+                          >
+                            {u.shop_name[0]}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{u.shop_name}</p>
+                            {/* Status badge on mobile */}
+                            <span className={`md:hidden px-2 py-0.5 rounded-full text-[10px] font-medium border ${STATUS_COLOR[u.status]}`}>
+                              {STATUS_LABEL[u.status]}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-400 truncate mt-0.5">{u.business_category ?? "Umum"}</p>
+                        </div>
                       </div>
-                    )}
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-gray-900">{u.shop_name}</p>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_COLOR[u.status]}`}>
+                    </td>
+                    <td className="hidden md:table-cell px-5 py-4 min-w-[180px]">
+                      <p className="text-xs font-semibold text-gray-800">{u.owner_name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{u.phone ?? "—"}</p>
+                      {u.email && <p className="text-[11px] text-gray-400 truncate">{u.email}</p>}
+                    </td>
+                    <td className="hidden md:table-cell px-5 py-4 text-xs text-gray-500 whitespace-nowrap">
+                      {formatDate(u.created_at)}
+                    </td>
+                    <td className="hidden md:table-cell px-5 py-4 min-w-[150px]">
+                      <div className="space-y-1">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border ${STATUS_COLOR[u.status]}`}>
                           {STATUS_LABEL[u.status]}
                         </span>
+                        {u.status === "rejected" && u.rejection_reason && (
+                          <p className="text-[11px] text-red-500 line-clamp-2 max-w-[200px]" title={u.rejection_reason}>
+                            Alasan: {u.rejection_reason}
+                          </p>
+                        )}
+                        {u.status === "active" && u.verified_at && (
+                          <p className="text-[11px] text-gray-400 block">
+                            Diverifikasi {formatDate(u.verified_at)}
+                          </p>
+                        )}
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">Pemilik: {u.owner_name}</p>
-                      <p className="text-xs text-gray-400">{u.phone} · {u.email}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">Daftar: {formatDate(u.created_at)}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <button
-                      onClick={() => openReview(u)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 text-green-700 hover:bg-green-50 transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      Tinjau Mitra {u.documents.length > 0 && `(${u.documents.length} dok)`}
-                    </button>
-
-                    {u.status === "pending" && (
-                      <div className="flex gap-2">
+                    </td>
+                    <td className="px-4 md:px-5 py-4 text-right whitespace-nowrap">
+                      {/* Desktop Action Buttons */}
+                      <div className="hidden md:inline-flex items-center justify-end gap-2">
                         <button
-                          onClick={() => handleVerify(u.id)}
-                          disabled={actionLoading === u.id}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
-                          style={{ background: "#2D6A4F" }}
+                          onClick={() => openReview(u)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 text-green-700 hover:bg-green-50 transition-colors"
                         >
-                          {actionLoading === u.id ? "..." : "Verifikasi"}
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          Tinjau Mitra {u.documents.length > 0 && `(${u.documents.length})`}
                         </button>
+
+                        {u.status === "pending" && u.documents.length > 0 && (
+                          <>
+                            <button
+                              onClick={() => handleVerify(u.id)}
+                              disabled={actionLoading === u.id}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50 transition-opacity"
+                              style={{ background: "#2D6A4F" }}
+                            >
+                              {actionLoading === u.id ? "..." : "Verifikasi"}
+                            </button>
+                            <button
+                              onClick={() => { setRejectTarget(u); setRejectReason(""); }}
+                              disabled={actionLoading === u.id}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                            >
+                              Tolak
+                            </button>
+                          </>
+                        )}
+                        {u.status === "rejected" && (
+                          <button
+                            onClick={() => handleVerify(u.id)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                          >
+                            Aktifkan
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Mobile Action Button (Detail) */}
+                      <div className="inline-flex md:hidden items-center justify-end">
                         <button
-                          onClick={() => { setRejectTarget(u); setRejectReason(""); }}
-                          disabled={actionLoading === u.id}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-50"
+                          onClick={() => openReview(u)}
+                          className="px-3 py-1.5 rounded-xl border border-gray-200 text-gray-700 bg-gray-50 hover:bg-white transition-colors text-xs font-semibold text-center"
+                          aria-label="Detail Mitra"
                         >
-                          Tolak
+                          Detail
                         </button>
                       </div>
-                    )}
-                    {u.status === "active" && (
-                      <span className="text-xs text-gray-400">
-                        Diverifikasi {u.verified_at ? formatDate(u.verified_at) : "-"}
-                      </span>
-                    )}
-                    {u.status === "rejected" && (
-                      <button
-                        onClick={() => handleVerify(u.id)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50"
-                      >
-                        Aktifkan
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {u.status === "rejected" && u.rejection_reason && (
-                  <div className="mt-3 px-3 py-2.5 bg-red-50 border border-red-100 rounded-xl">
-                    <p className="text-xs font-semibold text-red-700 mb-0.5">Alasan Penolakan:</p>
-                    <p className="text-xs text-red-600">{u.rejection_reason}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -455,20 +501,28 @@ export default function VerifikasiPage() {
             {/* Footer aksi */}
             {reviewTarget.status === "pending" && (
               <div className="px-5 py-4 border-t border-gray-100 flex gap-3 shrink-0">
-                <button
-                  onClick={() => { setRejectTarget(reviewTarget); setRejectReason(""); }}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
-                >
-                  Tolak Pendaftaran
-                </button>
-                <button
-                  onClick={() => handleVerify(reviewTarget.id)}
-                  disabled={actionLoading === reviewTarget.id}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
-                  style={{ background: "#2D6A4F" }}
-                >
-                  {actionLoading === reviewTarget.id ? "Memproses..." : "Verifikasi & Aktifkan"}
-                </button>
+                {reviewTarget.documents.length > 0 ? (
+                  <>
+                    <button
+                      onClick={() => { setRejectTarget(reviewTarget); setRejectReason(""); }}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      Tolak Pendaftaran
+                    </button>
+                    <button
+                      onClick={() => handleVerify(reviewTarget.id)}
+                      disabled={actionLoading === reviewTarget.id}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
+                      style={{ background: "#2D6A4F" }}
+                    >
+                      {actionLoading === reviewTarget.id ? "Memproses..." : "Verifikasi & Aktifkan"}
+                    </button>
+                  </>
+                ) : (
+                  <div className="w-full text-center py-2.5 px-3 bg-amber-50 border border-amber-200 rounded-xl text-xs font-medium text-amber-700">
+                    Mitra belum mengunggah dokumen. Tombol verifikasi akan muncul setelah dokumen diunggah.
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -509,6 +563,8 @@ export default function VerifikasiPage() {
           </div>
         </div>
       )}
+
+
     </div>
   );
 }

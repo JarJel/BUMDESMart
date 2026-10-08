@@ -79,10 +79,37 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
       markerRef.current = marker;
       setLoading(false);
 
-      // Tampilkan prompt ramah jika belum ada lokasi default
+      // Cek apakah lokasi default belum diset
       if (!defaultLat || !defaultLng) {
-        if (navigator.geolocation) {
-          setShowGpsPrompt(true);
+        if (typeof window !== "undefined" && navigator.geolocation) {
+          // Jika browser mendukung navigator.permissions, cek status izin lokasi
+          if (navigator.permissions && navigator.permissions.query) {
+            navigator.permissions
+              .query({ name: "geolocation" as any })
+              .then((result) => {
+                if (result.state === "granted") {
+                  // Izin lokasi sudah diberikan sebelumnya di browser, langsung fetch GPS tanpa pop-up modal
+                  requestGps(true);
+                } else if (result.state === "prompt") {
+                  // Hanya tampilkan pop-up modal jika belum pernah ditutup/di-dismiss pengguna
+                  const isDismissed = localStorage.getItem("gps_prompt_dismissed");
+                  if (!isDismissed) {
+                    setShowGpsPrompt(true);
+                  }
+                }
+              })
+              .catch(() => {
+                const isDismissed = localStorage.getItem("gps_prompt_dismissed");
+                if (!isDismissed) {
+                  setShowGpsPrompt(true);
+                }
+              });
+          } else {
+            const isDismissed = localStorage.getItem("gps_prompt_dismissed");
+            if (!isDismissed) {
+              setShowGpsPrompt(true);
+            }
+          }
         }
       }
     };
@@ -151,17 +178,24 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
     setSuggestions([]);
   };
 
-  const requestGps = () => {
+  const requestGps = (silent = false) => {
     if (!navigator.geolocation) {
       setShowGpsPrompt(false);
-      toast.warning(
-        "Perangkat kamu tidak mendukung GPS. Gunakan kotak pencarian di atas peta.",
-        "GPS Tidak Tersedia"
-      );
+      if (!silent) {
+        toast.warning(
+          "Perangkat kamu tidak mendukung GPS. Gunakan kotak pencarian di atas peta.",
+          "GPS Tidak Tersedia"
+        );
+      }
       return;
     }
+
     setGpsLoading(true);
     setShowGpsPrompt(false);
+    try {
+      localStorage.setItem("gps_prompt_dismissed", "true");
+    } catch {}
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -172,6 +206,8 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
       },
       (err) => {
         setGpsLoading(false);
+        if (silent) return; // tidak tampilkan toast error jika auto-fetch silent
+
         if (err.code === err.PERMISSION_DENIED) {
           toast.error(
             "Aktifkan izin lokasi di pengaturan browser, lalu coba lagi.",
@@ -193,8 +229,15 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
     );
   };
 
+  const dismissGpsPrompt = () => {
+    setShowGpsPrompt(false);
+    try {
+      localStorage.setItem("gps_prompt_dismissed", "true");
+    } catch {}
+  };
+
   const handleGps = () => {
-    setShowGpsPrompt(true);
+    requestGps(false);
   };
 
   return (
@@ -305,7 +348,7 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
             <div className="w-full flex gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => setShowGpsPrompt(false)}
+                onClick={dismissGpsPrompt}
                 className="flex-1 text-[11px] sm:text-xs font-medium text-gray-500 border border-gray-200 rounded-xl py-2 hover:bg-gray-50 active:bg-gray-100 transition-colors"
               >
                 Nanti Saja

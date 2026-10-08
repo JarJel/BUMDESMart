@@ -6,10 +6,11 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v
 export function getFileUrl(rawPath: string | null | undefined): string | null {
   if (!rawPath) return null;
   if (rawPath.startsWith("http") || rawPath.startsWith("data:")) return rawPath;
-  // Strip leading slash and optional "storage/" prefix (handles both DB-stored relative paths
-  // and full-path strings like "/storage/products/xxx.jpg")
   const clean = rawPath.replace(/^\//, "").replace(/^storage\//, "");
-  return `${API_URL}/files/${clean}`;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const isPrivateDoc = clean.startsWith("private/") || clean.startsWith("umkm-documents/");
+  const queryParam = isPrivateDoc && token ? `?token=${encodeURIComponent(token)}` : "";
+  return `${API_URL}/files/${clean}${queryParam}`;
 }
 
 export function getProductImgUrl(product: any): string | null {

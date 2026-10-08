@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api/axios";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -15,6 +15,75 @@ const CATEGORIES = [
   "Jasa",
   "Lainnya",
 ];
+
+function CustomDocCategorySelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const displayLabel = value === "" ? "Semua kategori usaha" : value;
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const options = [
+    { value: "", label: "Semua kategori usaha" },
+    ...CATEGORIES.map((c) => ({ value: c, label: c })),
+  ];
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`w-full px-3.5 py-2.5 text-sm border rounded-xl text-left font-medium transition-all bg-gray-50 hover:bg-white ${
+          isOpen
+            ? "border-green-500 ring-2 ring-green-500/20 bg-white shadow-sm text-gray-900"
+            : "border-gray-200 text-gray-900 hover:border-gray-300"
+        }`}
+      >
+        <span className="block truncate">{displayLabel}</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-gray-100 rounded-xl shadow-lg p-1.5 space-y-0.5 z-20 max-h-60 overflow-y-auto">
+          {options.map((opt) => {
+            const isSelected = value === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                  isSelected
+                    ? "bg-green-50 text-green-700 font-semibold"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface RequiredDocument {
   id: number;
@@ -210,16 +279,10 @@ export default function BumdesDokumenPage() {
 
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">Berlaku untuk kategori</label>
-              <select
+              <CustomDocCategorySelect
                 value={form.category}
-                onChange={e => setForm({ ...form, category: e.target.value })}
-                className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50"
-              >
-                <option value="">Semua kategori usaha</option>
-                {CATEGORIES.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+                onChange={(val) => setForm((prev) => ({ ...prev, category: val }))}
+              />
               <p className="text-xs text-gray-400 mt-1">
                 "Semua kategori" = dokumen ini muncul untuk seluruh mitra, apapun jenis usahanya.
               </p>

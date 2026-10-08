@@ -64,7 +64,13 @@ function LoginForm() {
           return;
         } catch {}
       }
-      const dest = redirectTo || getRoleHome(user.role);
+      let dest = redirectTo || getRoleHome(user.role);
+      if (user.role === 'umkm') {
+        const umkmStatus = user.umkm_profile?.status ?? user.status;
+        if (umkmStatus !== 'active') {
+          dest = '/seller/dokumen';
+        }
+      }
       router.replace(dest);
     } catch (err: any) {
       const msg =
@@ -100,7 +106,13 @@ function LoginForm() {
           return;
         } catch {}
       }
-      const dest = redirectTo || getRoleHome(user.role);
+      let dest = redirectTo || getRoleHome(user.role);
+      if (user.role === 'umkm') {
+        const umkmStatus = user.umkm_profile?.status ?? user.status;
+        if (umkmStatus !== 'active') {
+          dest = '/seller/dokumen';
+        }
+      }
       router.replace(dest);
     } catch (err: any) {
       const msg =

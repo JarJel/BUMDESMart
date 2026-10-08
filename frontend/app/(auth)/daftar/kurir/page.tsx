@@ -92,6 +92,82 @@ interface BumdesOption {
   city: string;
 }
 
+function CustomBankSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`w-full px-4 py-3 text-sm border rounded-xl text-left font-medium transition-all hover:bg-white ${
+          isOpen
+            ? "border-orange-500 ring-2 ring-orange-500/20 bg-white shadow-sm"
+            : "border-gray-200 hover:border-gray-300 bg-gray-50"
+        }`}
+      >
+        <span className={`block truncate ${value ? "text-gray-900 font-medium" : "text-gray-400"}`}>
+          {value || "-- Pilih Bank --"}
+        </span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-gray-100 rounded-xl shadow-lg p-1.5 space-y-0.5 z-30 max-h-56 overflow-y-auto">
+          <button
+            type="button"
+            onClick={() => {
+              onChange("");
+              setIsOpen(false);
+            }}
+            className="w-full text-left px-3.5 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:bg-gray-50"
+          >
+            -- Pilih Bank --
+          </button>
+          {options.map((b) => {
+            const isSelected = b === value;
+            return (
+              <button
+                key={b}
+                type="button"
+                onClick={() => {
+                  onChange(b);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-3.5 py-2 rounded-lg text-sm transition-colors ${
+                  isSelected
+                    ? "bg-orange-50 text-orange-700 font-semibold"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {b}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DaftarKurirPage() {
   const router = useRouter();
   const toast  = useToast();
@@ -605,13 +681,11 @@ export default function DaftarKurirPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-1.5">Nama Bank</label>
-                      <select value={form.bank_name} onChange={e => set("bank_name", e.target.value)}
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange-400 bg-gray-50">
-                        <option value="">-- Pilih Bank --</option>
-                        {["BRI", "BNI", "BCA", "Mandiri", "BSI", "BTN", "CIMB Niaga", "Permata", "Jenius/SMBC", "OVO", "GoPay", "Dana"].map(b => (
-                          <option key={b} value={b}>{b}</option>
-                        ))}
-                      </select>
+                      <CustomBankSelect
+                        value={form.bank_name}
+                        onChange={(val) => set("bank_name", val)}
+                        options={["BRI", "BNI", "BCA", "Mandiri", "BSI", "BTN", "CIMB Niaga", "Permata", "Jenius/SMBC", "OVO", "GoPay", "Dana"]}
+                      />
                     </div>
 
                     <div>

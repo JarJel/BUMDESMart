@@ -81,6 +81,105 @@ function buildCategoryOptions(tree: Category[], businessCategory: string | null)
   return result;
 }
 
+function CustomProductCategorySelect({
+  value,
+  onChange,
+  options,
+  error,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { id: number; name: string; group: string }[];
+  error?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const selectedOpt = options.find((o) => o.id.toString() === value.toString());
+  const displayLabel = selectedOpt
+    ? (selectedOpt.group ? `${selectedOpt.group} — ${selectedOpt.name}` : selectedOpt.name)
+    : "Pilih Kategori";
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const grouped = options.reduce<Record<string, typeof options>>((acc, c) => {
+    const g = c.group || "Lainnya";
+    (acc[g] = acc[g] || []).push(c);
+    return acc;
+  }, {});
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`w-full px-3.5 py-2.5 text-sm border rounded-xl text-left font-medium transition-all hover:bg-white ${
+          isOpen
+            ? "border-green-500 ring-2 ring-green-500/20 bg-white shadow-sm"
+            : error
+            ? "border-red-300 bg-white"
+            : "border-gray-200 hover:border-gray-300 bg-white"
+        }`}
+      >
+        <span className={`block truncate ${selectedOpt ? "text-gray-900 font-medium" : "text-gray-400"}`}>
+          {displayLabel}
+        </span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-gray-100 rounded-xl shadow-lg p-1.5 space-y-2 z-30 max-h-64 overflow-y-auto">
+          <button
+            type="button"
+            onClick={() => {
+              onChange("");
+              setIsOpen(false);
+            }}
+            className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-400 hover:bg-gray-50"
+          >
+            Pilih Kategori
+          </button>
+
+          {Object.entries(grouped).map(([group, opts]) => (
+            <div key={group} className="space-y-0.5">
+              <div className="px-3 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/70 rounded-md">
+                {group}
+              </div>
+              {opts.map((c) => {
+                const isSelected = value.toString() === c.id.toString();
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(c.id.toString());
+                      setIsOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 rounded-lg text-sm transition-colors ${
+                      isSelected
+                        ? "bg-green-50 text-green-700 font-semibold"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function EditProdukPage() {
   const router = useRouter();
   const params = useParams();
@@ -201,6 +300,8 @@ export default function EditProdukPage() {
       toast.error("Gagal memuat data produk.");
     }).finally(() => setLoading(false));
   }, [id]);
+
+  const categoryOptions = buildCategoryOptions(categoryTree, businessCategory);
 
   const setField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(prev => ({ ...prev, [field]: e.target.value }));
@@ -404,21 +505,12 @@ export default function EditProdukPage() {
 
             <div>
               <label className="text-xs font-medium text-gray-700 mb-1.5 block">Kategori <span className="text-red-500">*</span></label>
-              <select value={form.category_id} onChange={setField("category_id")}
-                className={`w-full text-sm border rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:border-green-400 ${errors.category_id ? "border-red-300" : "border-gray-200"}`}>
-                <option value="">Pilih Kategori</option>
-                {Object.entries(
-                  buildCategoryOptions(categoryTree, businessCategory).reduce<Record<string, { id: number; name: string; group: string }[]>>((acc, c) => {
-                    const g = c.group || "Lainnya";
-                    (acc[g] = acc[g] || []).push(c);
-                    return acc;
-                  }, {})
-                ).map(([group, opts]) => (
-                  <optgroup key={group} label={group}>
-                    {opts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </optgroup>
-                ))}
-              </select>
+              <CustomProductCategorySelect
+                value={form.category_id}
+                onChange={(val) => setForm(prev => ({ ...prev, category_id: val }))}
+                options={categoryOptions}
+                error={errors.category_id}
+              />
               {errors.category_id && <p className="text-xs text-red-500 mt-1">{errors.category_id}</p>}
             </div>
 

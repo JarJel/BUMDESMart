@@ -789,10 +789,13 @@ class CheckoutController extends Controller
                     ]);
                 }
 
+                $sellerPhone = $umkmForFee->phone ?? $umkmForFee->user?->phone ?? '';
                 $createdOrders[] = [
-                    'order_id'   => $order->id,
-                    'order_code' => $order->order_code,
-                    'total'      => $order->total,
+                    'order_id'         => $order->id,
+                    'order_code'       => $order->order_code,
+                    'total'            => $order->total,
+                    'seller_phone'     => $sellerPhone,
+                    'seller_shop_name' => $umkmForFee->shop_name ?? '',
                 ];
             }
 

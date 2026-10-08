@@ -164,6 +164,84 @@ function MediaUpload({
   );
 }
 
+function CustomBankSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { code: string; name: string }[];
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selectedOpt = options.find((o) => o.code === value);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`w-full px-3.5 py-2.5 text-sm border rounded-xl text-left font-medium transition-all hover:bg-white ${
+          isOpen
+            ? "border-green-500 ring-2 ring-green-500/20 bg-white shadow-sm"
+            : "border-gray-200 hover:border-gray-300 bg-white"
+        }`}
+      >
+        <span className={`block truncate ${selectedOpt ? "text-gray-900 font-medium" : "text-gray-400"}`}>
+          {selectedOpt ? selectedOpt.name : "Pilih Bank..."}
+        </span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-gray-100 rounded-xl shadow-lg p-1.5 space-y-0.5 z-30 max-h-56 overflow-y-auto">
+          <button
+            type="button"
+            onClick={() => {
+              onChange("");
+              setIsOpen(false);
+            }}
+            className="w-full text-left px-3.5 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:bg-gray-50"
+          >
+            Pilih Bank...
+          </button>
+          {options.map((b) => {
+            const isSelected = b.code === value;
+            return (
+              <button
+                key={b.code}
+                type="button"
+                onClick={() => {
+                  onChange(b.code);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-3.5 py-2 rounded-lg text-sm transition-colors ${
+                  isSelected
+                    ? "bg-green-50 text-green-700 font-semibold"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {b.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PengaturanPage() {
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
@@ -307,7 +385,6 @@ export default function PengaturanPage() {
     try {
       const payload: Partial<ProfileForm> = { ...form };
       if (umkmStatus?.status === "active") {
-        delete payload.shop_name;
         delete payload.business_category;
       }
       await api.put("/profile", payload);
@@ -501,14 +578,11 @@ export default function PengaturanPage() {
               {showAddBankForm && (
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <select
+                    <CustomBankSelect
                       value={bankForm.channel_code}
-                      onChange={e => setBankForm(f => ({ ...f, channel_code: e.target.value, account_number: "" }))}
-                      className="px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-white"
-                    >
-                      <option value="" disabled>Pilih Bank...</option>
-                      {BANK_OPTIONS.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
-                    </select>
+                      onChange={(code) => setBankForm(f => ({ ...f, channel_code: code, account_number: "" }))}
+                      options={BANK_OPTIONS}
+                    />
                     <input
                       type="text"
                       placeholder="Nomor rekening"
@@ -670,21 +744,13 @@ export default function PengaturanPage() {
         <h2 className="text-sm font-semibold text-gray-900 border-b border-gray-50 pb-3">Informasi Toko</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Nama Toko — terkunci setelah aktif */}
+          {/* Nama Toko */}
           <div>
             <label className="text-xs font-medium text-gray-700 mb-1.5 block">
               Nama Toko <span className="text-red-400">*</span>
             </label>
-            {umkmStatus?.status === "active" ? (
-              <div>
-                <input value={form.shop_name} readOnly
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-gray-500 cursor-not-allowed" />
-                <p className="text-[11px] text-amber-600 mt-1">Nama toko terkunci setelah verifikasi. Hubungi admin BUMDes untuk mengubahnya.</p>
-              </div>
-            ) : (
-              <input value={form.shop_name} onChange={set("shop_name")} placeholder="Nama toko kamu"
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400" />
-            )}
+            <input value={form.shop_name} onChange={set("shop_name")} placeholder="Nama toko kamu"
+              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400" />
           </div>
 
           {[

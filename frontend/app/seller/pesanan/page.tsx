@@ -236,7 +236,7 @@ function OrderDrawer({
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Produk Dipesan</p>
             <div className="space-y-2">
-              {order.items.map(item => (
+              {(order.items || []).map(item => (
                 <div key={item.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
                   <div>
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -627,7 +627,7 @@ export default function PesananPage() {
   const handleUpdateStatus = async (id: number, status: string, trackingNumber?: string) => {
     setActioning(id);
     try {
-      await api.patch(`/seller/orders/${id}/status`, {
+      const res = await api.patch(`/seller/orders/${id}/status`, {
         status,
         ...(trackingNumber ? { tracking_number: trackingNumber } : {}),
       });
@@ -711,7 +711,7 @@ export default function PesananPage() {
         ) : (
           <div className="divide-y divide-gray-50">
             {filtered.map(o => {
-              const produkLabel = o.items.map(i => {
+              const produkLabel = (o.items || []).map(i => {
                 const varText = i.variant_option ? ` (${i.variant_option.value})` : "";
                 return `${i.product_name || i.product?.name}${varText} ×${i.quantity}`;
               }).join(", ");
@@ -736,7 +736,7 @@ export default function PesananPage() {
                           {STATUS_LABEL[o.status] ?? o.status}
                         </span>
                         {/* Badge PO */}
-                        {o.items.some(i => i.product?.is_pre_order) && (
+                        {(o.items || []).some(i => i.product?.is_pre_order) && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 font-medium">
                             Pre-Order
                           </span>

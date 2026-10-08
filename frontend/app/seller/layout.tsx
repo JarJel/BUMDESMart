@@ -171,10 +171,10 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
   const isActive = profile?.status === "active";
   const isAllowed = ALLOWED_WHEN_INACTIVE.some(p => pathname.startsWith(p));
 
-  // Kalau belum aktif dan coba akses halaman selain pengaturan → redirect
+  // Kalau belum aktif dan coba akses halaman selain yang diizinkan (pengaturan & dokumen) → redirect ke /seller/dokumen
   useEffect(() => {
     if (!loadingProfile && profile && !isActive && !isAllowed) {
-      router.replace("/seller/pengaturan");
+      router.replace("/seller/dokumen");
     }
   }, [loadingProfile, profile, isActive, isAllowed, pathname]);
 

@@ -293,17 +293,21 @@ export default function DetailPesananPage() {
   const hasPO       = (order.items ?? []).some((i: any) => Boolean(i.product?.is_pre_order) || i.product?.is_pre_order == 1);
   const maxPODays   = Math.max(0, ...(order.items ?? []).map((i: any) => Number(i.product?.pre_order_days || 0)));
 
-  const sellerPhoneRaw = order?.umkm_profile?.phone || order?.umkm_profile?.no_hp || "";
+  const sellerPhoneRaw = order?.umkm_profile?.phone || order?.umkm_profile?.no_hp || order?.umkm_profile?.user?.phone || "";
   let sellerPhoneFormatted = sellerPhoneRaw.replace(/\D/g, "");
   if (sellerPhoneFormatted.startsWith("0")) sellerPhoneFormatted = "62" + sellerPhoneFormatted.slice(1);
 
-  const poWaText = encodeURIComponent(
-    `Halo ${order?.umkm_profile?.shop_name || "Seller"}, saya ingin konfirmasi pesanan Pre-Order #${order?.order_code}.\n` +
-    `Total: ${formatRp(Number(order?.total || 0))}\n` +
-    `Status: ${order?.payment?.status === "paid" ? "Sudah Terverifikasi Lunas" : order?.payment?.proof_of_payment ? "Sudah Upload Bukti Transfer" : "Belum Bayar"}\n` +
-    `Mohon diproses untuk pengerjaan Pre-Order. Terima kasih!`
+  const itemListSummary = (order?.items ?? []).map((i: any) => `• ${i.product_name} (${i.quantity}x)`).join("\n");
+  const orderWaText = encodeURIComponent(
+    `Halo ${order?.umkm_profile?.shop_name || "Seller"}, saya ingin konfirmasi pesanan #${order?.order_code}.\n\n` +
+    `*Total:* ${formatRp(Number(order?.total || 0))}\n` +
+    `*Status:* ${order?.payment?.status === "paid" ? "Sudah Terverifikasi Lunas" : order?.payment?.proof_of_payment ? "Sudah Upload Bukti Transfer" : "Belum Bayar"}\n` +
+    `*Pengiriman:* ${order?.delivery_type === "delivered" ? "Dikirim ke Alamat" : "Ambil Di Toko"}\n\n` +
+    `*Produk:*\n${itemListSummary}\n\n` +
+    `Mohon diproses. Terima kasih!`
   );
-  const poWaUrl = sellerPhoneFormatted ? `https://wa.me/${sellerPhoneFormatted}?text=${poWaText}` : null;
+  const sellerWaUrl = sellerPhoneFormatted ? `https://wa.me/${sellerPhoneFormatted}?text=${orderWaText}` : null;
+  const poWaUrl = sellerWaUrl;
 
   const steps = stepsBase.map(s => ({
     ...s,
@@ -326,6 +330,18 @@ export default function DetailPesananPage() {
             <h1 className="text-base font-bold text-gray-900">Detail Pesanan</h1>
             <p className="text-xs text-gray-400">{order.order_code}</p>
           </div>
+          {sellerWaUrl && (
+            <a
+              href={sellerWaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors shadow-sm"
+              title="Chat Penjual di WhatsApp"
+            >
+              <WhatsappIcon className="w-3.5 h-3.5 text-emerald-600" />
+              Chat Seller
+            </a>
+          )}
           <span className="text-xs font-semibold px-3 py-1 rounded-full shrink-0"
             style={{ background: badge.bg, color: badge.text }}>
             {badge.label}
@@ -909,13 +925,13 @@ export default function DetailPesananPage() {
               Bayar Sekarang (Midtrans)
             </Link>
           )}
-          {order.status === "delivered" && (
+          {(order.status === "delivered" || order.status === "completed") && (
             <button
               onClick={openReviewModal}
               className="w-full py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90"
-              style={{ background: isReviewed ? "#6B7280" : "var(--primary)" }}
+              style={{ background: isReviewed ? "#4B5563" : "var(--primary)" }}
             >
-              {isReviewed ? "Lihat / Edit Ulasan" : "Beri Ulasan"}
+              {isReviewed ? "Lihat Ulasan Saya" : "Beri Ulasan"}
             </button>
           )}
           <Link href="/pesanan"
@@ -937,8 +953,11 @@ export default function DetailPesananPage() {
             onClick={e => { if (e.target === e.currentTarget) setShowReview(false); }}
           >
             <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
-              <div className="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl">
-                <p className="text-base font-bold text-gray-900">Beri Ulasan Pesanan</p>
+              <div className="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
+                <div>
+                  <p className="text-base font-bold text-gray-900">{isReviewed ? "Ulasan Saya" : "Beri Ulasan Pesanan"}</p>
+                  {isReviewed && <p className="text-xs text-amber-600 font-medium">Ulasan telah dikirim dan tidak dapat diubah</p>}
+                </div>
                 <button onClick={() => setShowReview(false)} className="text-gray-400 hover:text-gray-700">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -947,24 +966,33 @@ export default function DetailPesananPage() {
               </div>
 
               <div className="p-5 space-y-6">
+                {isReviewed && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-3.5 py-2.5 rounded-xl font-medium">
+                    Ulasan yang telah dikirim bersifat permanen dan tidak dapat diubah kembali.
+                  </div>
+                )}
+
                 {/* 1. Ulasan Toko */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <svg className="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
-                    <p className="text-sm font-bold text-gray-800">Bagaimana kualitas pelayanan {shopName}?</p>
+                    <p className="text-sm font-bold text-gray-800">Kualitas pelayanan {shopName}</p>
                   </div>
-                  <StarRating
-                    value={shopRating}
-                    onChange={setShopRating}
-                  />
+                  <div className={isReviewed ? "pointer-events-none opacity-90" : ""}>
+                    <StarRating
+                      value={shopRating}
+                      onChange={setShopRating}
+                    />
+                  </div>
                   <textarea
                     value={shopComment}
+                    readOnly={isReviewed}
                     onChange={e => setShopComment(e.target.value)}
                     placeholder={`Bagikan ulasanmu untuk toko ${shopName}... (opsional)`}
                     rows={3}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50 resize-none"
+                    className={`w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none bg-gray-50 resize-none ${isReviewed ? "text-gray-700 font-medium cursor-not-allowed" : "focus:border-green-400"}`}
                   />
                 </div>
 
@@ -975,18 +1003,21 @@ export default function DetailPesananPage() {
                       <svg className="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
                       </svg>
-                      <p className="text-sm font-bold text-gray-800">Bagaimana pengiriman kurir ({courierName})?</p>
+                      <p className="text-sm font-bold text-gray-800">Pengiriman kurir ({courierName})</p>
                     </div>
-                    <StarRating
-                      value={courierRating}
-                      onChange={setCourierRating}
-                    />
+                    <div className={isReviewed ? "pointer-events-none opacity-90" : ""}>
+                      <StarRating
+                        value={courierRating}
+                        onChange={setCourierRating}
+                      />
+                    </div>
                     <textarea
                       value={courierComment}
+                      readOnly={isReviewed}
                       onChange={e => setCourierComment(e.target.value)}
                       placeholder={`Bagikan ulasanmu untuk performa pengiriman ${courierName}... (opsional)`}
                       rows={3}
-                      className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 bg-gray-50 resize-none"
+                      className={`w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none bg-gray-50 resize-none ${isReviewed ? "text-gray-700 font-medium cursor-not-allowed" : "focus:border-blue-400"}`}
                     />
                   </div>
                 )}
@@ -1007,36 +1038,52 @@ export default function DetailPesananPage() {
                     </div>
                     <span className="text-sm font-medium text-gray-900">{order.driver.name}</span>
                   </div>
-                  <StarRating value={driverReviewForm.rating} onChange={r => setDriverReviewForm(f => ({ ...f, rating: r }))} />
+                  <div className={driverReview ? "pointer-events-none opacity-90" : ""}>
+                    <StarRating value={driverReviewForm.rating} onChange={r => setDriverReviewForm(f => ({ ...f, rating: r }))} />
+                  </div>
                   <textarea
                     value={driverReviewForm.comment}
+                    readOnly={Boolean(driverReview)}
                     onChange={e => setDriverReviewForm(f => ({ ...f, comment: e.target.value }))}
                     placeholder="Bagaimana pelayanan kurir ini? (opsional)"
                     rows={2}
-                    className="w-full mt-3 px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400 bg-gray-50 resize-none"
+                    className={`w-full mt-3 px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none bg-gray-50 resize-none ${driverReview ? "text-gray-700 font-medium cursor-not-allowed" : "focus:border-green-400"}`}
                   />
-                  <button
-                    onClick={handleSubmitDriverReview}
-                    disabled={submittingDriverReview}
-                    className="w-full mt-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                    style={{ background: driverReview ? "#6B7280" : "var(--primary)" }}
-                  >
-                    {submittingDriverReview ? "Mengirim..." : driverReview ? "Perbarui Ulasan Kurir" : "Kirim Ulasan Kurir"}
-                  </button>
+                  {!driverReview && (
+                    <button
+                      onClick={handleSubmitDriverReview}
+                      disabled={submittingDriverReview}
+                      className="w-full mt-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                      style={{ background: "var(--primary)" }}
+                    >
+                      {submittingDriverReview ? "Mengirim..." : "Kirim Ulasan Kurir"}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
 
             <div className="p-5 border-t border-gray-100 flex gap-3 sticky bottom-0 bg-white rounded-b-2xl">
-              <button onClick={() => setShowReview(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50">
-                Batal
-              </button>
-              <button onClick={handleSubmitReviews} disabled={submittingReview}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                style={{ background: "var(--primary)" }}>
-                {submittingReview ? "Mengirim..." : "Kirim Ulasan Produk"}
-              </button>
+              {isReviewed ? (
+                <button
+                  onClick={() => setShowReview(false)}
+                  className="w-full py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50"
+                >
+                  Tutup
+                </button>
+              ) : (
+                <>
+                  <button onClick={() => setShowReview(false)}
+                    className="flex-1 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50">
+                    Batal
+                  </button>
+                  <button onClick={handleSubmitReviews} disabled={submittingReview}
+                    className="flex-1 py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                    style={{ background: "var(--primary)" }}>
+                    {submittingReview ? "Mengirim..." : "Kirim Ulasan Produk"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

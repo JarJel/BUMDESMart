@@ -19,8 +19,19 @@ class ReviewController extends Controller
 
         $order = Order::with('items')
             ->where('customer_id', $customerId)
-            ->where('status', 'delivered')
+            ->whereIn('status', ['delivered', 'completed'])
             ->findOrFail($orderId);
+
+        // Cek jika ulasan produk sudah pernah dikirim
+        $existingReview = ProductReview::where('order_id', $orderId)
+            ->where('customer_id', $customerId)
+            ->exists();
+
+        if ($existingReview) {
+            return response()->json([
+                'message' => 'Ulasan untuk pesanan ini sudah dikirim dan tidak dapat diubah lagi.'
+            ], 422);
+        }
 
         $validator = Validator::make($request->all(), [
             'reviews'              => 'required|array|min:1',
@@ -106,6 +117,16 @@ class ReviewController extends Controller
 
         if (!$order->driver_id) {
             return response()->json(['message' => 'Pesanan ini tidak memiliki kurir.'], 422);
+        }
+
+        $existingDriverReview = DriverReview::where('order_id', $orderId)
+            ->where('customer_id', $customer->id)
+            ->exists();
+
+        if ($existingDriverReview) {
+            return response()->json([
+                'message' => 'Ulasan kurir untuk pesanan ini sudah dikirim dan tidak dapat diubah lagi.'
+            ], 422);
         }
 
         $driverProfile = DriverProfile::where('user_id', $order->driver_id)->first();
