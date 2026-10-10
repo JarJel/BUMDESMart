@@ -80,22 +80,42 @@ class OpenWAService
             }
             $http = Http::withHeaders($headers)->withoutVerifying()->timeout(5);
 
-            $list = $http->get("{$baseUrl}/api/sessions");
-            if ($list->successful()) {
-                foreach ((array) $list->json() as $session) {
+            // 1. Cari session dengan nama spesifik
+            $list = $http->get("{$baseUrl}/api/sessions", ['name' => $name]);
+            if ($list->successful() && is_array($list->json())) {
+                foreach ($list->json() as $session) {
                     if (($session['name'] ?? null) === $name || ($session['id'] ?? null) === $name) {
-                        $id = $session['id'] ?? $name;
-                        Cache::put($cacheKey, $id, 3600);
-                        return $id;
+                        $id = $session['id'] ?? null;
+                        if ($id) {
+                            Cache::put($cacheKey, $id, 3600);
+                            return $id;
+                        }
                     }
                 }
             }
 
+            // 2. Fallback: Cari dari seluruh daftar session
+            $all = $http->get("{$baseUrl}/api/sessions");
+            if ($all->successful() && is_array($all->json())) {
+                foreach ($all->json() as $session) {
+                    if (($session['name'] ?? null) === $name || ($session['id'] ?? null) === $name) {
+                        $id = $session['id'] ?? null;
+                        if ($id) {
+                            Cache::put($cacheKey, $id, 3600);
+                            return $id;
+                        }
+                    }
+                }
+            }
+
+            // 3. Buat session baru jika belum ada
             $created = $http->post("{$baseUrl}/api/sessions", ['name' => $name]);
             if ($created->successful()) {
-                $id = $created->json('id') ?? $name;
-                Cache::put($cacheKey, $id, 3600);
-                return $id;
+                $id = $created->json('id') ?? null;
+                if ($id) {
+                    Cache::put($cacheKey, $id, 3600);
+                    return $id;
+                }
             }
 
             Log::warning('OpenWA gagal resolve/buat session: ' . $created->body());
