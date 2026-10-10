@@ -33,7 +33,11 @@ class WhatsappAdminController extends Controller
         try {
             $session = $this->sessionId();
             if (!$session) {
-                return response()->json(['connected' => false, 'status' => 'error', 'error' => 'Gagal resolve session OpenWA.']);
+                return response()->json([
+                    'connected' => false,
+                    'status'    => 'error',
+                    'error'     => 'Gagal resolve session OpenWA.',
+                ]);
             }
             $res = $this->openwaHttp()->get("/api/sessions/{$session}");
 
@@ -50,8 +54,13 @@ class WhatsappAdminController extends Controller
                 'name'      => $data['pushName'] ?? $data['name'] ?? null,
                 'phone'     => $data['phone']  ?? null,
             ]);
-        } catch (\Exception $e) {
-            return response()->json(['connected' => false, 'status' => 'error', 'error' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            $baseUrl = config('services.openwa.url', 'http://localhost:2785');
+            return response()->json([
+                'connected' => false,
+                'status'    => 'OFFLINE',
+                'error'     => "Server OpenWA belum aktif di {$baseUrl}. Silakan jalankan OpenWA terlebih dahulu.",
+            ]);
         }
     }
 
@@ -64,29 +73,52 @@ class WhatsappAdminController extends Controller
                 return response()->json(['error' => 'Gagal resolve session OpenWA.'], 500);
             }
 
-            // Cek status session — start hanya jika belum qr_ready/connected
+            // Cek status session — restart jika failed/stopped, start jika lum di-start
             $statusRes = $this->openwaHttp()->timeout(10)->get("/api/sessions/{$session}");
-            $status    = $statusRes->json('status') ?? '';
+            $status    = strtolower($statusRes->json('status') ?? '');
 
-            if (!in_array(strtolower($status), ['qr_ready', 'connected', 'ready'])) {
-                $this->openwaHttp()->timeout(60)->post("/api/sessions/{$session}/start");
-                // Tunggu QR generate
-                sleep(5);
-            }
-
-            // Retry ambil QR sampai 5x
-            $qr = null;
-            for ($i = 0; $i < 5; $i++) {
-                $res  = $this->openwaHttp()->timeout(15)->get("/api/sessions/{$session}/qr");
-                $data = $res->json();
-                $qr   = $data['qrCode'] ?? $data['qr'] ?? $data['data'] ?? null;
-                if ($qr) break;
+            if (in_array($status, ['failed', 'stopped'])) {
+                $this->openwaHttp()->timeout(10)->post("/api/sessions/{$session}/stop");
+                sleep(1);
+                $this->openwaHttp()->timeout(30)->post("/api/sessions/{$session}/start");
+                sleep(3);
+            } else if (!in_array($status, ['qr_ready', 'connected', 'ready'])) {
+                $this->openwaHttp()->timeout(30)->post("/api/sessions/{$session}/start");
                 sleep(3);
             }
 
+            // Retry ambil QR sampai 10x (20 detik max)
+            $qr = null;
+            for ($i = 0; $i < 10; $i++) {
+                $res  = $this->openwaHttp()->timeout(10)->get("/api/sessions/{$session}/qr");
+                $data = $res->json();
+                $qr   = $data['qrCode'] ?? $data['qr'] ?? $data['data'] ?? null;
+                if ($qr) break;
+                sleep(2);
+            }
+
+            if ($qr && !str_starts_with($qr, 'data:image') && !str_starts_with($qr, 'http')) {
+                if (base64_encode(base64_decode($qr, true)) === $qr) {
+                    $qr = 'data:image/png;base64,' . $qr;
+                } else {
+                    $qr = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($qr);
+                }
+            }
+
+            if (!$qr) {
+                return response()->json([
+                    'qr' => null,
+                    'error' => "QR Code tidak tersedia. Pastikan session WhatsApp tidak sedang terhubung.",
+                ]);
+            }
+
             return response()->json(['qr' => $qr, 'timeout' => 60]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            $baseUrl = config('services.openwa.url', 'http://localhost:2785');
+            return response()->json([
+                'qr' => null,
+                'error' => "Gagal mengambil QR. Server OpenWA belum aktif di {$baseUrl}. Silakan jalankan OpenWA terlebih dahulu.",
+            ]);
         }
     }
 
@@ -114,8 +146,9 @@ class WhatsappAdminController extends Controller
             $session = $this->sessionId();
             $this->openwaHttp()->post("/api/sessions/{$session}/stop");
             return response()->json(['message' => 'Session diputus.']);
-        } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            $baseUrl = config('services.openwa.url', 'http://localhost:2785');
+            return response()->json(['message' => "Server OpenWA belum aktif di {$baseUrl}."], 400);
         }
     }
 
@@ -128,8 +161,9 @@ class WhatsappAdminController extends Controller
             sleep(2);
             $this->openwaHttp()->post("/api/sessions/{$session}/start");
             return response()->json(['message' => 'Session direstart.']);
-        } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            $baseUrl = config('services.openwa.url', 'http://localhost:2785');
+            return response()->json(['message' => "Server OpenWA belum aktif di {$baseUrl}."], 400);
         }
     }
 }

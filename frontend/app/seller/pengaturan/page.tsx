@@ -248,6 +248,7 @@ export default function PengaturanPage() {
   const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [passForm, setPassForm] = useState({ current_password: "", new_password: "", new_password_confirmation: "" });
+  const [showPass, setShowPass] = useState<Record<string, boolean>>({});
   const [savingPass, setSavingPass] = useState(false);
   const [umkmStatus, setUmkmStatus] = useState<UmkmStatus | null>(null);
   const [reapplying, setReapplying] = useState(false);
@@ -869,15 +870,39 @@ export default function PengaturanPage() {
             { label: "Password Lama", field: "current_password" },
             { label: "Password Baru", field: "new_password" },
             { label: "Konfirmasi Password Baru", field: "new_password_confirmation" },
-          ].map(({ label, field }) => (
-            <div key={field}>
-              <label className="text-xs font-medium text-gray-700 mb-1.5 block">{label}</label>
-              <input type="password" value={passForm[field as keyof typeof passForm]}
-                onChange={e => setPassForm(prev => ({ ...prev, [field]: e.target.value }))}
-                placeholder="••••••••"
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-green-400" />
-            </div>
-          ))}
+          ].map(({ label, field }) => {
+            const isVisible = Boolean(showPass[field]);
+            return (
+              <div key={field}>
+                <label className="text-xs font-medium text-gray-700 mb-1.5 block">{label}</label>
+                <div className="relative">
+                  <input
+                    type={isVisible ? "text" : "password"}
+                    value={passForm[field as keyof typeof passForm]}
+                    onChange={e => setPassForm(prev => ({ ...prev, [field]: e.target.value }))}
+                    placeholder="••••••••"
+                    className="w-full text-sm border border-gray-200 rounded-xl pl-3 pr-10 py-2 focus:outline-none focus:border-green-400 [&::-ms-reveal]:hidden [&::-webkit-contacts-auto-fill-button]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(prev => ({ ...prev, [field]: !prev[field] }))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    title={isVisible ? "Sembunyikan password" : "Tampilkan password"}
+                  >
+                    {isVisible ? (
+                      <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-4-8a9.953 9.953 0 014 0M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
         <button onClick={handleSavePass} disabled={savingPass}
           className="px-5 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 disabled:opacity-50"

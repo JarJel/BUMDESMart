@@ -17,10 +17,14 @@ interface LogItem { id: number; attempt: number; status: "sent" | "failed"; erro
 /* ─── Helpers ─── */
 const CONN_BADGE: Record<string, { bg: string; text: string; label: string }> = {
   CONNECTED:    { bg: "#DCFCE7", text: "#15803D", label: "Terhubung" },
+  ready:        { bg: "#DCFCE7", text: "#15803D", label: "Terhubung" },
+  created:      { bg: "#DBEAFE", text: "#1D4ED8", label: "Session Siap" },
   SCAN_QR_CODE: { bg: "#FEF9C3", text: "#A16207", label: "Menunggu Scan QR" },
   qr_ready:     { bg: "#FEF9C3", text: "#A16207", label: "QR Siap" },
   STARTING:     { bg: "#DBEAFE", text: "#1D4ED8", label: "Memulai..." },
   STOPPED:      { bg: "#F3F4F6", text: "#6B7280", label: "Berhenti" },
+  failed:       { bg: "#FEF2F2", text: "#DC2626", label: "Sesi Gagal (Klik Ambil QR)" },
+  OFFLINE:      { bg: "#FEF2F2", text: "#DC2626", label: "Server Offline" },
   not_found:    { bg: "#FEF2F2", text: "#DC2626", label: "Session Tidak Ada" },
   error:        { bg: "#FEF2F2", text: "#DC2626", label: "Error" },
   UNKNOWN:      { bg: "#F3F4F6", text: "#6B7280", label: "Tidak Diketahui" },
@@ -104,9 +108,13 @@ export default function WhatsappAdminPage() {
     setLoadingQr(true); setQrData(null);
     try {
       const res = await api.get("/admin/whatsapp/qr");
-      setQrData(res.data.qr ?? null);
-      if (!res.data.qr) toast.error("QR tidak tersedia. Cek apakah session sudah terhubung.");
-    } catch { toast.error("Gagal mengambil QR code."); }
+      if (res.data.error) {
+        toast.error(res.data.error);
+      } else {
+        setQrData(res.data.qr ?? null);
+        if (!res.data.qr) toast.error("QR tidak tersedia. Cek apakah session sudah terhubung.");
+      }
+    } catch (e: any) { toast.error(e?.response?.data?.error ?? e?.response?.data?.message ?? "Gagal mengambil QR code."); }
     finally { setLoadingQr(false); }
   };
   const handleAction = async (action: "disconnect" | "restart") => {
@@ -207,7 +215,7 @@ export default function WhatsappAdminPage() {
                     </div>
                   )}
                   {status.error && <p className="text-xs text-red-500 mt-1">{status.error}</p>}
-                  {!status.connected && status.status !== "error" && (
+                  {!status.connected && status.status !== "error" && status.status !== "OFFLINE" && (
                     <p className="text-xs text-gray-400 mt-1">Klik "Ambil QR" untuk menghubungkan nomor WA.</p>
                   )}
                 </div>
@@ -215,8 +223,9 @@ export default function WhatsappAdminPage() {
             )}
             <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-50">
               {!status?.connected ? (
-                <button onClick={handleQr} disabled={loadingQr}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                <button onClick={handleQr} disabled={loadingQr || status?.status === "OFFLINE"}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                  title={status?.status === "OFFLINE" ? "Jalankan OpenWA terlebih dahulu" : ""}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 3.5V16M4 4h4v4H4V4zm0 12h4v4H4v-4zm12-12h4v4h-4V4z" />
                   </svg>

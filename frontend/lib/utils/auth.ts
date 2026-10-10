@@ -10,11 +10,13 @@ export function getRoleHome(role: string): string {
   return ROLE_HOME[role] ?? '/'
 }
 
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 hari
+const COOKIE_MAX_AGE_DEFAULT = 60 * 60 * 24 * 7 // 7 hari
+const COOKIE_MAX_AGE_REMEMBER = 60 * 60 * 24 * 365 // 1 tahun
 
-export function setAuthCookies(token: string, role: string) {
-  document.cookie = `BumDesMartNukita-token=${token}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`
-  document.cookie = `BumDesMartNukita-role=${role}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`
+export function setAuthCookies(token: string, role: string, remember: boolean = false) {
+  const maxAge = remember ? COOKIE_MAX_AGE_REMEMBER : COOKIE_MAX_AGE_DEFAULT
+  document.cookie = `BumDesMartNukita-token=${token}; path=/; max-age=${maxAge}; SameSite=Lax`
+  document.cookie = `BumDesMartNukita-role=${role}; path=/; max-age=${maxAge}; SameSite=Lax`
 }
 
 export function clearAuthCookies() {

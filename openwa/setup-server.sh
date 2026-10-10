@@ -6,7 +6,9 @@ set -e
 
 echo "=== 1. Clone OpenWA ==="
 cd /var/www
-git clone https://github.com/rmyndharis/OpenWA.git OpenWA
+if [ ! -d "OpenWA" ]; then
+  git clone https://github.com/rmyndharis/OpenWA.git OpenWA
+fi
 cd OpenWA
 
 echo "=== 2. Install Node 22 (jika belum) ==="
@@ -15,23 +17,20 @@ node --version | grep -q "v22" || (
   apt-get install -y nodejs
 )
 
-echo "=== 3. Install dependencies ==="
-npm ci --omit=dev
+echo "=== 3. Install Dependencies & Build ==="
+npm ci
+npm run build:all
 
-echo "=== 4. Build ==="
-npm run build 2>/dev/null || echo "No build step needed"
+echo "=== 4. Copy env (jika belum ada) ==="
+if [ ! -f .env ]; then
+  cp .env.example .env
+  echo "AUTO_START_SESSIONS=true" >> .env
+fi
 
-echo "=== 5. Copy env ==="
-cp .env.example .env
-echo ""
-echo ">>> Edit /var/www/OpenWA/.env sesuai kebutuhan, lalu lanjutkan"
-echo ">>> Minimal isi: PORT=2785, DB_TYPE=sqlite"
-echo ""
-
-echo "=== 6. Register ke PM2 ==="
+echo "=== 5. Register ke PM2 ==="
 pm2 start /var/www/BUMDESMart/openwa/ecosystem.config.js
 pm2 save
 
-echo "=== Done! OpenWA berjalan di http://localhost:2785 ==="
+echo "=== Selesai! OpenWA berjalan di http://localhost:2785 ==="
 echo "Dashboard: http://localhost:2785/dashboard"
 echo "Swagger:   http://localhost:2785/api"

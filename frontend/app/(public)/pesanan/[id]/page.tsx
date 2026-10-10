@@ -317,59 +317,71 @@ export default function DetailPesananPage() {
   }));
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Link href="/pesanan" className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-base font-bold text-gray-900">Detail Pesanan</h1>
-            <p className="text-xs text-gray-400">{order.order_code}</p>
+        <div className="bg-white sm:bg-transparent rounded-2xl p-4 sm:p-0 border sm:border-0 border-gray-100 mb-4 sm:mb-6 shadow-sm sm:shadow-none space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Link href="/pesanan" className="p-1.5 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors shrink-0">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </Link>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">Detail Pesanan</h1>
+                <p className="text-xs font-mono text-gray-400 truncate">{order.order_code}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <span
+                className="text-[11px] sm:text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap"
+                style={{ background: badge.bg, color: badge.text }}
+              >
+                {badge.label}
+              </span>
+            </div>
           </div>
+
           {sellerWaUrl && (
-            <a
-              href={sellerWaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors shadow-sm"
-              title="Chat Penjual di WhatsApp"
-            >
-              <WhatsappIcon className="w-3.5 h-3.5 text-emerald-600" />
-              Chat Seller
-            </a>
+            <div className="flex items-center justify-end pt-1 border-t sm:border-0 border-gray-50">
+              <a
+                href={sellerWaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors shadow-sm"
+                title="Chat Penjual di WhatsApp"
+              >
+                <WhatsappIcon className="w-3.5 h-3.5 text-emerald-600" />
+                Chat Seller
+              </a>
+            </div>
           )}
-          <span className="text-xs font-semibold px-3 py-1 rounded-full shrink-0"
-            style={{ background: badge.bg, color: badge.text }}>
-            {badge.label}
-          </span>
         </div>
 
         {/* Status Tracker */}
         {!isCancelled && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4">
-            <p className="text-sm font-semibold text-gray-800 mb-5">Status Pesanan</p>
-            <div className="flex items-start">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 mb-4 shadow-sm">
+            <p className="text-xs sm:text-sm font-semibold text-gray-800 mb-4">Status Pesanan</p>
+            <div className="flex items-start justify-between gap-1 overflow-x-auto pb-1 scrollbar-none">
               {steps.map((step, i) => (
-                <div key={step.key} className="flex-1 flex flex-col items-center relative">
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold z-10"
+                <div key={step.key} className="flex-1 flex flex-col items-center relative min-w-[55px]">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold z-10"
                     style={i <= stepIdx
                       ? { background: "var(--primary)", color: "white" }
                       : { background: "#F3F4F6", color: "#9CA3AF" }}>
                     {i < stepIdx ? (
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     ) : i + 1}
                   </div>
                   {i < steps.length - 1 && (
-                    <div className="absolute top-3.5 left-1/2 w-full h-0.5"
+                    <div className="absolute top-3 sm:top-3.5 left-1/2 w-full h-0.5"
                       style={{ background: i < stepIdx ? "var(--primary)" : "#E5E7EB" }} />
                   )}
-                  <span className={`text-[10px] sm:text-xs font-semibold mt-2.5 text-center px-1 leading-snug ${i <= stepIdx ? "text-gray-900 font-bold" : "text-gray-400"}`}>
+                  <span className={`text-[9px] sm:text-xs font-semibold mt-2 text-center px-0.5 leading-tight ${i <= stepIdx ? "text-gray-900 font-bold" : "text-gray-400"}`}>
                     {step.label}
                   </span>
                 </div>

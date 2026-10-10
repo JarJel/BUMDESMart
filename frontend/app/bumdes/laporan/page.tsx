@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api/axios";
+import { exportToExcel } from "@/lib/utils/excelExport";
 
 interface MitraData {
   id: number;
@@ -46,15 +47,6 @@ function formatRp(n: number) {
 
 function formatRpFull(n: number) {
   return "Rp " + Math.round(n).toLocaleString("id-ID");
-}
-
-function downloadCSV(rows: string[][], filename: string) {
-  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
 }
 
 function BarChart({ data }: { data: TrendItem[] }) {
@@ -157,38 +149,117 @@ export default function BumdesLaporanPage() {
           <button
             onClick={() => {
               if (tab === "keuangan" && financial) {
-                const rows = [
-                  ["Laporan Keuangan BUMDes"],
-                  ["Periode", financial.period.from + " s/d " + financial.period.to],
-                  [],
-                  ["Ringkasan"],
-                  ["Total GMV", formatRpFull(financial.summary.gmv)],
-                  ["Pendapatan BUMDes", formatRpFull(financial.summary.bumdes_fee)],
-                  ["Biaya Layanan", formatRpFull(financial.summary.service_fee)],
-                  ["Jumlah Pesanan", String(financial.summary.orders_count)],
-                  ["Rata-rata Nilai Pesanan", formatRpFull(financial.summary.avg_order)],
-                  [],
-                  ["Detail Tren"],
-                  ["Periode", "GMV", "Fee BUMDes", "Pesanan"],
-                  ...financial.trend.map(t => [t.period, formatRpFull(t.gmv), formatRpFull(t.bumdes_fee), String(t.order_count)]),
-                  [],
-                  ["Top Mitra"],
-                  ["Nama Toko", "GMV", "Pesanan"],
-                  ...financial.top_mitra.map(m => [m.shop_name, formatRpFull(m.revenue), String(m.order_count)]),
-                ];
-                downloadCSV(rows, `laporan-keuangan-${from}-${to}.csv`);
+                const totalGmv = financial.trend.reduce((s, t) => s + t.gmv, 0);
+                const totalFee = financial.trend.reduce((s, t) => s + t.bumdes_fee, 0);
+                const totalOrders = financial.trend.reduce((s, t) => s + t.order_count, 0);
+
+                exportToExcel({
+                  filename: `Laporan_Keuangan_BUMDes_${from}_sd_${to}`,
+                  title: "LAPORAN KEUANGAN BUMDES",
+                  subtitle: `Periode: ${financial.period.from} s/d ${financial.period.to} | Tanggal Unduh: ${new Date().toLocaleDateString("id-ID")}`,
+                  sections: [
+                    {
+                      title: "Ringkasan Kinerja Keuangan",
+                      summaryItems: [
+                        { label: "Total GMV", value: formatRpFull(financial.summary.gmv) },
+                        { label: "Pendapatan BUMDes", value: formatRpFull(financial.summary.bumdes_fee) },
+                        { label: "Biaya Layanan Platform", value: formatRpFull(financial.summary.service_fee) },
+                        { label: "Jumlah Pesanan", value: financial.summary.orders_count.toLocaleString("id-ID") },
+                        { label: "Rata-rata Nilai Pesanan", value: formatRpFull(financial.summary.avg_order) },
+                        { label: "Estimasi Ongkir Kurir", value: formatRpFull(financial.summary.driver_earnings_estimate) },
+                      ],
+                    },
+                    {
+                      title: "Detail Tren Transaksi",
+                      columns: [
+                        { header: "Periode", align: "center" },
+                        { header: "Total GMV", align: "right" },
+                        { header: "Pendapatan BUMDes", align: "right" },
+                        { header: "Jumlah Pesanan", align: "right" },
+                      ],
+                      rows: financial.trend.map((t) => [
+                        t.period,
+                        formatRpFull(t.gmv),
+                        formatRpFull(t.bumdes_fee),
+                        t.order_count.toLocaleString("id-ID"),
+                      ]),
+                      footer: [
+                        "Total",
+                        formatRpFull(totalGmv),
+                        formatRpFull(totalFee),
+                        totalOrders.toLocaleString("id-ID"),
+                      ],
+                    },
+                    ...(financial.top_mitra.length > 0
+                      ? [
+                          {
+                            title: "Top 5 Mitra Performa Tertinggi (GMV)",
+                            columns: [
+                              { header: "Peringkat", align: "center" },
+                              { header: "Nama Toko", align: "left" },
+                              { header: "Total GMV", align: "right" },
+                              { header: "Jumlah Pesanan", align: "right" },
+                            ],
+                            rows: financial.top_mitra.map((m, i) => [
+                              `#${i + 1}`,
+                              m.shop_name,
+                              formatRpFull(m.revenue),
+                              m.order_count.toLocaleString("id-ID"),
+                            ]),
+                          },
+                        ]
+                      : []),
+                  ],
+                });
               } else if (tab === "mitra") {
-                const rows = [
-                  ["Laporan Performa Mitra UMKM"],
-                  ["Nama Toko", "Pemilik", "Status", "Pesanan Bln Ini", "Pendapatan Bln Ini", "Total Pesanan", "Total Pendapatan", "Bergabung"],
-                  ...filtered.map(m => [
-                    m.shop_name, m.owner_name, m.status,
-                    String(m.orders_this_month), formatRpFull(m.revenue_this_month),
-                    String(m.total_orders), formatRpFull(m.total_revenue),
-                    new Date(m.joined_at).toLocaleDateString("id-ID"),
-                  ]),
-                ];
-                downloadCSV(rows, `laporan-mitra-${new Date().toISOString().slice(0,10)}.csv`);
+                const totOrdersMonth = filtered.reduce((s, m) => s + m.orders_this_month, 0);
+                const totRevMonth = filtered.reduce((s, m) => s + m.revenue_this_month, 0);
+                const totOrders = filtered.reduce((s, m) => s + m.total_orders, 0);
+                const totRev = filtered.reduce((s, m) => s + m.total_revenue, 0);
+
+                exportToExcel({
+                  filename: `Laporan_Performa_Mitra_${new Date().toISOString().slice(0, 10)}`,
+                  title: "LAPORAN PERFORMA MITRA UMKM",
+                  subtitle: `Tanggal Unduh: ${new Date().toLocaleDateString("id-ID")} | Total Mitra: ${filtered.length}`,
+                  sections: [
+                    {
+                      title: "Daftar Performa Mitra UMKM",
+                      columns: [
+                        { header: "No", align: "center" },
+                        { header: "Nama Toko", align: "left" },
+                        { header: "Pemilik Toko", align: "left" },
+                        { header: "Status Toko", align: "center" },
+                        { header: "Pesanan Bulan Ini", align: "right" },
+                        { header: "Pendapatan Bulan Ini", align: "right" },
+                        { header: "Total Pesanan", align: "right" },
+                        { header: "Total Pendapatan", align: "right" },
+                        { header: "Tanggal Bergabung", align: "center" },
+                      ],
+                      rows: filtered.map((m, i) => [
+                        i + 1,
+                        m.shop_name,
+                        m.owner_name,
+                        STATUS_LABEL[m.status]?.label || m.status,
+                        m.orders_this_month.toLocaleString("id-ID"),
+                        formatRpFull(m.revenue_this_month),
+                        m.total_orders.toLocaleString("id-ID"),
+                        formatRpFull(m.total_revenue),
+                        new Date(m.joined_at).toLocaleDateString("id-ID"),
+                      ]),
+                      footer: [
+                        "Total",
+                        `${filtered.length} Toko Mitra`,
+                        "-",
+                        "-",
+                        totOrdersMonth.toLocaleString("id-ID"),
+                        formatRpFull(totRevMonth),
+                        totOrders.toLocaleString("id-ID"),
+                        formatRpFull(totRev),
+                        "-",
+                      ],
+                    },
+                  ],
+                });
               }
             }}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-xl transition"

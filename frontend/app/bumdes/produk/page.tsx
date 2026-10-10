@@ -15,6 +15,7 @@ interface ProductData {
   status: string;
   has_variant: boolean;
   category?: { id: number; name: string };
+  umkm_profile?: { id: number; shop_name: string; owner_name: string };
   umkmProfile?: { id: number; shop_name: string; owner_name: string };
   images?: { file_path: string }[];
   primary_image?: { file_path: string };
@@ -48,10 +49,68 @@ const statusBadge: Record<string, string> = {
   banned: "bg-red-50 text-red-700",
 };
 
+function CustomFilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedObj = options.find(o => o.value === value) ?? options[0];
+
+  return (
+    <div className="flex items-center gap-2 w-full">
+      <span className="text-xs font-medium text-gray-500 shrink-0">{label}:</span>
+      <div className="relative flex-1">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="w-full text-left py-2 px-3 text-xs bg-white border border-gray-200 rounded-xl font-semibold text-gray-800 hover:border-green-400 focus:outline-none transition-colors shadow-2xs"
+        >
+          {selectedObj?.label}
+        </button>
+
+        {open && (
+          <>
+            <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+            <div className="absolute right-0 left-0 mt-1.5 z-30 max-h-56 overflow-y-auto bg-white border border-gray-100 rounded-xl shadow-xl py-1 space-y-0.5 min-w-40">
+              {options.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${
+                    value === opt.value
+                      ? "bg-green-50 text-green-700 font-bold"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminBumdesProdukPage() {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -66,9 +125,26 @@ export default function AdminBumdesProdukPage() {
   const [unbanning, setUnbanning] = useState(false);
   const toast = useToast();
 
+  useEffect(() => {
+    api.get("/categories")
+      .then(res => setCategories(res.data?.data ?? res.data ?? []))
+      .catch(() => {
+        api.get("/admin/categories")
+          .then(res => setCategories(res.data?.data ?? []))
+          .catch(() => {});
+      });
+  }, []);
+
   const fetchProducts = () => {
     setLoading(true);
-    api.get(`/admin/products`, { params: { search, page } })
+    api.get(`/admin/products`, {
+      params: {
+        search,
+        page,
+        category_id: selectedCategory,
+        status: selectedStatus,
+      }
+    })
       .then(res => {
         setProducts(res.data.data ?? []);
         setLastPage(res.data.meta?.last_page ?? 1);
@@ -82,13 +158,13 @@ export default function AdminBumdesProdukPage() {
   };
 
   useEffect(() => {
-    // debounce search
+    // debounce search & filter
     const timer = setTimeout(() => {
       fetchProducts();
-    }, 500);
+    }, 400);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, page]);
+  }, [search, page, selectedCategory, selectedStatus]);
 
   const getImageUrl = (p: ProductData) => {
     const path = p.primary_image?.file_path ?? p.images?.[0]?.file_path;
@@ -149,15 +225,42 @@ export default function AdminBumdesProdukPage() {
           <p className="text-sm text-gray-500 mt-0.5">Pantau dan kelola semua produk dari seluruh mitra UMKM</p>
         </div>
 
-        {/* Search */}
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="relative flex-1 min-w-48">
+        {/* Search & Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          <div className="md:col-span-6 relative">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             <input 
               value={search} 
               onChange={e => { setSearch(e.target.value); setPage(1); }} 
               placeholder="Cari nama produk atau nama toko..." 
               className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-green-400" 
+            />
+          </div>
+
+          <div className="md:col-span-3">
+            <CustomFilterSelect
+              label="Kategori"
+              value={selectedCategory}
+              options={[
+                { value: "all", label: "Semua Kategori" },
+                ...categories.map(c => ({ value: String(c.id), label: c.name })),
+              ]}
+              onChange={val => { setSelectedCategory(val); setPage(1); }}
+            />
+          </div>
+
+          <div className="md:col-span-3">
+            <CustomFilterSelect
+              label="Status"
+              value={selectedStatus}
+              options={[
+                { value: "all", label: "Semua Status" },
+                { value: "active", label: "Aktif" },
+                { value: "inactive", label: "Arsip" },
+                { value: "draft", label: "Draft" },
+                { value: "banned", label: "Disuspend" },
+              ]}
+              onChange={val => { setSelectedStatus(val); setPage(1); }}
             />
           </div>
         </div>
@@ -217,13 +320,19 @@ export default function AdminBumdesProdukPage() {
                           </div>
                           <div>
                             <p className="font-medium text-gray-900 text-xs line-clamp-1">{p.name}</p>
-                            <p className="text-gray-400 text-xs md:hidden mt-0.5">{p.umkmProfile?.shop_name}</p>
+                            <p className="text-gray-400 text-xs md:hidden mt-0.5">
+                              {p.umkm_profile?.shop_name || p.umkmProfile?.shop_name || "-"}
+                            </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
-                        <p className="text-xs font-semibold text-gray-700">{p.umkmProfile?.shop_name}</p>
-                        <p className="text-[10px] text-gray-500">{p.umkmProfile?.owner_name}</p>
+                        <p className="text-xs font-semibold text-gray-700">
+                          {p.umkm_profile?.shop_name || p.umkmProfile?.shop_name || "-"}
+                        </p>
+                        <p className="text-[10px] text-gray-500">
+                          {p.umkm_profile?.owner_name || p.umkmProfile?.owner_name || ""}
+                        </p>
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--primary-muted)", color: "var(--primary)" }}>
@@ -373,7 +482,7 @@ export default function AdminBumdesProdukPage() {
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 text-base leading-snug">{detailProduct.name}</h3>
-                <p className="text-xs text-gray-500 mt-1">Oleh: <span className="font-semibold text-gray-700">{detailProduct.umkmProfile?.shop_name}</span></p>
+                <p className="text-xs text-gray-500 mt-1">Oleh: <span className="font-semibold text-gray-700">{detailProduct.umkm_profile?.shop_name || detailProduct.umkmProfile?.shop_name || "-"}</span></p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusBadge[detailProduct.status] ?? "bg-gray-100 text-gray-500"}`}>
                     {STATUS_MAP[detailProduct.status] ?? detailProduct.status}

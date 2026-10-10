@@ -260,7 +260,7 @@ export default function CheckoutPage() {
           } else {
             // Jika belum ada pilihan atau pilihan sebelumnya tidak valid lagi, pakai opsi pertama (default)
             const defaultOpt = opts[0];
-            const chosenId = defaultOpt?.id ?? "kurir-lokal-motor";
+            const chosenId = defaultOpt?.id ?? "";
             setSelectedShippingId(chosenId);
             selectedShippingIdRef.current = chosenId;
             setShippingCost(defaultOpt?.price ?? null);
@@ -442,24 +442,7 @@ export default function CheckoutPage() {
           seller_shop_name?: string;
         }[] = res.data.data.orders ?? [];
 
-        // Otomatisasi redirect ke WA Seller dengan pesan draft pesanan
-        orders.forEach((ord) => {
-          if (ord.seller_phone) {
-            let cleanPhone = ord.seller_phone.replace(/\D/g, "");
-            if (cleanPhone.startsWith("0")) cleanPhone = "62" + cleanPhone.slice(1);
-            if (cleanPhone) {
-              const text = encodeURIComponent(
-                `Halo ${ord.seller_shop_name || "Seller"}, saya telah membuat pesanan baru!\n\n` +
-                `*Kode Pesanan:* ${ord.order_code}\n` +
-                `*Total:* Rp ${Math.round(ord.total).toLocaleString("id-ID")}\n` +
-                `*Pengiriman:* ${deliveryType === "delivered" ? "Dikirim ke Alamat" : "Ambil Sendiri di Toko"}\n` +
-                `*Metode Pembayaran:* ${paymentMethod === "manual_umkm" ? "Transfer Bank / QRIS Direct" : "Midtrans"}\n\n` +
-                `Mohon segera diproses. Terima kasih!`
-              );
-              window.open(`https://wa.me/${cleanPhone}?text=${text}`, "_blank");
-            }
-          }
-        });
+        // Notifikasi WA ke seller telah dikirim secara otomatis via OpenWA di backend
 
         const firstOrderId = orders[0]?.order_id;
         if (firstOrderId) {

@@ -21,21 +21,32 @@ class ProcessWhatsappQueue extends Command
             ->limit(20)
             ->get();
 
-        foreach ($items as $item) {
+        if ($items->isEmpty()) {
+            return;
+        }
+
+        foreach ($items as $index => $item) {
+            // Delay 3-6 detik per pesan (+ jitter) untuk cegah pemblokiran spam oleh WhatsApp
+            if ($index > 0) {
+                $delay = random_int(3, 6);
+                sleep($delay);
+            }
+
             $item->update(['status' => 'processing']);
 
             $result  = OpenWAService::send($item->phone, $item->message);
             $attempt = $item->attempt + 1;
+            $isSent  = (bool) ($result['status'] ?? false);
 
             WhatsappLog::create([
                 'queue_id'    => $item->id,
                 'attempt'     => $attempt,
-                'status'      => $result['status'] ? 'sent' : 'failed',
-                'error'       => $result['status'] ? null : ($result['error'] ?? 'Unknown error'),
+                'status'      => $isSent ? 'sent' : 'failed',
+                'error'       => $isSent ? null : ($result['error'] ?? 'Unknown error'),
                 'executed_at' => now(),
             ]);
 
-            if ($result['status']) {
+            if ($isSent) {
                 $item->update([
                     'status'  => 'sent',
                     'attempt' => $attempt,
@@ -49,10 +60,10 @@ class ProcessWhatsappQueue extends Command
                 ]);
             } else {
                 $item->update([
-                    'status'         => 'retrying',
-                    'attempt'        => $attempt,
-                    'last_error'     => $result['error'] ?? 'Unknown error',
-                    'next_retry_at'  => now()->addSeconds($item->retry_delay),
+                    'status'        => 'retrying',
+                    'attempt'       => $attempt,
+                    'last_error'    => $result['error'] ?? 'Unknown error',
+                    'next_retry_at' => now()->addSeconds($item->retry_delay),
                 ]);
             }
         }

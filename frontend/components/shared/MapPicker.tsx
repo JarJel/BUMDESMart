@@ -355,7 +355,7 @@ export default function MapPicker({ defaultLat, defaultLng, onChange, height = "
               </button>
               <button
                 type="button"
-                onClick={requestGps}
+                onClick={() => requestGps()}
                 className="flex-1 text-[11px] sm:text-xs font-semibold text-white rounded-xl py-2 flex items-center justify-center gap-1 transition-all active:scale-95"
                 style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
               >

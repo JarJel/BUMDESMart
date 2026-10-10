@@ -3,15 +3,11 @@ module.exports = {
     {
       name: "bumdesmart-openwa",
       cwd: "/var/www/OpenWA",
-      script: "node_modules/.bin/ts-node",
-      args: "-r tsconfig-paths/register src/main.ts",
-      interpreter: "none",
+      script: "dist/main.js",
+      interpreter: "node",
       env: {
         NODE_ENV: "production",
         PORT: 2785,
-        // Isi setelah OpenWA dikonfigurasi
-        // OPENWA_API_KEY: "",
-        // DB_TYPE: "sqlite",
       },
       watch: false,
       autorestart: true,

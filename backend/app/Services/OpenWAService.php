@@ -29,7 +29,7 @@ class OpenWAService
     public static function resolveSessionId(): ?string
     {
         $baseUrl   = rtrim(config('services.openwa.url', 'http://localhost:2785'), '/');
-        $sessionId = config('services.openwa.session_id', 'BumDesMartNukita');
+        $sessionId = config('services.openwa.session_id', 'bumdesmart');
         $apiKey    = config('services.openwa.api_key', '');
 
         // Jika env sudah berisi UUID, kembalikan langsung tanpa lookup nama
@@ -41,34 +41,45 @@ class OpenWAService
             return $sessionId;
         }
 
-        // Fallback: cari session berdasarkan nama, cache 1 jam
         $name     = $sessionId;
         $cacheKey = 'openwa_session_uuid_' . $name;
 
-        return Cache::remember($cacheKey, 3600, function () use ($baseUrl, $name, $apiKey) {
+        $cached = Cache::get($cacheKey);
+        if ($cached) {
+            return $cached;
+        }
+
+        try {
             $headers = ['Content-Type' => 'application/json'];
             if ($apiKey) {
                 $headers['x-api-key'] = $apiKey;
             }
-            $http = Http::withHeaders($headers)->withoutVerifying()->timeout(10);
+            $http = Http::withHeaders($headers)->withoutVerifying()->timeout(5);
 
             $list = $http->get("{$baseUrl}/api/sessions");
             if ($list->successful()) {
                 foreach ((array) $list->json() as $session) {
-                    if (($session['name'] ?? null) === $name) {
-                        return $session['id'];
+                    if (($session['name'] ?? null) === $name || ($session['id'] ?? null) === $name) {
+                        $id = $session['id'] ?? $name;
+                        Cache::put($cacheKey, $id, 3600);
+                        return $id;
                     }
                 }
             }
 
             $created = $http->post("{$baseUrl}/api/sessions", ['name' => $name]);
             if ($created->successful()) {
-                return $created->json('id');
+                $id = $created->json('id') ?? $name;
+                Cache::put($cacheKey, $id, 3600);
+                return $id;
             }
 
-            Log::error('OpenWA gagal resolve/buat session: ' . $created->body());
-            return null;
-        });
+            Log::warning('OpenWA gagal resolve/buat session: ' . $created->body());
+        } catch (\Throwable $e) {
+            Log::warning('OpenWA resolveSessionId exception: ' . $e->getMessage());
+        }
+
+        return $name;
     }
 
     public static function send(string $target, string $message): array

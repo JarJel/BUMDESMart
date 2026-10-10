@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "@/lib/api/axios";
+import { exportToExcel } from "@/lib/utils/excelExport";
 
 interface Overview {
   users: { total: number; active: number; inactive: number; super_admin: number; admin_bumdes: number; umkm: number; customer: number };
@@ -35,15 +36,6 @@ function formatRp(n: number) {
 
 function formatRpFull(n: number) {
   return "Rp " + Math.round(n).toLocaleString("id-ID");
-}
-
-function downloadCSV(rows: string[][], filename: string) {
-  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
 }
 
 export default function LaporanPage() {
@@ -109,34 +101,73 @@ export default function LaporanPage() {
               onClick={() => {
                 if (!overview) return;
                 const year = new Date().getFullYear();
-                const rows = [
-                  ["Laporan Platform BumDesMartNukita"],
-                  ["Tahun", String(year)],
-                  [],
-                  ["Ringkasan Pengguna"],
-                  ["Total Pengguna", String(overview.users.total)],
-                  ["Customer", String(overview.users.customer)],
-                  ["UMKM / Seller", String(overview.users.umkm)],
-                  ["Admin BUMDes", String(overview.users.admin_bumdes)],
-                  [],
-                  ["Ringkasan Platform"],
-                  ["BUMDes Aktif", String(overview.bumdes.active) + " / " + String(overview.bumdes.total)],
-                  ["UMKM Aktif", String(overview.umkm.active) + " / " + String(overview.umkm.total)],
-                  ["Produk Aktif", String(overview.products.active) + " / " + String(overview.products.total)],
-                  [],
-                  ["Tren Bulanan " + year],
-                  ["Bulan", "Pesanan", "Pendapatan Platform"],
-                  ...overview.monthly_data.map(d => [d.label, String(d.orders), formatRpFull(d.revenue)]),
-                  [],
-                  ["Laporan Pengunjung (" + visitDays + " hari terakhir)"],
-                  ["Tanggal", "Jumlah Pengunjung"],
-                  ...visits.map(v => [v.label, String(v.count)]),
-                  [],
-                  ["Top BUMDes"],
-                  ["Nama BUMDes", "Kota", "UMKM Aktif"],
-                  ...bumdes.map(b => [b.name, b.city, String(b.active_umkm) + " / " + String(b.total_umkm)]),
-                ];
-                downloadCSV(rows, `laporan-platform-${year}.csv`);
+
+                exportToExcel({
+                  filename: `Laporan_Platform_BumDesMart_${year}`,
+                  sheetName: "Laporan Platform",
+                  title: "LAPORAN PLATFORM BUMDESMART NUKITA",
+                  subtitle: `Tahun: ${year} | Tanggal Unduh: ${new Date().toLocaleDateString("id-ID")}`,
+                  headerBgColor: "#4338ca",
+                  sections: [
+                    {
+                      title: "Ringkasan Ekosistem Platform",
+                      summaryItems: [
+                        { label: "Total Pengguna", value: overview.users.total.toLocaleString("id-ID") },
+                        { label: "BUMDes Aktif", value: `${overview.bumdes.active} / ${overview.bumdes.total}` },
+                        { label: "Customer", value: overview.users.customer.toLocaleString("id-ID") },
+                        { label: "UMKM Mitra Aktif", value: `${overview.umkm.active} / ${overview.umkm.total}` },
+                        { label: "UMKM / Seller", value: overview.users.umkm.toLocaleString("id-ID") },
+                        { label: "Produk Aktif", value: `${overview.products.active} / ${overview.products.total}` },
+                        { label: "Admin BUMDes", value: overview.users.admin_bumdes.toLocaleString("id-ID") },
+                        { label: "Pendapatan YTD", value: formatRpFull(totalRevenue) },
+                      ],
+                    },
+                    {
+                      title: `Tren Pesanan & Pendapatan Bulanan (${year})`,
+                      columns: [
+                        { header: "Bulan", align: "left" },
+                        { header: "Jumlah Pesanan", align: "right" },
+                        { header: "Pendapatan Platform", align: "right" },
+                      ],
+                      rows: overview.monthly_data.map((d) => [
+                        d.label,
+                        d.orders.toLocaleString("id-ID"),
+                        formatRpFull(d.revenue),
+                      ]),
+                      footer: [
+                        "Total YTD",
+                        totalOrders.toLocaleString("id-ID"),
+                        formatRpFull(totalRevenue),
+                      ],
+                    },
+                    {
+                      title: `Laporan Pengunjung Website (${visitDays} Hari Terakhir)`,
+                      columns: [
+                        { header: "Tanggal", align: "center" },
+                        { header: "Jumlah Pengunjung (Sesi Unik)", align: "right" },
+                      ],
+                      rows: visits.map((v) => [v.label, v.count.toLocaleString("id-ID")]),
+                      footer: ["Total Pengunjung", totalVisits.toLocaleString("id-ID")],
+                    },
+                    {
+                      title: "Daftar BUMDes & Mitra Terdaftar",
+                      columns: [
+                        { header: "No", align: "center" },
+                        { header: "Nama BUMDes", align: "left" },
+                        { header: "Kota / Kabupaten", align: "left" },
+                        { header: "Status BUMDes", align: "center" },
+                        { header: "Mitra UMKM Aktif", align: "center" },
+                      ],
+                      rows: bumdes.map((b, i) => [
+                        i + 1,
+                        b.name,
+                        b.city,
+                        b.status,
+                        `${b.active_umkm} / ${b.total_umkm}`,
+                      ]),
+                    },
+                  ],
+                });
               }}
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition"
             >

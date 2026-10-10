@@ -17,10 +17,14 @@ interface LogItem { id: number; attempt: number; status: "sent" | "failed"; erro
 /* ─── Helpers ─── */
 const CONN_BADGE: Record<string, { bg: string; text: string; label: string }> = {
   CONNECTED:    { bg: "#DCFCE7", text: "#15803D", label: "Terhubung" },
+  ready:        { bg: "#DCFCE7", text: "#15803D", label: "Terhubung" },
+  created:      { bg: "#DBEAFE", text: "#1D4ED8", label: "Session Siap" },
   SCAN_QR_CODE: { bg: "#FEF9C3", text: "#A16207", label: "Menunggu Scan QR" },
   qr_ready:     { bg: "#FEF9C3", text: "#A16207", label: "QR Siap" },
   STARTING:     { bg: "#DBEAFE", text: "#1D4ED8", label: "Memulai..." },
   STOPPED:      { bg: "#F3F4F6", text: "#6B7280", label: "Berhenti" },
+  failed:       { bg: "#FEF2F2", text: "#DC2626", label: "Sesi Gagal (Klik Ambil QR)" },
+  OFFLINE:      { bg: "#FEF2F2", text: "#DC2626", label: "Server Offline" },
   not_found:    { bg: "#FEF2F2", text: "#DC2626", label: "Session Tidak Ada" },
   error:        { bg: "#FEF2F2", text: "#DC2626", label: "Error" },
   UNKNOWN:      { bg: "#F3F4F6", text: "#6B7280", label: "Tidak Diketahui" },
@@ -106,14 +110,18 @@ export default function WhatsappBumdesPage() {
     if (!silent) { setLoadingQr(true); setQrData(null); }
     try {
       const res = await api.get("/admin/whatsapp/qr");
-      const qr = res.data.qr ?? null;
-      setQrData(qr);
-      if (qr) {
-        setQrExpiry(Date.now() + 55_000); // refresh 5 detik sebelum 60s expired
-      } else if (!silent) {
-        toast.error("QR tidak tersedia. Cek apakah session sudah terhubung.");
+      if (res.data.error) {
+        if (!silent) toast.error(res.data.error);
+      } else {
+        const qr = res.data.qr ?? null;
+        setQrData(qr);
+        if (qr) {
+          setQrExpiry(Date.now() + 55_000);
+        } else if (!silent) {
+          toast.error("QR tidak tersedia. Cek apakah session sudah terhubung.");
+        }
       }
-    } catch { if (!silent) toast.error("Gagal mengambil QR code."); }
+    } catch (e: any) { if (!silent) toast.error(e?.response?.data?.error ?? e?.response?.data?.message ?? "Gagal mengambil QR code."); }
     finally { if (!silent) setLoadingQr(false); }
   };
 
@@ -247,7 +255,7 @@ export default function WhatsappBumdesPage() {
                 <div className="flex-1 min-w-0">
                   <Badge map={CONN_BADGE} val={status.status} />
                   {status.error && <p className="text-xs text-red-500 mt-1">{status.error}</p>}
-                  {!status.connected && status.status !== "error" && (
+                  {!status.connected && status.status !== "error" && status.status !== "OFFLINE" && (
                     <p className="text-xs text-gray-400 mt-1">Klik "Ambil QR" untuk menghubungkan nomor WA.</p>
                   )}
                   {!status.connected && (status.status === "failed" || status.status === "STOPPED" || status.status === "stopped") && (

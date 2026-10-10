@@ -43,7 +43,6 @@ class MitraPerformanceController extends Controller
                 ['orders as revenue_this_month' => fn($q) => $q->whereIn('status', ['completed', 'delivered'])->where('updated_at', '>=', $startOfMonth)],
                 'sub_total'
             )
-            ->select(['id', 'shop_name', 'slug', 'logo', 'owner_name', 'status', 'rating', 'is_open', 'created_at'])
             ->get()
             ->map(function ($m) {
                 return [

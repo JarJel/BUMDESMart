@@ -26,10 +26,24 @@ function LoginForm() {
   const [isSuspended, setIsSuspended] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
+  const [rememberMe, setRememberMe] = useState(false);
+
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
+
+  useEffect(() => {
+    const savedRemember = localStorage.getItem("remember_me");
+    if (savedRemember === "true") {
+      setRememberMe(true);
+      const savedEmail = localStorage.getItem("remembered_email") || "";
+      const savedPassword = localStorage.getItem("remembered_password") || "";
+      if (savedEmail) {
+        setForm({ email: savedEmail, password: savedPassword });
+      }
+    }
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -52,7 +66,18 @@ function LoginForm() {
       const { token, user } = res.data;
       localStorage.setItem("token", token);
       localStorage.setItem("user_email", user.email ?? "");
-      setAuthCookies(token, user.role);
+
+      if (rememberMe) {
+        localStorage.setItem("remember_me", "true");
+        localStorage.setItem("remembered_email", form.email);
+        localStorage.setItem("remembered_password", form.password);
+      } else {
+        localStorage.removeItem("remember_me");
+        localStorage.removeItem("remembered_email");
+        localStorage.removeItem("remembered_password");
+      }
+
+      setAuthCookies(token, user.role, rememberMe);
       window.dispatchEvent(new Event("auth-change"));
       const pendingRaw = localStorage.getItem('pending_cart_item');
       if (pendingRaw && user.role === 'customer') {
@@ -94,7 +119,7 @@ function LoginForm() {
       const res = await authApi.loginWithGoogle(credential);
       const { token, user } = res.data;
       localStorage.setItem("token", token);
-      setAuthCookies(token, user.role);
+      setAuthCookies(token, user.role, rememberMe);
       window.dispatchEvent(new Event("auth-change"));
       const pendingRaw = localStorage.getItem('pending_cart_item');
       if (pendingRaw && user.role === 'customer') {
@@ -248,8 +273,17 @@ function LoginForm() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end">
-              <Link href="/lupa-password" className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Lupa Password?</Link>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 accent-[var(--primary)]"
+                />
+                <span className="font-medium text-sm">Ingat Saya</span>
+              </label>
+              <Link href="/lupa-password" className="text-sm font-semibold hover:underline" style={{ color: "var(--primary)" }}>Lupa Password?</Link>
             </div>
 
             <button

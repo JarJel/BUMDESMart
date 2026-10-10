@@ -218,9 +218,9 @@ export default function NotifikasiPage() {
       </nav>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
             Notifikasi Saya
             {unreadCount > 0 && (
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100 animate-pulse">
@@ -228,7 +228,7 @@ export default function NotifikasiPage() {
               </span>
             )}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Lihat semua pemberitahuan dan status transaksi Anda di BumDesMartNukita
           </p>
         </div>
@@ -236,7 +236,7 @@ export default function NotifikasiPage() {
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllAsRead}
-            className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl text-white bg-green-600 hover:bg-green-700 shadow-sm transition-all duration-200 cursor-pointer self-start sm:self-auto border-0"
+            className="flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl text-white bg-green-600 hover:bg-green-700 shadow-sm transition-all duration-200 cursor-pointer w-full sm:w-auto border-0 mt-1 sm:mt-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -326,83 +326,88 @@ export default function NotifikasiPage() {
                 <div
                   key={notif.id}
                   onClick={() => handleNotifClick(notif)}
-                  className={`p-5 bg-white rounded-2xl border transition-all duration-200 flex gap-4 relative group select-none ${
+                  className={`p-4 sm:p-5 bg-white rounded-2xl border transition-all duration-200 relative group select-none ${
                     hasRef ? "cursor-pointer" : ""
                   } ${
                     notif.is_read
                       ? "border-gray-100 hover:border-gray-200"
-                      : "border-green-500/25 bg-green-50/5 hover:border-green-500/40"
+                      : "border-green-500/25 bg-green-50/10 hover:border-green-500/40"
                   }`}
                 >
-                  {/* Icon */}
-                  {getNotifIcon(notif.type?.startsWith("order_") ? "order" : notif.type)}
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    {/* Icon */}
+                    {getNotifIcon(notif.type?.startsWith("order_") ? "order" : notif.type)}
 
-                  {/* Body */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className={`text-sm sm:text-base leading-snug truncate pr-6 ${
-                        notif.is_read ? "text-gray-800 font-medium" : "text-gray-900 font-bold"
-                      }`}>
-                        {notif.title}
-                      </h4>
-                    </div>
-                    <p className="text-xs sm:text-sm text-gray-500 mt-1 leading-relaxed break-words">
-                      {notif.content}
-                    </p>
-                    
-                    <div className="flex flex-wrap items-center gap-3 mt-3">
-                      <span className="text-[10px] sm:text-xs text-gray-400 font-medium">
-                        {new Date(notif.created_at).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                      
-                      {hasRef && (
-                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
-                          Pesanan #{notif.reference_id}
-                          <svg className="w-3 h-3 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                          </svg>
+                    {/* Content Body */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {!notif.is_read && (
+                            <span className="w-2.5 h-2.5 bg-green-500 rounded-full shrink-0 animate-pulse" title="Belum dibaca" />
+                          )}
+                          <h4 className={`text-sm sm:text-base leading-snug break-words ${
+                            notif.is_read ? "text-gray-800 font-medium" : "text-gray-900 font-bold"
+                          }`}>
+                            {notif.title}
+                          </h4>
+                        </div>
+
+                        {/* Actions buttons inline top-right */}
+                        <div className="flex items-center gap-1 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
+                          {!notif.is_read && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsRead(notif.id);
+                              }}
+                              className="p-1.5 sm:p-2 rounded-xl bg-gray-50 hover:bg-green-50 text-gray-400 hover:text-green-600 border border-gray-100 hover:border-green-200 transition-all cursor-pointer"
+                              title="Tandai Terbaca"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => handleDelete(notif.id, e)}
+                            className="p-1.5 sm:p-2 rounded-xl bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 border border-gray-100 hover:border-red-200 transition-all cursor-pointer"
+                            title="Hapus Notifikasi"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Paragraph Content */}
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed break-words">
+                        {notif.content}
+                      </p>
+
+                      {/* Footer metadata */}
+                      <div className="flex flex-wrap items-center gap-2.5 mt-3">
+                        <span className="text-[10px] sm:text-xs text-gray-400 font-medium">
+                          {new Date(notif.created_at).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </span>
-                      )}
+
+                        {hasRef && (
+                          <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                            Pesanan #{notif.reference_id}
+                            <svg className="w-3 h-3 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-
-                  {/* Actions buttons */}
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                    {!notif.is_read && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMarkAsRead(notif.id);
-                        }}
-                        className="p-2 rounded-xl bg-white border border-gray-100 hover:border-gray-200 hover:bg-gray-50 text-green-600 shadow-sm transition-all duration-200 cursor-pointer"
-                        title="Tandai Terbaca"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </button>
-                    )}
-                    <button
-                      onClick={(e) => handleDelete(notif.id, e)}
-                      className="p-2 rounded-xl bg-white border border-gray-100 hover:border-red-100 hover:bg-red-50 text-red-500 shadow-sm transition-all duration-200 cursor-pointer"
-                      title="Hapus Notifikasi"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Unread indicator dot */}
-                  {!notif.is_read && (
-                    <span className="absolute right-4 top-4 w-2.5 h-2.5 bg-green-500 rounded-full group-hover:opacity-0 transition-opacity duration-200" />
-                  )}
                 </div>
               );
             })}

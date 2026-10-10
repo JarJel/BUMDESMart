@@ -139,10 +139,21 @@ services:
     image: ghcr.io/rmyndharis/openwa:latest
     container_name: bumdesmart_openwa
     restart: unless-stopped
+    shm_size: '2gb'
+    environment:
+      - PORT=2785
+      - AUTO_START_SESSIONS=true
+      - NODE_ENV=production
     volumes:
       - openwa_data:/app/sessions
     ports:
       - "2785:2785"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:2785/api/sessions || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 volumes:
   db_data:

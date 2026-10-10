@@ -298,7 +298,9 @@ class CheckoutController extends Controller
                 $distDisplay = $distanceKm ? round($distanceKm, 2) : null;
 
                 // Opsi kurir lokal & ambil sendiri
+                // (Kurir lokal motor & mobil sementara dinonaktifkan atas permintaan user)
                 $options = [
+                    /*
                     [
                         'id'          => 'kurir-lokal-motor',
                         'name'        => 'Kurir Lokal - Motor',
@@ -319,6 +321,7 @@ class CheckoutController extends Controller
                         'type'        => 'lokal',
                         'vehicle'     => 'mobil',
                     ],
+                    */
                     [
                         'id'          => 'pickup',
                         'name'        => 'Ambil Sendiri',
@@ -330,16 +333,8 @@ class CheckoutController extends Controller
                     ],
                 ];
 
-                // Tambah GoSend & ekspedisi jika jarak > 5km (luar desa) atau koordinat tidak ada
-                $showEkspedisi = false;
-                if ($selectedAddress && $umkm) {
-                    if ($distanceKm !== null) {
-                        $showEkspedisi = $distanceKm > 5;
-                    } else {
-                        // Koordinat tidak ada, tampilkan saja semua opsi
-                        $showEkspedisi = true;
-                    }
-                }
+                // Selalu tampilkan opsi ekspedisi (RajaOngkir & Reguler) karena kurir lokal sementara non-aktif
+                $showEkspedisi = true;
 
                 if ($showEkspedisi) {
                     $km = $distanceKm ?? 10;
@@ -759,7 +754,31 @@ class CheckoutController extends Controller
                     ]);
 
                     if (!$item['product']->is_pre_order) {
-                        $item['product']->decrement('stock', $item['quantity']);
+                        $qtyNeeded = (int) $item['quantity'];
+
+                        if (!empty($item['variant_option_id'])) {
+                            // Pessimistic Locking (lockForUpdate) pada Varian Produk
+                            $variantObj = ProductVariantOption::where('id', $item['variant_option_id'])
+                                ->lockForUpdate()
+                                ->first();
+
+                            if (!$variantObj || $variantObj->stock < $qtyNeeded) {
+                                throw new Exception("Stok varian {$item['product_name']} sudah tidak mencukupi.");
+                            }
+
+                            $variantObj->decrement('stock', $qtyNeeded);
+                        } else {
+                            // Pessimistic Locking (lockForUpdate) pada Produk Utama
+                            $productObj = Product::where('id', $item['product']->id)
+                                ->lockForUpdate()
+                                ->first();
+
+                            if (!$productObj || $productObj->stock < $qtyNeeded) {
+                                throw new Exception("Stok produk {$item['product_name']} sudah tidak mencukupi.");
+                            }
+
+                            $productObj->decrement('stock', $qtyNeeded);
+                        }
                     }
                 }
 
@@ -796,6 +815,9 @@ class CheckoutController extends Controller
                     'total'            => $order->total,
                     'seller_phone'     => $sellerPhone,
                     'seller_shop_name' => $umkmForFee->shop_name ?? '',
+                    'order'            => $order,
+                    'shop_name'        => $umkmForFee->shop_name ?? 'Seller',
+                    'customer_name'    => $user->name ?? ($user->customer?->name ?? 'Pembeli'),
                 ];
             }
 
@@ -807,12 +829,56 @@ class CheckoutController extends Controller
 
             DB::commit();
 
+            // Notifikasi otomatis via OpenWA ke setiap Seller
+            foreach ($createdOrders as $itemData) {
+                $phone = $itemData['seller_phone'] ?? '';
+                if (!empty($phone)) {
+                    $orderObj      = $itemData['order'];
+                    $shopName      = $itemData['shop_name'];
+                    $customerName  = $itemData['customer_name'];
+                    $deliveryLabel = $orderObj->delivery_type === 'delivered' ? 'Dikirim ke Alamat' : 'Ambil Sendiri di Toko';
+                    $paymentLabel  = ($validated['payment_type'] ?? 'midtrans') === 'manual_umkm' ? 'Transfer Bank / QRIS Direct' : 'Midtrans';
+
+                    $orderItems = OrderItem::where('order_id', $orderObj->id)->get();
+                    $itemsSummary = "";
+                    foreach ($orderItems as $oi) {
+                        $itemsSummary .= "• {$oi->product_name} ({$oi->quantity}x)\n";
+                    }
+
+                    $msg = "Halo *{$shopName}*,\n\n"
+                         . "Ada pesanan baru masuk dari *{$customerName}*! 🛒\n\n"
+                         . "• *Kode Pesanan:* #{$orderObj->order_code}\n"
+                         . "• *Total:* Rp " . number_format($orderObj->total, 0, ',', '.') . "\n"
+                         . "• *Pengiriman:* {$deliveryLabel}\n"
+                         . "• *Metode Pembayaran:* {$paymentLabel}\n\n"
+                         . "*Rincian Produk:*\n" . $itemsSummary . "\n"
+                         . "Mohon segera diproses melalui Dashboard Seller. Terima kasih!";
+
+                    try {
+                        \App\Jobs\SendWhatsappJob::dispatch($phone, $msg, \App\Jobs\SendWhatsappJob::PRIORITY_P1);
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::error("Gagal dispatch WA otomatis ke seller {$phone}: " . $e->getMessage());
+                    }
+                }
+            }
+
+            // Clean array output for response
+            $responseOrders = array_map(function ($o) {
+                return [
+                    'order_id'         => $o['order_id'],
+                    'order_code'       => $o['order_code'],
+                    'total'            => $o['total'],
+                    'seller_phone'     => $o['seller_phone'],
+                    'seller_shop_name' => $o['seller_shop_name'],
+                ];
+            }, $createdOrders);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Pesanan berhasil dibuat!',
                 'data'    => [
-                    'orders'       => $createdOrders,
-                    'total_orders' => count($createdOrders),
+                    'orders'       => $responseOrders,
+                    'total_orders' => count($responseOrders),
                 ],
             ]);
         } catch (Exception $e) {

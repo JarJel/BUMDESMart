@@ -18,7 +18,9 @@ class AdminProductController extends Controller
 
     public function index(Request $request)
     {
-        $search = $request->query('search');
+        $search     = $request->query('search');
+        $categoryId = $request->query('category_id');
+        $status     = $request->query('status');
 
         $query = Product::with(['umkmProfile', 'category', 'images', 'variants.options']);
         
@@ -43,6 +45,14 @@ class AdminProductController extends Controller
                        $q->where('shop_name', 'like', "%{$search}%");
                    });
             });
+        }
+
+        if ($categoryId && $categoryId !== 'all') {
+            $query->where('category_id', $categoryId);
+        }
+
+        if ($status && $status !== 'all') {
+            $query->where('status', $status);
         }
 
         $products = $query->latest()->paginate(10);

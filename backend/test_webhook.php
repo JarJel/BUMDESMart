@@ -27,7 +27,7 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'sentry-hook-resource: event_alert',
     'sentry-hook-signature: ' . $signature
 ]);
-$response = curl_exec($ch
+$response = curl_exec($ch);
 curl_close($ch);
 echo "RESPONSE:\n";
 echo $response;

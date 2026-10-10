@@ -92,12 +92,38 @@ class SendWhatsappJob implements ShouldQueue
         $jitter   = random_int(0, (int) ($delaySec * 0.4));
         sleep($delaySec + $jitter);
 
-        $driver = config('services.whatsapp_driver', 'fonnte');
+        $queueItem = \App\Models\WhatsappQueue::create([
+            'phone'       => $this->phone,
+            'message'     => $this->message,
+            'context'     => 'job_priority_' . $this->priority,
+            'status'      => 'processing',
+            'attempt'     => $this->attempts(),
+            'max_attempts'=> $this->tries,
+            'retry_delay' => 60,
+        ]);
+
+        $driver = config('services.whatsapp_driver', 'openwa');
         $result = $driver === 'openwa'
             ? OpenWAService::send($this->phone, $this->message)
             : WhatsappService::send($this->phone, $this->message);
 
-        if (!($result['status'] ?? false)) {
+        $isSuccess = (bool) ($result['status'] ?? false);
+
+        \App\Models\WhatsappLog::create([
+            'queue_id'    => $queueItem->id,
+            'attempt'     => $this->attempts(),
+            'status'      => $isSuccess ? 'sent' : 'failed',
+            'error'       => $isSuccess ? null : ($result['error'] ?? 'unknown'),
+            'executed_at' => now(),
+        ]);
+
+        $queueItem->update([
+            'status'     => $isSuccess ? 'sent' : 'failed',
+            'sent_at'    => $isSuccess ? now() : null,
+            'last_error' => $isSuccess ? null : ($result['error'] ?? 'unknown'),
+        ]);
+
+        if (!$isSuccess) {
             Log::warning("SendWhatsappJob: gagal kirim ke {$this->phone} (P{$this->priority}) — " . ($result['error'] ?? 'unknown'));
         }
     }

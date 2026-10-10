@@ -709,7 +709,7 @@ export default function PesananPage() {
             {orders.length === 0 ? "Belum ada pesanan masuk." : "Tidak ada pesanan yang sesuai filter."}
           </div>
         ) : (
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-gray-100">
             {filtered.map(o => {
               const produkLabel = (o.items || []).map(i => {
                 const varText = i.variant_option ? ` (${i.variant_option.value})` : "";
@@ -717,77 +717,88 @@ export default function PesananPage() {
               }).join(", ");
               const mode = deliveryMode(o);
               return (
-                <div key={o.id} className="px-5 py-4 hover:bg-gray-50/80 transition-colors border-b border-gray-50 last:border-0">
-                  <div onClick={() => setSelected(o)} className="cursor-pointer flex items-center gap-4">
-                    {/* Status dot */}
-                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                      o.status === "pending"          ? "bg-blue-500 animate-pulse" :
-                      o.status === "confirmed"        ? "bg-yellow-400" :
-                      o.status === "ready_for_pickup" ? "bg-teal-500" :
-                      o.status === "picking_up"       ? "bg-orange-400" :
-                      o.status === "shipped"          ? "bg-purple-400" :
-                      (o.status === "delivered" || o.status === "completed") ? "bg-green-500" : "bg-gray-300"
-                    }`} />
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-gray-900">{o.order_code}</span>
-                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${STATUS_COLOR[o.status] ?? ""}`}>
+                <div key={o.id} className="p-4 sm:p-5 hover:bg-gray-50/80 transition-colors">
+                  <div onClick={() => setSelected(o)} className="cursor-pointer space-y-2.5">
+                    {/* Header Baris Atas: Kode Pesanan, Status Utama & Tanggal */}
+                    <div className="flex items-center justify-between gap-2 border-b border-gray-50 pb-2">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                          o.status === "pending"          ? "bg-blue-500 animate-pulse" :
+                          o.status === "confirmed"        ? "bg-yellow-400" :
+                          o.status === "ready_for_pickup" ? "bg-teal-500" :
+                          o.status === "picking_up"       ? "bg-orange-400" :
+                          o.status === "shipped"          ? "bg-purple-400" :
+                          (o.status === "delivered" || o.status === "completed") ? "bg-green-500" : "bg-gray-300"
+                        }`} />
+                        <span className="text-xs font-bold text-gray-900 tracking-wide">{o.order_code}</span>
+                        <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${STATUS_COLOR[o.status] ?? ""}`}>
                           {STATUS_LABEL[o.status] ?? o.status}
                         </span>
-                        {/* Badge PO */}
-                        {(o.items || []).some(i => i.product?.is_pre_order) && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 font-medium">
-                            Pre-Order
-                          </span>
-                        )}
-                        {/* Badge mode pengiriman */}
-                        {mode === "pickup" && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-50 text-teal-600 border border-teal-200 font-medium">
-                            Ambil Sendiri
-                          </span>
-                        )}
-                        {mode === "ekspedisi" && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-200 font-medium">
-                            {ekspedisiLabel(o.shipping_method)}
-                          </span>
-                        )}
-                        {o.payment?.payment_type === "manual_umkm" && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium border ${
-                            o.payment.status === "paid" ? "bg-green-50 text-green-700 border-green-200" :
-                            o.payment.proof_of_payment ? "bg-blue-50 text-blue-700 border-blue-200 animate-pulse" :
-                            "bg-amber-50 text-amber-700 border-amber-200"
-                          }`}>
-                            {o.payment.status === "paid" ? "Lunas (QRIS Toko)" :
-                             o.payment.proof_of_payment ? "Cek Bukti Bayar" : "Menunggu Transfer"}
-                          </span>
-                        )}
                       </div>
-                      <p className="text-sm font-semibold text-gray-800 mt-1">{o.customer?.user?.name}</p>
-                      <p className="text-xs text-gray-400 truncate mt-0.5">{produkLabel}</p>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[11px] text-gray-400 font-medium">{formatDate(o.created_at).split(",")[0]}</span>
+                        <Link
+                          href={`/seller/pesanan/${o.id}`}
+                          onClick={e => e.stopPropagation()}
+                          className="p-1 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          title="Buka halaman detail"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
+                        <ChevronRight className="w-4 h-4 text-gray-300" />
+                      </div>
                     </div>
 
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-bold text-gray-900">{formatRp(o.total)}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(o.created_at).split(",")[0]}</p>
-                    </div>
+                    {/* Content Tengah & Bawah: Nama Pembeli, Produk, Badges & Harga Total */}
+                    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <p className="text-sm font-bold text-gray-900">{o.customer?.user?.name || "Pembeli"}</p>
+                        <p className="text-xs text-gray-500 line-clamp-1">{produkLabel}</p>
 
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <Link
-                        href={`/seller/pesanan/${o.id}`}
-                        onClick={e => e.stopPropagation()}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                        title="Buka halaman detail"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </Link>
-                      <ChevronRight className="w-4 h-4 text-gray-300" />
+                        {/* Badges Informasi Tambahan */}
+                        <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                          {(o.items || []).some(i => i.product?.is_pre_order) && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 font-semibold">
+                              Pre-Order
+                            </span>
+                          )}
+                          {mode === "pickup" && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 font-semibold">
+                              Ambil Sendiri
+                            </span>
+                          )}
+                          {mode === "ekspedisi" && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-semibold">
+                              {ekspedisiLabel(o.shipping_method)}
+                            </span>
+                          )}
+                          {o.payment?.payment_type === "manual_umkm" && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                              o.payment.status === "paid" ? "bg-green-50 text-green-700 border-green-200" :
+                              o.payment.proof_of_payment ? "bg-blue-50 text-blue-700 border-blue-200 animate-pulse" :
+                              "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}>
+                              {o.payment.status === "paid" ? "Lunas (QRIS Toko)" :
+                               o.payment.proof_of_payment ? "Cek Bukti Bayar" : "Menunggu Transfer"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Total Harga */}
+                      <div className="sm:text-right shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-50 flex sm:block items-center justify-between">
+                        <span className="text-xs text-gray-400 sm:hidden">Total Pesanan:</span>
+                        <span className="text-sm font-extrabold text-gray-900" style={{ color: "var(--primary)" }}>
+                          {formatRp(o.total)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
                   {/* Aksi cepat — hanya pending */}
                   {o.status === "pending" && (
-                    <div className="mt-3 pt-3 border-t border-gray-100/80 flex items-center justify-between gap-3 bg-blue-50/50 p-3 rounded-xl">
+                    <div className="mt-3 pt-3 border-t border-gray-100/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-blue-50/60 p-3 rounded-xl">
                       {o.payment?.payment_type === "manual_umkm" && o.payment.status !== "paid" ? (
                         <>
                           <p className="text-xs font-medium text-amber-700 flex items-center gap-1">
@@ -795,7 +806,7 @@ export default function PesananPage() {
                           </p>
                           <button
                             onClick={e => { e.stopPropagation(); setSelected(o); }}
-                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition-colors shadow-sm whitespace-nowrap"
+                            className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition-colors shadow-sm whitespace-nowrap"
                           >
                             <i className="ti ti-receipt text-sm" />
                             Periksa Bukti Bayar
@@ -806,18 +817,18 @@ export default function PesananPage() {
                           <p className="text-xs font-medium text-blue-700 flex items-center gap-1">
                             <i className="ti ti-bolt" /> Pesanan baru masuk! Segera konfirmasi.
                           </p>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-2 shrink-0">
                             <button
                               onClick={e => { e.stopPropagation(); handleUpdateStatus(o.id, "cancelled"); }}
                               disabled={actioning === o.id}
-                              className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
+                              className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
                             >
                               Tolak
                             </button>
                             <button
                               onClick={e => { e.stopPropagation(); handleUpdateStatus(o.id, "confirmed"); }}
                               disabled={actioning === o.id}
-                              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm"
+                              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm"
                             >
                               <CheckCircle className="w-3.5 h-3.5" />
                               {actioning === o.id ? "Memproses..." : "Konfirmasi"}
@@ -834,12 +845,27 @@ export default function PesananPage() {
         )}
 
         {!loading && orders.length > 0 && (
-          <div className="flex flex-wrap gap-4 px-5 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-500">
-            <span>Total: <strong className="text-gray-900">{orders.length}</strong></span>
-            <span>Baru: <strong className="text-blue-600">{orders.filter(o => o.status === "pending").length}</strong></span>
-            <span>Siap Diambil: <strong className="text-teal-600">{orders.filter(o => o.status === "ready_for_pickup").length}</strong></span>
-            <span>Dikirim: <strong className="text-purple-600">{orders.filter(o => o.status === "shipped").length}</strong></span>
-            <span>Selesai: <strong className="text-green-700">{orders.filter(o => o.status === "delivered" || o.status === "completed").length}</strong></span>
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2.5 px-4 py-3 bg-gray-50/80 border-t border-gray-100 text-xs text-gray-600">
+            <div className="bg-white px-3 py-1.5 rounded-xl border border-gray-100 flex items-center justify-between sm:justify-start gap-2 shadow-2xs">
+              <span>Total:</span>
+              <strong className="text-gray-900 font-bold">{orders.length}</strong>
+            </div>
+            <div className="bg-white px-3 py-1.5 rounded-xl border border-gray-100 flex items-center justify-between sm:justify-start gap-2 shadow-2xs">
+              <span>Baru:</span>
+              <strong className="text-blue-600 font-bold">{orders.filter(o => o.status === "pending").length}</strong>
+            </div>
+            <div className="bg-white px-3 py-1.5 rounded-xl border border-gray-100 flex items-center justify-between sm:justify-start gap-2 shadow-2xs">
+              <span>Siap Diambil:</span>
+              <strong className="text-teal-600 font-bold">{orders.filter(o => o.status === "ready_for_pickup").length}</strong>
+            </div>
+            <div className="bg-white px-3 py-1.5 rounded-xl border border-gray-100 flex items-center justify-between sm:justify-start gap-2 shadow-2xs">
+              <span>Dikirim:</span>
+              <strong className="text-purple-600 font-bold">{orders.filter(o => o.status === "shipped").length}</strong>
+            </div>
+            <div className="bg-white px-3 py-1.5 rounded-xl border border-gray-100 flex items-center justify-between sm:justify-start gap-2 shadow-2xs">
+              <span>Selesai:</span>
+              <strong className="text-green-700 font-bold">{orders.filter(o => o.status === "delivered" || o.status === "completed").length}</strong>
+            </div>
           </div>
         )}
       </div>
