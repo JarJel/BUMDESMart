@@ -136,7 +136,7 @@ export default function CheckoutPage() {
   const [showAllShipping, setShowAllShipping] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null);
   const [deletingItem, setDeletingItem] = useState(false);
-  const isMidtransEnabled = !!process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+  const isMidtransEnabled = process.env.NEXT_PUBLIC_ENABLE_MIDTRANS === "true";
   const [paymentMethod, setPaymentMethod] = useState<"midtrans" | "manual_umkm">(
     isMidtransEnabled ? "midtrans" : "manual_umkm"
   );
