@@ -80,11 +80,11 @@ class OpenWAService
             }
             $http = Http::withHeaders($headers)->withoutVerifying()->timeout(5);
 
-            // 1. Cari session dengan nama spesifik
+            // 1. Cari session dengan nama / pushName spesifik
             $list = $http->get("{$baseUrl}/api/sessions", ['name' => $name]);
             if ($list->successful() && is_array($list->json())) {
                 foreach ($list->json() as $session) {
-                    if (($session['name'] ?? null) === $name || ($session['id'] ?? null) === $name) {
+                    if (($session['name'] ?? null) === $name || ($session['id'] ?? null) === $name || ($session['pushName'] ?? null) === $name) {
                         $id = $session['id'] ?? null;
                         if ($id) {
                             Cache::put($cacheKey, $id, 3600);
@@ -98,7 +98,7 @@ class OpenWAService
             $all = $http->get("{$baseUrl}/api/sessions");
             if ($all->successful() && is_array($all->json())) {
                 foreach ($all->json() as $session) {
-                    if (($session['name'] ?? null) === $name || ($session['id'] ?? null) === $name) {
+                    if (($session['name'] ?? null) === $name || ($session['id'] ?? null) === $name || ($session['pushName'] ?? null) === $name) {
                         $id = $session['id'] ?? null;
                         if ($id) {
                             Cache::put($cacheKey, $id, 3600);
