@@ -47,21 +47,9 @@ services:
     volumes:
       - ./backend/.env:/var/www/html/.env:ro
       - backend_storage:/var/www/html/storage
-      - ./backend/app/Models/SiteVisit.php:/var/www/html/app/Models/SiteVisit.php:ro
-      - ./backend/app/Http/Controllers/SiteVisitController.php:/var/www/html/app/Http/Controllers/SiteVisitController.php:ro
-      - ./backend/app/Services/FcmService.php:/var/www/html/app/Services/FcmService.php:ro
-      - ./backend/app/Models/FcmToken.php:/var/www/html/app/Models/FcmToken.php:ro
-      - ./backend/app/Http/Controllers/FcmTokenController.php:/var/www/html/app/Http/Controllers/FcmTokenController.php:ro
-      - ./backend/app/Helpers/PushNotification.php:/var/www/html/app/Helpers/PushNotification.php:ro
-      - ./backend/app/Http/Controllers/PublicStatsController.php:/var/www/html/app/Http/Controllers/PublicStatsController.php:ro
-      - ./backend/app/Models/Product.php:/var/www/html/app/Models/Product.php:ro
-      - ./backend/app/Http/Controllers/Customers/ProductController.php:/var/www/html/app/Http/Controllers/Customers/ProductController.php:ro
-      - ./backend/app/Http/Controllers/Customers/ProductSearchController.php:/var/www/html/app/Http/Controllers/Customers/ProductSearchController.php:ro
-      - ./backend/app/Http/Controllers/Seller/SellerDiscountController.php:/var/www/html/app/Http/Controllers/Seller/SellerDiscountController.php:ro
-      - ./backend/app/Services/ElasticsearchProductService.php:/var/www/html/app/Services/ElasticsearchProductService.php:ro
-      - ./backend/app/Services/OpenWAService.php:/var/www/html/app/Services/OpenWAService.php:ro
-      - ./backend/app/Http/Controllers/Admin/WhatsappAdminController.php:/var/www/html/app/Http/Controllers/Admin/WhatsappAdminController.php:ro
-      - ./backend/config/services.php:/var/www/html/config/services.php:ro
+      - ./backend/app:/var/www/html/app:ro
+      - ./backend/config:/var/www/html/config:ro
+      - ./backend/routes:/var/www/html/routes:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost/ -o /dev/null || exit 1"]
       interval: 30s
@@ -88,21 +76,9 @@ services:
     volumes:
       - ./backend/.env:/var/www/html/.env:ro
       - backend_storage:/var/www/html/storage
-      - ./backend/app/Models/SiteVisit.php:/var/www/html/app/Models/SiteVisit.php:ro
-      - ./backend/app/Http/Controllers/SiteVisitController.php:/var/www/html/app/Http/Controllers/SiteVisitController.php:ro
-      - ./backend/app/Services/FcmService.php:/var/www/html/app/Services/FcmService.php:ro
-      - ./backend/app/Models/FcmToken.php:/var/www/html/app/Models/FcmToken.php:ro
-      - ./backend/app/Http/Controllers/FcmTokenController.php:/var/www/html/app/Http/Controllers/FcmTokenController.php:ro
-      - ./backend/app/Helpers/PushNotification.php:/var/www/html/app/Helpers/PushNotification.php:ro
-      - ./backend/app/Http/Controllers/PublicStatsController.php:/var/www/html/app/Http/Controllers/PublicStatsController.php:ro
-      - ./backend/app/Models/Product.php:/var/www/html/app/Models/Product.php:ro
-      - ./backend/app/Http/Controllers/Customers/ProductController.php:/var/www/html/app/Http/Controllers/Customers/ProductController.php:ro
-      - ./backend/app/Http/Controllers/Customers/ProductSearchController.php:/var/www/html/app/Http/Controllers/Customers/ProductSearchController.php:ro
-      - ./backend/app/Http/Controllers/Seller/SellerDiscountController.php:/var/www/html/app/Http/Controllers/Seller/SellerDiscountController.php:ro
-      - ./backend/app/Services/ElasticsearchProductService.php:/var/www/html/app/Services/ElasticsearchProductService.php:ro
-      - ./backend/app/Services/OpenWAService.php:/var/www/html/app/Services/OpenWAService.php:ro
-      - ./backend/app/Http/Controllers/Admin/WhatsappAdminController.php:/var/www/html/app/Http/Controllers/Admin/WhatsappAdminController.php:ro
-      - ./backend/config/services.php:/var/www/html/config/services.php:ro
+      - ./backend/app:/var/www/html/app:ro
+      - ./backend/config:/var/www/html/config:ro
+      - ./backend/routes:/var/www/html/routes:ro
     entrypoint: []
     command: php artisan queue:work --sleep=3 --tries=3 --timeout=60
 
