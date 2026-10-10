@@ -166,10 +166,11 @@ services:
       - PORT=2785
       - AUTO_START_SESSIONS=true
       - ENGINE_TYPE=baileys
-      - API_MASTER_KEY=${OPENWA_API_KEY:-BumDesMartSecretWAKey2026ProductionMasterKey}
+      - API_MASTER_KEY=${OPENWA_API_KEY:-owa_master_8d92f7a1e04b8c31276aef9045b8123c8a9012bc563d7e89012a34b56c7890ef}
+      - API_KEY_PEPPER=${OPENWA_API_KEY_PEPPER:-owa_pepper_9a18b2c3d4e5f678901234567890abcdef1234567890abcdef1234567890abcdef}
       - NODE_ENV=production
     volumes:
-      - openwa_data:/app/sessions
+      - openwa_data:/app/data
     ports:
       - "2785:2785"
     healthcheck:

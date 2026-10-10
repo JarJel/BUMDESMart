@@ -57,7 +57,7 @@ return [
     'openwa' => [
         'url'        => env('OPENWA_URL', 'http://localhost:2785'),
         'session_id' => env('OPENWA_SESSION_ID', 'BumDesMartNukita'),
-        'api_key'    => env('OPENWA_API_KEY', 'BumDesMartSecretWAKey2026ProductionMasterKey'),
+        'api_key'    => env('OPENWA_API_KEY', 'owa_master_8d92f7a1e04b8c31276aef9045b8123c8a9012bc563d7e89012a34b56c7890ef'),
     ],
 
     'telegram' => [
