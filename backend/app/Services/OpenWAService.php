@@ -23,14 +23,38 @@ use Illuminate\Support\Facades\Log;
 class OpenWAService
 {
     /**
+     * Dapatkan URL OpenWA. Auto-detect jika berjalan di dalam container Docker.
+     */
+    public static function getBaseUrl(): string
+    {
+        $url = rtrim(config('services.openwa.url', 'http://localhost:2785'), '/');
+
+        // Jika URL merujuk ke localhost/127.0.0.1, cek apakah ada container OpenWA di Docker network
+        if (str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
+            if (gethostbyname('openwa') !== 'openwa') {
+                return 'http://openwa:2785';
+            }
+            if (gethostbyname('bumdesmart_openwa') !== 'bumdesmart_openwa') {
+                return 'http://bumdesmart_openwa:2785';
+            }
+        }
+
+        return $url;
+    }
+
+    /**
      * Resolve UUID session OpenWA dari nama/label (config: OPENWA_SESSION_ID).
      * Auto-create session baru di OpenWA kalau belum ada.
      */
     public static function resolveSessionId(): ?string
     {
-        $baseUrl   = rtrim(config('services.openwa.url', 'http://localhost:2785'), '/');
-        $sessionId = config('services.openwa.session_id', 'bumdesmart');
+        $baseUrl   = self::getBaseUrl();
+        $sessionId = config('services.openwa.session_id', 'BumDesMartNukita');
         $apiKey    = config('services.openwa.api_key', '');
+
+        if (empty($sessionId)) {
+            $sessionId = 'BumDesMartNukita';
+        }
 
         // Jika env sudah berisi UUID, kembalikan langsung tanpa lookup nama
         $isUuid = (bool) preg_match(
@@ -88,7 +112,7 @@ class OpenWAService
             return ['status' => false, 'error' => 'Target phone number is empty.'];
         }
 
-        $baseUrl   = rtrim(config('services.openwa.url', 'http://localhost:2785'), '/');
+        $baseUrl   = self::getBaseUrl();
         $sessionId = self::resolveSessionId();
         $apiKey    = config('services.openwa.api_key', '');
 

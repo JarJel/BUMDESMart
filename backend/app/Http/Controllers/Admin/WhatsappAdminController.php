@@ -12,7 +12,7 @@ class WhatsappAdminController extends Controller
 {
     private function openwaHttp()
     {
-        $baseUrl = rtrim(config('services.openwa.url', 'http://localhost:2785'), '/');
+        $baseUrl = OpenWAService::getBaseUrl();
         $apiKey  = config('services.openwa.api_key', '');
 
         $http = Http::baseUrl($baseUrl)->withoutVerifying()->timeout(10);
@@ -55,7 +55,7 @@ class WhatsappAdminController extends Controller
                 'phone'     => $data['phone']  ?? null,
             ]);
         } catch (\Throwable $e) {
-            $baseUrl = config('services.openwa.url', 'http://localhost:2785');
+            $baseUrl = OpenWAService::getBaseUrl();
             return response()->json([
                 'connected' => false,
                 'status'    => 'OFFLINE',
@@ -114,7 +114,7 @@ class WhatsappAdminController extends Controller
 
             return response()->json(['qr' => $qr, 'timeout' => 60]);
         } catch (\Throwable $e) {
-            $baseUrl = config('services.openwa.url', 'http://localhost:2785');
+            $baseUrl = OpenWAService::getBaseUrl();
             return response()->json([
                 'qr' => null,
                 'error' => "Gagal mengambil QR. Server OpenWA belum aktif di {$baseUrl}. Silakan jalankan OpenWA terlebih dahulu.",
@@ -147,7 +147,7 @@ class WhatsappAdminController extends Controller
             $this->openwaHttp()->post("/api/sessions/{$session}/stop");
             return response()->json(['message' => 'Session diputus.']);
         } catch (\Throwable $e) {
-            $baseUrl = config('services.openwa.url', 'http://localhost:2785');
+            $baseUrl = OpenWAService::getBaseUrl();
             return response()->json(['message' => "Server OpenWA belum aktif di {$baseUrl}."], 400);
         }
     }
@@ -162,7 +162,7 @@ class WhatsappAdminController extends Controller
             $this->openwaHttp()->post("/api/sessions/{$session}/start");
             return response()->json(['message' => 'Session direstart.']);
         } catch (\Throwable $e) {
-            $baseUrl = config('services.openwa.url', 'http://localhost:2785');
+            $baseUrl = OpenWAService::getBaseUrl();
             return response()->json(['message' => "Server OpenWA belum aktif di {$baseUrl}."], 400);
         }
     }
