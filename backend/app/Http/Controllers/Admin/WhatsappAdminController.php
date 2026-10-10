@@ -13,7 +13,7 @@ class WhatsappAdminController extends Controller
     private function openwaHttp()
     {
         $baseUrl = OpenWAService::getBaseUrl();
-        $apiKey  = config('services.openwa.api_key', '');
+        $apiKey  = OpenWAService::getApiKey();
 
         $http = Http::baseUrl($baseUrl)->withoutVerifying()->timeout(10);
         if ($apiKey) {

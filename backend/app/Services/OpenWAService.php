@@ -42,6 +42,15 @@ class OpenWAService
         return $url;
     }
 
+    public static function getApiKey(): string
+    {
+        $key = config('services.openwa.api_key', '');
+        if (empty($key) || strlen($key) < 32) {
+            return 'owa_master_8d92f7a1e04b8c31276aef9045b8123c8a9012bc563d7e89012a34b56c7890ef';
+        }
+        return $key;
+    }
+
     /**
      * Resolve UUID session OpenWA dari nama/label (config: OPENWA_SESSION_ID).
      * Auto-create session baru di OpenWA kalau belum ada.
@@ -50,7 +59,7 @@ class OpenWAService
     {
         $baseUrl   = self::getBaseUrl();
         $sessionId = config('services.openwa.session_id', 'BumDesMartNukita');
-        $apiKey    = config('services.openwa.api_key', '');
+        $apiKey    = self::getApiKey();
 
         if (empty($sessionId)) {
             $sessionId = 'BumDesMartNukita';
@@ -140,7 +149,7 @@ class OpenWAService
 
         $baseUrl   = self::getBaseUrl();
         $sessionId = self::resolveSessionId();
-        $apiKey    = config('services.openwa.api_key', '');
+        $apiKey    = self::getApiKey();
 
         if (!$sessionId) {
             return ['status' => false, 'error' => 'Gagal resolve session OpenWA.'];
