@@ -639,8 +639,11 @@ export default function PesananPage() {
         shipped:          "Pesanan ditandai sudah dikirim. Nomor resi tersimpan.",
       };
       toast.success(messages[status] ?? "Status diperbarui.");
-      fetchOrders();
-      setSelected(prev => prev?.id === id ? (res.data?.data ?? { ...prev, status }) : prev);
+      const updatedData = res.data?.data;
+      setSelected(prev => {
+        if (prev?.id !== id) return prev;
+        return updatedData || (prev ? { ...prev, status } : null);
+      });
     } catch (err: any) {
       const msg = err.response?.data?.message || "Gagal mengubah status pesanan.";
       toast.error(msg);
