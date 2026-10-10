@@ -42,6 +42,7 @@ class WhatsappAdminController extends Controller
             $res = $this->openwaHttp()->get("/api/sessions/{$session}");
 
             if ($res->status() === 404) {
+                OpenWAService::clearSessionCache();
                 return response()->json(['connected' => false, 'status' => 'not_found']);
             }
 

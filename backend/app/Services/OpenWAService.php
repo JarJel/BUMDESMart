@@ -106,6 +106,12 @@ class OpenWAService
         return $name;
     }
 
+    public static function clearSessionCache(): void
+    {
+        $sessionId = config('services.openwa.session_id', 'BumDesMartNukita');
+        Cache::forget('openwa_session_uuid_' . $sessionId);
+    }
+
     public static function send(string $target, string $message): array
     {
         if (empty($target)) {
