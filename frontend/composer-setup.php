@@ -1,4 +1,4 @@
-<?php
+1<?php
 
 /*
  * This file is part of Composer.

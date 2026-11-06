@@ -137,9 +137,8 @@ export default function CheckoutPage() {
   const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null);
   const [deletingItem, setDeletingItem] = useState(false);
   const isMidtransEnabled = process.env.NEXT_PUBLIC_ENABLE_MIDTRANS === "true";
-  const [paymentMethod, setPaymentMethod] = useState<"midtrans" | "manual_umkm">(
-    isMidtransEnabled ? "midtrans" : "manual_umkm"
-  );
+  // Default selalu bayar langsung ke toko (manual_umkm) dan langsung terpilih
+  const [paymentMethod, setPaymentMethod] = useState<"midtrans" | "manual_umkm">("manual_umkm");
   const [updatingQtyId, setUpdatingQtyId] = useState<number | null>(null);
 
   // Address modal
@@ -329,10 +328,19 @@ export default function CheckoutPage() {
   })();
 
   useEffect(() => {
-    if (!hasDirectPaymentSupport && paymentMethod === "manual_umkm") {
+    // Jangan ubah pilihan sebelum data keranjang/toko selesai dimuat
+    if (loading) return;
+
+    // Hanya jika toko sama sekali tidak mendukung bayar langsung dan Midtrans aktif, beralih ke Midtrans
+    if (!hasDirectPaymentSupport && isMidtransEnabled) {
       setPaymentMethod("midtrans");
+    } else if (hasDirectPaymentSupport) {
+      // Jika toko mendukung bayar langsung dan Midtrans tidak aktif, pastikan selalu manual_umkm
+      if (!isMidtransEnabled && paymentMethod !== "manual_umkm") {
+        setPaymentMethod("manual_umkm");
+      }
     }
-  }, [hasDirectPaymentSupport, paymentMethod]);
+  }, [loading, hasDirectPaymentSupport, isMidtransEnabled, paymentMethod]);
 
   const handleOpenAdd = () => {
     setEditingAddress(null);
@@ -414,6 +422,8 @@ export default function CheckoutPage() {
     }
     if (cartItems.length === 0) { toast.warning("Keranjang kosong."); return; }
 
+    const chosenPayment = (!isMidtransEnabled && paymentMethod === "midtrans") ? "manual_umkm" : paymentMethod;
+
     setSubmitting(true);
     try {
       const payload: any = {
@@ -421,7 +431,7 @@ export default function CheckoutPage() {
         delivery_type: deliveryType,
         vehicle_type: undefined,
         notes: notes || undefined,
-        payment_type: paymentMethod,
+        payment_type: chosenPayment,
         shipping_method_id: deliveryType === 'delivered' ? selectedShippingId : undefined,
         shipping_cost_override: (deliveryType === 'delivered' && selectedShippingId && !selectedShippingId.startsWith('kurir-lokal') && shippingCost !== null)
           ? shippingCost : undefined,
@@ -446,7 +456,7 @@ export default function CheckoutPage() {
 
         const firstOrderId = orders[0]?.order_id;
         if (firstOrderId) {
-          if (paymentMethod === "manual_umkm") {
+          if (chosenPayment === "manual_umkm") {
             toast.success("Pesanan berhasil dibuat! Silakan transfer ke toko dan unggah bukti.");
             router.replace(`/pesanan/${firstOrderId}`);
           } else {
@@ -509,7 +519,7 @@ export default function CheckoutPage() {
   if (authLoading || !user) return null;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-28 lg:pb-10">
       <div className="flex items-center gap-3 mb-8">
         <button
           type="button"
@@ -590,12 +600,12 @@ export default function CheckoutPage() {
             <div className="space-y-4">
               {tenantGroups.map((group) => (
                 <div key={group.tenantKey} className="border-b border-gray-50 pb-4 last:border-0 last:pb-0">
-                  <p className="text-xs font-bold text-gray-700 mb-3 flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <p className="text-xs sm:text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 22V12h6v10"/>
                     </svg>
-                    {group.tenantName}
+                    <span>{group.tenantName}</span>
                   </p>
                   <div className="space-y-3">
                     {group.items.map((item) => {
@@ -605,82 +615,113 @@ export default function CheckoutPage() {
                       const hasDiscount = !item.variant && !!item.product?.active_discount;
                       const stock = item.variant ? item.variant.stock : (item.product?.stock || 999);
                       return (
-                        <div key={item.id} className="flex items-center justify-between gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-white border border-gray-100 flex items-center justify-center">
+                        <div key={item.id} className="p-3 sm:p-3.5 bg-gray-50/60 rounded-xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-start gap-3 min-w-0 flex-1">
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 bg-white border border-gray-100 flex items-center justify-center shadow-2xs">
                               {imgUrl ? (
                                 <img src={imgUrl} alt="" className="w-full h-full object-cover" />
                               ) : (
-                                <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
                                 </svg>
                               )}
                             </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <p className="text-xs font-semibold text-gray-800 truncate">{item.product?.name}</p>
-                                {item.product?.is_pre_order && (
-                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                                    Pre-Order ({item.product.pre_order_days || 0} Hari)
-                                  </span>
-                                )}
-                              </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-2 leading-snug">
+                                {item.product?.name}
+                              </p>
+
+                              {item.product?.is_pre_order && (
+                                <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/60 mt-1">
+                                  Pre-Order ({item.product.pre_order_days || 0} Hari)
+                                </span>
+                              )}
+
                               {item.variant && (
-                                <p className="text-[10px] text-gray-400 mt-0.5">
+                                <p className="text-[11px] text-gray-400 mt-0.5 truncate">
                                   {item.variant.product_variant?.name
                                     ? `${item.variant.product_variant.name}: ${item.variant.value}`
                                     : (item.variant.value || item.variant.name)}
                                 </p>
                               )}
-                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                <p className="text-xs font-bold text-green-600">{formatRupiah(price)}</p>
+
+                              {/* Harga di Mobile */}
+                              <div className="flex items-baseline gap-1.5 mt-1 sm:hidden">
+                                <span className="text-xs font-bold text-green-700 whitespace-nowrap">
+                                  {formatRupiah(price)}
+                                </span>
                                 {hasDiscount && (
-                                  <p className="text-[10px] text-gray-400 line-through">{formatRupiah(originalPrice)}</p>
+                                  <span className="text-[10px] text-gray-400 line-through whitespace-nowrap">
+                                    {formatRupiah(originalPrice)}
+                                  </span>
                                 )}
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3 shrink-0">
-                            {/* Qty controls */}
-                            <div className="flex items-center bg-white border border-gray-200 rounded-lg p-0.5 shadow-sm">
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateQuantity(item.id, item.quantity, -1, stock)}
-                                disabled={item.quantity <= 1 || updatingQtyId === item.id}
-                                aria-label="Kurangi kuantitas"
-                                className="w-7 h-7 flex items-center justify-center text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:scale-95 disabled:opacity-30 disabled:hover:bg-transparent rounded-md cursor-pointer border-0 bg-transparent transition-all"
-                              >
-                                −
-                              </button>
-                              <div className="w-8 flex items-center justify-center">
-                                {updatingQtyId === item.id ? (
-                                  <div className="w-3.5 h-3.5 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <span className="text-xs font-bold text-gray-800 select-none">{item.quantity}</span>
-                                )}
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateQuantity(item.id, item.quantity, 1, stock)}
-                                disabled={item.quantity >= stock || updatingQtyId === item.id}
-                                aria-label="Tambah kuantitas"
-                                className="w-7 h-7 flex items-center justify-center text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:scale-95 disabled:opacity-30 disabled:hover:bg-transparent rounded-md cursor-pointer border-0 bg-transparent transition-all"
-                              >
-                                +
-                              </button>
+                          {/* Bagian Aksi & Harga (Mobile: Baris Bawah; Desktop: Sejajar Horizontal) */}
+                          <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t border-gray-100 sm:border-t-0 shrink-0">
+                            {/* Harga di Desktop */}
+                            <div className="hidden sm:flex flex-col items-end mr-1">
+                              <span className="text-sm font-bold text-green-700 whitespace-nowrap">
+                                {formatRupiah(price)}
+                              </span>
+                              {hasDiscount && (
+                                <span className="text-[10px] text-gray-400 line-through whitespace-nowrap">
+                                  {formatRupiah(originalPrice)}
+                                </span>
+                              )}
                             </div>
 
-                            {/* Delete button */}
-                            <button
-                              onClick={() => setConfirmRemoveId(item.id)}
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors border-0 bg-transparent cursor-pointer"
-                              title="Hapus"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
+                            {/* Qty & Delete controls */}
+                            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2.5">
+                              <div className="sm:hidden text-xs text-gray-500">
+                                Total: <span className="font-semibold text-gray-800">{formatRupiah(price * item.quantity)}</span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {/* Qty counter */}
+                                <div className="flex items-center bg-white border border-gray-200 rounded-lg p-0.5 shadow-2xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateQuantity(item.id, item.quantity, -1, stock)}
+                                    disabled={item.quantity <= 1 || updatingQtyId === item.id}
+                                    aria-label="Kurangi kuantitas"
+                                    className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:scale-95 disabled:opacity-30 disabled:hover:bg-transparent rounded-md cursor-pointer border-0 bg-transparent transition-all"
+                                  >
+                                    −
+                                  </button>
+                                  <div className="w-7 sm:w-8 flex items-center justify-center">
+                                    {updatingQtyId === item.id ? (
+                                      <div className="w-3.5 h-3.5 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                      <span className="text-xs font-bold text-gray-800 select-none">{item.quantity}</span>
+                                    )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateQuantity(item.id, item.quantity, 1, stock)}
+                                    disabled={item.quantity >= stock || updatingQtyId === item.id}
+                                    aria-label="Tambah kuantitas"
+                                    className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:scale-95 disabled:opacity-30 disabled:hover:bg-transparent rounded-md cursor-pointer border-0 bg-transparent transition-all"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+
+                                {/* Delete button */}
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmRemoveId(item.id)}
+                                  className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors border-0 bg-transparent cursor-pointer"
+                                  title="Hapus produk"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
@@ -792,39 +833,77 @@ export default function CheckoutPage() {
               Metode Pengiriman
             </h2>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
               {([
                 {
-                  id: "delivered" as const, label: "Dikirim Kurir", desc: "Dikirim ke alamat kamu",
+                  id: "delivered" as const,
+                  label: "Dikirim Kurir",
+                  desc: "Diantar ke alamat kamu",
+                  badge: null,
                   icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zm10 0a2 2 0 11-4 0 2 2 0 014 0zM1 1h4l2.68 13.39a2 2 0 001.98 1.61h9.72a2 2 0 001.98-1.61L23 6H6" />
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zm10 0a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1h4m0 0h1a2 2 0 002-2v-3.5a1 1 0 00-.293-.707l-2.5-2.5A1 1 0 0016.5 7H13" />
                     </svg>
                   ),
                 },
                 {
-                  id: "pickup" as const, label: "Ambil Sendiri", desc: "Ambil langsung di toko",
+                  id: "pickup" as const,
+                  label: "Ambil Sendiri",
+                  desc: "Ambil langsung di toko",
+                  badge: "Gratis",
                   icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 22V12h6v10" />
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 22V12h6v10" />
                     </svg>
                   ),
                 },
-              ]).map((opt) => (
-                <label
-                  key={opt.id}
-                  className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${deliveryType === opt.id ? "border-green-600 bg-green-50/40" : "border-gray-100 hover:border-gray-200"}`}
-                >
-                  <input type="radio" name="delivery_type" value={opt.id} checked={deliveryType === opt.id} onChange={() => setDeliveryType(opt.id)} className="mt-0.5 accent-green-700" />
-                  <div>
-                    <div className="flex items-center gap-1.5 text-gray-600">
-                      {opt.icon}
-                      <p className="text-sm font-semibold text-gray-900">{opt.label}</p>
+              ]).map((opt) => {
+                const isSelected = deliveryType === opt.id;
+                return (
+                  <label
+                    key={opt.id}
+                    className={`relative flex flex-col justify-between p-3 sm:p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      isSelected
+                        ? "border-green-600 bg-green-50/40 shadow-xs ring-1 ring-green-600/20"
+                        : "border-gray-100 hover:border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2 sm:mb-2.5">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                        isSelected ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                      }`}>
+                        {opt.icon}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {opt.badge && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60">
+                            {opt.badge}
+                          </span>
+                        )}
+                        <input
+                          type="radio"
+                          name="delivery_type"
+                          value={opt.id}
+                          checked={isSelected}
+                          onChange={() => setDeliveryType(opt.id)}
+                          className="accent-green-700 w-4 h-4"
+                        />
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
-                  </div>
-                </label>
-              ))}
+
+                    <div>
+                      <p className="text-xs sm:text-sm font-bold text-gray-900 whitespace-nowrap">
+                        {opt.label}
+                      </p>
+                      <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                        {opt.desc}
+                      </p>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
 
             {/* Pilihan metode pengiriman */}
@@ -898,50 +977,76 @@ export default function CheckoutPage() {
                   const renderOption = (opt: any) => {
                     const logo = getLogo(opt);
                     const isLokal = opt.type === "lokal";
+                    const isSelected = selectedShippingId === opt.id;
+                    const isCheapest = opt.price === cheapest.price && rest.length > 0;
+                    const cleanName = opt.name ? opt.name.replace(/^[📦🛵🟢🟡]\s*/, '').trim() : '';
+
                     return (
-                      <label key={opt.id} className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors ${selectedShippingId === opt.id ? "border-orange-400 bg-orange-50" : "border-gray-200 bg-white hover:border-gray-300"}`}>
-                        <div className="flex items-center gap-3">
+                      <label
+                        key={opt.id}
+                        className={`flex items-center justify-between gap-3 p-3 sm:p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                          isSelected
+                            ? "border-green-600 bg-green-50/40 shadow-xs"
+                            : "border-gray-100 bg-white hover:border-gray-200"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                           <input
                             type="radio"
                             name="shipping_courier_selection"
                             value={opt.id}
-                            checked={selectedShippingId === opt.id}
+                            checked={isSelected}
                             onChange={() => {
                               setSelectedShippingId(opt.id);
                               selectedShippingIdRef.current = opt.id;
                               setShippingCost(opt.price);
                             }}
-                            className="accent-orange-500"
+                            className="accent-green-700 shrink-0"
                           />
                           {logo ? (
-                            <img src={logo} alt={opt.name} className="h-7 w-20 object-contain rounded" />
+                            <div className="w-16 sm:w-20 h-8 sm:h-9 bg-white border border-gray-100 rounded-lg p-1 flex items-center justify-center shrink-0">
+                              <img src={logo} alt={cleanName || opt.name} className="max-h-full max-w-full object-contain" />
+                            </div>
                           ) : isLokal && opt.vehicle === 'mobil' ? (
-                            <svg viewBox="0 0 24 24" className="w-6 h-6 text-orange-500 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M5 17H3v-5l2-5h14l2 5v5h-2"/>
-                              <circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/>
-                              <path d="M5 17h3m8 0h-3M6 12h12"/>
-                            </svg>
+                            <div className="w-9 h-9 bg-green-50 border border-green-100 rounded-lg flex items-center justify-center shrink-0 text-green-700">
+                              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M5 17H3v-5l2-5h14l2 5v5h-2"/>
+                                <circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/>
+                                <path d="M5 17h3m8 0h-3M6 12h12"/>
+                              </svg>
+                            </div>
                           ) : isLokal ? (
-                            <svg viewBox="0 0 24 24" className="w-6 h-6 text-orange-500 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/>
-                              <path d="M8 17.5h7M15 17.5l-1-5h-3l-2-4H7l-1.5 2.5M15 12.5l2-3h2l1 3-2 2.5"/>
-                              <path d="M12 7.5h3"/>
-                            </svg>
+                            <div className="w-9 h-9 bg-green-50 border border-green-100 rounded-lg flex items-center justify-center shrink-0 text-green-700">
+                              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/>
+                                <path d="M8 17.5h7M15 17.5l-1-5h-3l-2-4H7l-1.5 2.5M15 12.5l2-3h2l1 3-2 2.5"/>
+                                <path d="M12 7.5h3"/>
+                              </svg>
+                            </div>
                           ) : (
-                            <svg viewBox="0 0 24 24" className="w-6 h-6 text-gray-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="1.5"/><circle cx="18.5" cy="18.5" r="1.5"/>
-                            </svg>
+                            <div className="w-9 h-9 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center shrink-0 text-gray-500">
+                              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="1.5"/><circle cx="18.5" cy="18.5" r="1.5"/>
+                              </svg>
+                            </div>
                           )}
-                          <div>
-                            {isLokal && <p className="text-sm font-semibold text-gray-800">{opt.name}</p>}
-                            <p className="text-xs text-gray-500">{opt.estimation}{opt.distance_km ? ` · ${opt.distance_km} km` : ""}</p>
-                            {opt.note && <p className="text-[10px] text-orange-500">{opt.note}</p>}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
+                              {cleanName || (isLokal ? "Kurir Lokal" : "Kurir Pengiriman")}
+                            </p>
+                            <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                              {opt.estimation ? opt.estimation : "1-3 hari"}{opt.distance_km ? ` · ${opt.distance_km} km` : ""}
+                            </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <span className="text-sm font-bold text-gray-800">{opt.price !== null ? formatRupiah(opt.price) : "Cek app"}</span>
-                          {opt.price === cheapest.price && rest.length > 0 && (
-                            <p className="text-[10px] text-green-600 font-semibold">Termurah</p>
+                        <div className="text-right shrink-0 pl-1">
+                          <span className="text-xs sm:text-sm font-bold text-gray-900 whitespace-nowrap block">
+                            {opt.price !== null ? formatRupiah(opt.price) : "Cek app"}
+                          </span>
+                          {isCheapest && (
+                            <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full mt-0.5 whitespace-nowrap">
+                              Termurah
+                            </span>
                           )}
                         </div>
                       </label>
@@ -956,9 +1061,9 @@ export default function CheckoutPage() {
                           <button
                             type="button"
                             onClick={() => setShowAllShipping(!showAllShipping)}
-                            className="w-full flex items-center justify-center gap-1 text-xs text-orange-600 font-semibold py-2 hover:text-orange-700 transition-colors"
+                            className="w-full flex items-center justify-center gap-1.5 text-xs text-green-700 font-semibold py-2 hover:text-green-800 transition-colors"
                           >
-                            {showAllShipping ? "Sembunyikan opsi lain" : `Lihat ${rest.length} opsi lain`}
+                            <span>{showAllShipping ? "Sembunyikan opsi lain" : `Lihat ${rest.length} opsi lain`}</span>
                             <svg className={`w-3.5 h-3.5 transition-transform ${showAllShipping ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                             </svg>
@@ -970,6 +1075,12 @@ export default function CheckoutPage() {
                           )}
                         </>
                       )}
+                      <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Estimasi ongkir dapat berubah sesuai berat riil paket dan penyesuaian kurir.</span>
+                      </p>
                     </>
                   );
                 })()}
@@ -987,35 +1098,39 @@ export default function CheckoutPage() {
 
             <div className="space-y-3">
               {/* Opsi 1: Otomatis (Midtrans) — hanya tampil jika aktif */}
-              {isMidtransEnabled && <label
-                className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  paymentMethod === "midtrans" ? "border-green-600 bg-green-50/40" : "border-gray-100 hover:border-gray-200"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment_method_choice"
-                  value="midtrans"
-                  checked={paymentMethod === "midtrans"}
-                  onChange={() => setPaymentMethod("midtrans")}
-                  className="mt-0.5 accent-green-700"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-gray-900">Pembayaran Otomatis (Midtrans)</p>
-                    <span className="text-[10px] font-bold px-2 py-0.5 bg-green-100 text-green-700 rounded-full">Konfirmasi Otomatis</span>
+              {isMidtransEnabled && (
+                <label
+                  className={`flex items-start gap-3 p-3.5 sm:p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    paymentMethod === "midtrans" ? "border-green-600 bg-green-50/40 shadow-xs" : "border-gray-100 hover:border-gray-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment_method_choice"
+                    value="midtrans"
+                    checked={paymentMethod === "midtrans"}
+                    onChange={() => setPaymentMethod("midtrans")}
+                    className="mt-1 accent-green-700 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+                      <p className="text-sm font-semibold text-gray-900">Pembayaran Otomatis (Midtrans)</p>
+                      <span className="self-start sm:self-auto text-[10px] font-bold px-2 py-0.5 bg-green-100 text-green-700 rounded-full whitespace-nowrap shrink-0">
+                        Konfirmasi Otomatis
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      Bayar via QRIS Dinamis (GoPay, OVO, ShopeePay, DANA), Virtual Account Bank (BCA, BRI, BNI, Mandiri), dll.
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Bayar via QRIS Dinamis (GoPay, OVO, ShopeePay, DANA), Virtual Account Bank (BCA, BRI, BNI, Mandiri), dll.
-                  </p>
-                </div>
-              </label>}
+                </label>
+              )}
 
               {/* Opsi 2: Langsung ke Toko (Manual QRIS UMKM) — Hanya tampil jika toko sudah upload QRIS / rekening */}
               {hasDirectPaymentSupport && (
                 <label
-                  className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    paymentMethod === "manual_umkm" ? "border-green-600 bg-green-50/40" : "border-gray-100 hover:border-gray-200"
+                  className={`flex items-start gap-3 p-3.5 sm:p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    paymentMethod === "manual_umkm" ? "border-green-600 bg-green-50/40 shadow-xs" : "border-gray-100 hover:border-gray-200"
                   }`}
                 >
                   <input
@@ -1024,14 +1139,16 @@ export default function CheckoutPage() {
                     value="manual_umkm"
                     checked={paymentMethod === "manual_umkm"}
                     onChange={() => setPaymentMethod("manual_umkm")}
-                    className="mt-0.5 accent-green-700"
+                    className="mt-1 accent-green-700 shrink-0"
                   />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
                       <p className="text-sm font-semibold text-gray-900">Bayar Langsung ke Toko (QRIS / Rekening UMKM)</p>
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">Langsung ke Penjual</span>
+                      <span className="self-start sm:self-auto text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full whitespace-nowrap shrink-0">
+                        Langsung ke Penjual
+                      </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
                       Scan QRIS statis toko atau transfer rekening bank UMKM, lalu unggah bukti pembayaran untuk diverifikasi penjual.
                     </p>
                   </div>
@@ -1107,32 +1224,68 @@ export default function CheckoutPage() {
                   {formatRupiah(grandTotal)}
                 </span>
               </div>
-              </div>
+            </div>
 
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || loadingPreview || (deliveryType === "delivered" && (!selectedAddressId || shippingCost === null))}
-              className="mt-5 w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 flex items-center justify-center gap-2"
-              style={{ background: "var(--primary)" }}
-            >
-              {submitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Membuat Pesanan...</span>
-                </>
-              ) : loadingPreview ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Menghitung Ongkir...</span>
-                </>
-              ) : (
-                "Lanjut ke Pembayaran →"
-              )}
-            </button>
-            <p className="text-xs text-gray-400 text-center mt-2">
-              {paymentMethod === "manual_umkm" ? "Bayar langsung ke QRIS / Rekening Penjual" : "Pembayaran aman via Midtrans BUMDes"}
-            </p>
+            {/* Tombol Pembayaran Desktop (Tersembunyi di Mobile) */}
+            <div className="hidden lg:block">
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || loadingPreview || (deliveryType === "delivered" && (!selectedAddressId || shippingCost === null))}
+                className="mt-5 w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 flex items-center justify-center gap-2"
+                style={{ background: "var(--primary)" }}
+              >
+                {submitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Membuat Pesanan...</span>
+                  </>
+                ) : loadingPreview ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Menghitung Ongkir...</span>
+                  </>
+                ) : (
+                  "Lanjut ke Pembayaran →"
+                )}
+              </button>
+              <p className="text-xs text-gray-400 text-center mt-2">
+                {paymentMethod === "manual_umkm" ? "Bayar langsung ke QRIS / Rekening Penjual" : "Pembayaran aman via Midtrans BUMDes"}
+              </p>
+            </div>
           </div>
+        </div>
+      </div>
+
+      {/* Container Baru: Sticky Bottom Bar untuk Mobile (Total Tagihan & Tombol Pembayaran) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <span className="block text-[11px] text-gray-500 font-medium">Total Pembayaran</span>
+            <span className="block text-base sm:text-lg font-bold truncate" style={{ color: "var(--primary)" }}>
+              {formatRupiah(grandTotal)}
+            </span>
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || loadingPreview || (deliveryType === "delivered" && (!selectedAddressId || shippingCost === null))}
+            className="px-5 py-2.5 sm:py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 flex items-center justify-center gap-2 shrink-0 shadow-sm"
+            style={{ background: "var(--primary)" }}
+          >
+            {submitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Membuat...</span>
+              </>
+            ) : loadingPreview ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Menghitung...</span>
+              </>
+            ) : (
+              "Lanjut ke Pembayaran →"
+            )}
+          </button>
         </div>
       </div>
 
