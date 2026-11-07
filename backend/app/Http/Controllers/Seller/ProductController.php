@@ -218,7 +218,7 @@ class ProductController extends Controller
                 'weight'          => $request->weight ?? 0,
                 'is_digital'      => $request->is_digital ?? false,
                 'has_variant'     => $hasVariant,
-                'status'          => $request->status ?? 'draft',
+                'status'          => $request->filled('status') ? $request->status : 'active',
                 'is_pre_order'    => $request->boolean('is_pre_order', false),
                 'pre_order_days'  => $request->boolean('is_pre_order', false) ? (int) $request->pre_order_days : null,
             ]);

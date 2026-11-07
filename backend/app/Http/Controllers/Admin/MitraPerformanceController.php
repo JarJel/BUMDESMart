@@ -31,9 +31,9 @@ class MitraPerformanceController extends Controller
 
         $mitra = UmkmProfile::where('bumdes_profile_id', $bumdesId)
             ->withCount([
-                'products as active_products' => fn($q) => $q->where('status', 'active'),
-                'orders as total_orders' => fn($q) => $q->where('status', '!=', 'cancelled'),
-                'orders as orders_this_month'  => fn($q) => $q->where('status', '!=', 'cancelled')->where('created_at', '>=', $startOfMonth),
+                'products as active_products' => fn($q) => $q->whereIn('products.status', ['active', 'draft']),
+                'orders as total_orders' => fn($q) => $q->where('orders.status', '!=', 'cancelled'),
+                'orders as orders_this_month'  => fn($q) => $q->where('orders.status', '!=', 'cancelled')->where('orders.created_at', '>=', $startOfMonth),
             ])
             ->withSum(
                 ['orders as total_revenue' => fn($q) => $q->whereIn('status', ['completed', 'delivered'])],
