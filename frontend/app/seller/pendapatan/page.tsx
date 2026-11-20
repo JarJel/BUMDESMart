@@ -126,6 +126,9 @@ export default function PendapatanPage() {
     return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
   }), [completedOrders, thisMonth, thisYear]);
 
+  const totalRevenueAllTime = useMemo(() => completedOrders.reduce((s, o) => s + sellerEarnings(o), 0), [completedOrders]);
+  const thisMonthRevenue = useMemo(() => thisMonthCompleted.reduce((s, o) => s + sellerEarnings(o), 0), [thisMonthCompleted]);
+
   const activeCompletedList = thisMonthCompleted.length > 0 ? thisMonthCompleted : completedOrders;
   const activeRevenue = activeCompletedList.reduce((s, o) => s + sellerEarnings(o), 0);
   const avgPerTx = activeCompletedList.length > 0 ? activeRevenue / activeCompletedList.length : 0;
@@ -170,8 +173,30 @@ export default function PendapatanPage() {
   }, [filteredTx, currentPage, itemsPerPage]);
 
   const stats = [
-    { label: "Transaksi Bulan Ini", value: loading ? "—" : `${thisMonthCompleted.length} transaksi` },
-    { label: "Rata-rata Transaksi", value: loading ? "—" : formatRp(avgPerTx) },
+    { 
+      label: "Total Pendapatan (Keseluruhan)", 
+      value: loading ? "—" : formatRp(totalRevenueAllTime),
+      sub: `${completedOrders.length} pesanan selesai`,
+      highlight: true
+    },
+    { 
+      label: `Pendapatan (${currentMonthName})`, 
+      value: loading ? "—" : formatRp(thisMonthRevenue),
+      sub: `${thisMonthCompleted.length} pesanan bulan ini`,
+      highlight: false
+    },
+    { 
+      label: "Transaksi Bulan Ini", 
+      value: loading ? "—" : `${thisMonthCompleted.length} transaksi`,
+      sub: "Pesanan selesai",
+      highlight: false
+    },
+    { 
+      label: "Rata-rata per Transaksi", 
+      value: loading ? "—" : formatRp(avgPerTx),
+      sub: "Berdasarkan pesanan selesai",
+      highlight: false
+    },
   ];
 
   return (
@@ -182,11 +207,19 @@ export default function PendapatanPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map(c => (
-          <div key={c.label} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-2xs">
-            <p className="text-xs text-gray-400 mb-2">{c.label}</p>
-            <p className="text-xl font-bold text-gray-900">{c.value}</p>
+          <div 
+            key={c.label} 
+            className={`rounded-2xl border p-5 shadow-2xs transition-all ${
+              c.highlight 
+                ? "bg-gradient-to-br from-green-50 to-white border-green-200" 
+                : "bg-white border-gray-100"
+            }`}
+          >
+            <p className={`text-xs mb-1.5 font-medium ${c.highlight ? "text-green-700 font-semibold" : "text-gray-500"}`}>{c.label}</p>
+            <p className={`text-2xl font-bold ${c.highlight ? "text-green-700" : "text-gray-900"}`}>{c.value}</p>
+            <p className="text-[11px] text-gray-400 mt-1">{c.sub}</p>
           </div>
         ))}
       </div>

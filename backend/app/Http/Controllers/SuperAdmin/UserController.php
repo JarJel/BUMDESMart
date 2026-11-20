@@ -88,20 +88,22 @@ class UserController extends Controller
 
         // Cek transaksi dari semua sisi: pembeli, seller (UMKM), kurir, dan alamat
         $orderCount = 0;
-        if ($user->role === 'customer') {
-            $orderCount = \App\Models\Order::where('customer_id', $user->id)->count();
+        $customer = $user->customer;
+
+        if ($user->role === 'customer' || $customer) {
+            if ($customer) {
+                $orderCount = \App\Models\Order::where('customer_id', $customer->id)->count();
+                if ($orderCount === 0) {
+                    $addressIds = \App\Models\Address::where('customer_id', $customer->id)->pluck('id');
+                    if ($addressIds->isNotEmpty()) {
+                        $orderCount = \App\Models\Order::whereIn('address_id', $addressIds)->count();
+                    }
+                }
+            }
         } elseif ($user->role === 'umkm' && $user->umkmProfile) {
             $orderCount = \App\Models\Order::where('umkm_profile_id', $user->umkmProfile->id)->count();
         } elseif ($user->role === 'pengirim') {
             $orderCount = \App\Models\Order::where('driver_id', $user->id)->count();
-        }
-
-        // Cek juga alamat user yang mungkin direferensikan oleh orders
-        if ($orderCount === 0) {
-            $addressIds = \App\Models\Address::where('user_id', $user->id)->pluck('id');
-            if ($addressIds->isNotEmpty()) {
-                $orderCount = \App\Models\Order::whereIn('address_id', $addressIds)->count();
-            }
         }
 
         if ($orderCount > 0) {
@@ -111,7 +113,45 @@ class UserController extends Controller
             ], 422);
         }
 
-        $user->delete();
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($user, $customer) {
+                // Bersihkan record-record terkait secara aman sebelum user dihapus
+                if ($customer) {
+                    // Hapus cart & cart items
+                    \App\Models\Cart::where('customer_id', $customer->id)->delete();
+                    // Hapus wishlists
+                    \App\Models\Wishlist::where('customer_id', $customer->id)->delete();
+                    // Hapus alamat pembeli
+                    \App\Models\Address::where('customer_id', $customer->id)->forceDelete();
+                    // Hapus customer profile
+                    $customer->delete();
+                }
+
+                // Hapus token auth & FCM / device tokens
+                $user->tokens()->delete();
+                \App\Models\DeviceToken::where('user_id', $user->id)->delete();
+                \App\Models\FcmToken::where('user_id', $user->id)->delete();
+
+                // Hapus notifikasi & appeals
+                \App\Models\Notification::where('user_id', $user->id)->delete();
+                \App\Models\Appeal::where('user_id', $user->id)->delete();
+
+                // Hapus log tindakan admin yang mentarget user ini
+                \App\Models\AdminActionLog::where('target_user_id', $user->id)->delete();
+
+                // Hapus user
+                $user->delete();
+            });
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Gagal menghapus user: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'Gagal menghapus akun: ' . $e->getMessage(),
+            ], 500);
+        }
 
         return response()->json(['message' => 'Akun berhasil dihapus.']);
     }

@@ -119,9 +119,11 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: bumdesmart_cloudflared
-    restart: unless-stopped
+    restart: always
     command: tunnel --no-autoupdate --protocol http2 run
     dns:
+      - 1.1.1.1
+      - 8.8.8.8
       - 192.168.101.1
     extra_hosts:
       - "host.docker.internal:host-gateway"
